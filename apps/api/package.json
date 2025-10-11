@@ -1,0 +1,23 @@
+{
+  "name": "@follow/api",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Minimal Hono backend aligned with Follow SDK types",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/server.ts",
+    "lint": "eslint --ext .ts src",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.6",
+    "hono": "^4.6.11",
+    "zod": "3.25.75"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}
