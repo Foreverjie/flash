@@ -1717,9 +1717,6 @@ importers:
       sqlocal:
         specifier: npm:@hyoban/sqlocal@0.14.1-fork.4
         version: '@hyoban/sqlocal@0.14.1-fork.4(bufferutil@4.0.9)(drizzle-orm@0.44.5(@opentelemetry/api@1.9.0)(@types/pg@8.15.4)(expo-sqlite@15.2.12(expo@53.0.12(@babel/core@7.28.4)(@expo/metro-runtime@5.0.4(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(bufferutil@4.0.9)(react@19.0.0)))(bufferutil@4.0.9)(graphql@16.8.1)(react-native-webview@13.16.0(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.4)(@types/react@19.1.13)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0))(kysely@0.28.7)(pg@8.16.3))(kysely@0.28.7)'
-      wa-sqlite:
-        specifier: git+https://github.com/rhashimoto/wa-sqlite.git#v1.0.8
-        version: git+https://git@github.com:rhashimoto/wa-sqlite.git#03c00ed67cd934bd664ae310234bba317928f851
     devDependencies:
       '@follow/configs':
         specifier: workspace:*
@@ -15934,10 +15931,6 @@ packages:
 
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
-
-  wa-sqlite@git+https://git@github.com:rhashimoto/wa-sqlite.git#03c00ed67cd934bd664ae310234bba317928f851:
-    resolution: {commit: 03c00ed67cd934bd664ae310234bba317928f851, repo: git@github.com:rhashimoto/wa-sqlite.git, type: git}
-    version: 1.0.8
 
   walker@1.0.8:
     resolution: {integrity: sha512-ts/8E8l5b7kY0vlWLewOkDXMmPdLcVV4GmOQLyxuSswIJsweeFZtAsMF7k1Nszz+TYBQrlYRmzOnr398y1JemQ==}
@@ -35039,8 +35032,6 @@ snapshots:
   void-elements@3.1.0: {}
 
   vscode-uri@3.1.0: {}
-
-  wa-sqlite@git+https://git@github.com:rhashimoto/wa-sqlite.git#03c00ed67cd934bd664ae310234bba317928f851: {}
 
   walker@1.0.8:
     dependencies:
