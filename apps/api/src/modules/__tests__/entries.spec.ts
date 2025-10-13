@@ -59,7 +59,11 @@ describe("Entries module", () => {
     const text = await res.text()
     const lines = text.trim().split("\n")
     expect(lines.length).toBe(2)
-    const first = JSON.parse(lines[0])
+    const firstLine = lines[0]
+    if (!firstLine) {
+      throw new Error("Expected first entry in stream response")
+    }
+    const first = JSON.parse(firstLine)
     expect(first.id).toBe("a")
   })
 

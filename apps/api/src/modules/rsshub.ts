@@ -85,7 +85,7 @@ export const rsshubRoutes = new Hono()
   })
   // POST /api/rsshub/use { id, durationInMonths? }
   .post("/use", async (c) => {
-    const _ = await c.req.json().catch(() => ({}))
+    // const _ = await c.req.json().catch(() => ({}))
     return c.json(ok(null))
   })
   // GET /api/rsshub/get?id=...

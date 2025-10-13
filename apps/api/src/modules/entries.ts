@@ -128,7 +128,7 @@ export const entriesRoutes = new Hono()
     return c.json(ok(items))
   })
   .delete("/inbox/delete", async (c) => {
-    const _ = await c.req.json().catch(() => ({}))
+    // const _ = await c.req.json().catch(() => ({}))
     return c.json(ok({}))
   })
   // GET /api/entries/:id — keep this last to avoid matching specific routes

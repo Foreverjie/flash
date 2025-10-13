@@ -71,12 +71,12 @@ export const feedsRoutes = new Hono()
   // POST /api/feeds/refresh { id: string }
   .post("/refresh", async (c) => {
     // No-op for mock
-    const _ = await c.req.json().catch(() => ({}))
+    // const _ = await c.req.json().catch(() => ({}))
     return c.json(ok(null))
   })
   // POST /api/feeds/reset { id: string }
   .post("/reset", async (c) => {
-    const _ = await c.req.json().catch(() => ({}))
+    // const _ = await c.req.json().catch(() => ({}))
     return c.json(ok(null))
   })
   // POST /api/feeds/analytics { id: string[] }
@@ -94,7 +94,7 @@ export const feedsRoutes = new Hono()
   })
   // POST /api/feeds/claim/challenge { feedId: string }
   .post("/claim/challenge", async (c) => {
-    const _ = await c.req.json().catch(() => ({}))
+    // const _ = await c.req.json().catch(() => ({}))
     return c.json(ok(null))
   })
   // GET /api/feeds/claim/list

@@ -8,6 +8,6 @@ export const subscriptionsRoutes = new Hono()
   // POST /api/subscriptions
   .post("/", async (c) => {
     // Accept a minimal payload and return stubbed creation
-    const _body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>
+    // const _body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>
     return c.json({ code: 0 as const, feed: null, list: null, unread: {} })
   })
