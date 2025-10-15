@@ -67,7 +67,7 @@
       "severity": "off"
     }
   ],
-  "cSpell.words": ["Hydable", "rsshub", "Русский"],
+  "cSpell.words": ["Hydable", "rsshub", "srvx", "Русский"],
   // "editor.foldingImportsByDefault": true,
   "commentTranslate.hover.enabled": false,
   "typescript.tsdk": "node_modules/typescript/lib",
