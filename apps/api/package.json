@@ -21,6 +21,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@follow/database": "workspace:*",
     "@hono/node-server": "^1.13.7",
     "hono": "^4.7.11"
   },

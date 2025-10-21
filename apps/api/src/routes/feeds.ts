@@ -1,35 +1,21 @@
+import { feedsTable } from "@follow/database/schemas/index"
+import { eq } from "drizzle-orm"
 import { Hono } from "hono"
 
+import { db } from "../db.js"
 import { sendError, structuredSuccess } from "../utils/response.js"
 
 const feeds = new Hono()
-
-// Mock feed data
-const mockFeeds = [
-  {
-    id: "feed-1",
-    url: "https://example.com/feed.xml",
-    title: "Example Feed",
-    description: "An example RSS feed",
-    siteUrl: "https://example.com",
-    image: null,
-    checkedAt: new Date().toISOString(),
-    lastModifiedHeader: null,
-    etagHeader: null,
-    ttl: 3600,
-    errorAt: null,
-    errorMessage: null,
-    ownerUserId: null as string | null,
-  },
-]
 
 /**
  * GET /feeds/:id
  * Get feed by ID
  */
-feeds.get("/:id", (c) => {
+feeds.get("/:id", async (c) => {
   const id = c.req.param("id")
-  const feed = mockFeeds.find((f) => f.id === id)
+  const feed = await db.query.feedsTable.findFirst({
+    where: eq(feedsTable.id, id),
+  })
 
   if (!feed) {
     return sendError(c, "Feed not found", 404, 404)
@@ -43,26 +29,27 @@ feeds.get("/:id", (c) => {
  * Create or discover a feed
  */
 feeds.post("/", async (c) => {
-  const body = await c.req.json<{ url: string }>()
+  const body = await c.req.json<{ url: string; title?: string; description?: string }>()
 
-  // Mock feed discovery
-  const newFeed = {
+  // Create new feed
+  const newFeedData = {
     id: `feed-${Date.now()}`,
     url: body.url,
-    title: "New Feed",
-    description: "A newly discovered feed",
+    title: body.title || null,
+    description: body.description || null,
     siteUrl: body.url,
     image: null,
-    checkedAt: new Date().toISOString(),
-    lastModifiedHeader: null,
-    etagHeader: null,
-    ttl: 3600,
     errorAt: null,
     errorMessage: null,
-    ownerUserId: "mock-user-id",
+    ownerUserId: null,
+    subscriptionCount: null,
+    updatesPerWeek: null,
+    latestEntryPublishedAt: null,
+    tipUserIds: null,
+    updatedAt: null,
   }
 
-  mockFeeds.push(newFeed)
+  const [newFeed] = await db.insert(feedsTable).values(newFeedData).returning()
 
   return c.json(structuredSuccess(newFeed))
 })
@@ -71,21 +58,26 @@ feeds.post("/", async (c) => {
  * GET /feeds
  * List feeds with pagination
  */
-feeds.get("/", (c) => {
+feeds.get("/", async (c) => {
   const page = Number(c.req.query("page")) || 1
   const limit = Number(c.req.query("limit")) || 20
+  const offset = (page - 1) * limit
 
-  const start = (page - 1) * limit
-  const end = start + limit
-  const paginatedFeeds = mockFeeds.slice(start, end)
+  const [paginatedFeeds, totalFeeds] = await Promise.all([
+    db.query.feedsTable.findMany({
+      limit,
+      offset,
+    }),
+    db.query.feedsTable.findMany(),
+  ])
 
   return c.json(
     structuredSuccess({
       data: paginatedFeeds,
-      total: mockFeeds.length,
+      total: totalFeeds.length,
       page,
       limit,
-      hasMore: end < mockFeeds.length,
+      hasMore: offset + limit < totalFeeds.length,
     }),
   )
 })
@@ -94,15 +86,18 @@ feeds.get("/", (c) => {
  * DELETE /feeds/:id
  * Delete a feed
  */
-feeds.delete("/:id", (c) => {
+feeds.delete("/:id", async (c) => {
   const id = c.req.param("id")
-  const index = mockFeeds.findIndex((f) => f.id === id)
 
-  if (index === -1) {
+  const feed = await db.query.feedsTable.findFirst({
+    where: eq(feedsTable.id, id),
+  })
+
+  if (!feed) {
     return sendError(c, "Feed not found", 404, 404)
   }
 
-  mockFeeds.splice(index, 1)
+  await db.delete(feedsTable).where(eq(feedsTable.id, id))
 
   return c.json({ code: 0 })
 })
@@ -114,15 +109,22 @@ feeds.delete("/:id", (c) => {
 feeds.patch("/:id", async (c) => {
   const id = c.req.param("id")
   const body = await c.req.json()
-  const feed = mockFeeds.find((f) => f.id === id)
+
+  const feed = await db.query.feedsTable.findFirst({
+    where: eq(feedsTable.id, id),
+  })
 
   if (!feed) {
     return sendError(c, "Feed not found", 404, 404)
   }
 
-  Object.assign(feed, body)
+  const [updatedFeed] = await db
+    .update(feedsTable)
+    .set(body)
+    .where(eq(feedsTable.id, id))
+    .returning()
 
-  return c.json(structuredSuccess(feed))
+  return c.json(structuredSuccess(updatedFeed))
 })
 
 export default feeds

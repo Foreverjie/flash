@@ -3,6 +3,7 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 
+import { setupDatabase } from "./db.js"
 import aiRouter from "./routes/ai.js"
 import authRouter from "./routes/auth.js"
 import entriesRouter from "./routes/entries.js"
@@ -40,11 +41,22 @@ app.get("/", (c) => {
   })
 })
 
-// Start server
-const port = Number(process.env.PORT) || 3001
-console.info(`Server is running on http://localhost:${port}`)
+// Initialize and start server
+async function startServer() {
+  // Initialize database connection
+  await setupDatabase()
 
-serve({
-  fetch: app.fetch,
-  port,
+  // Start server
+  const port = Number(process.env.PORT) || 3001
+  console.info(`Server is running on http://localhost:${port}`)
+
+  serve({
+    fetch: app.fetch,
+    port,
+  })
+}
+
+startServer().catch((error) => {
+  console.error("Failed to start server:", error)
+  throw error
 })

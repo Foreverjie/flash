@@ -1,7 +1,5 @@
-import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core/db"
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 
 import type * as schema from "./schemas"
 
-export type DB =
-  | BaseSQLiteDatabase<"async", any, typeof schema>
-  | BaseSQLiteDatabase<"sync", any, typeof schema>
+export type DB = PostgresJsDatabase<typeof schema>

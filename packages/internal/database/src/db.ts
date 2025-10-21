@@ -1,17 +1,17 @@
-import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core"
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
 
 import type * as schema from "./schemas"
 import type { DB } from "./types"
 
-export declare const sqlite: unknown
+export declare const client: unknown
 export declare const db: DB
 export declare function initializeDB(): Promise<void>
 export declare function migrateDB(): Promise<void>
 export declare function getDBFile(): Promise<Blob>
 export declare function exportDB(): Promise<void>
 /**
- * Deletes the database file, normally you should reload the app after calling this function.
+ * Closes the database connection (for PostgreSQL)
  */
 export declare function deleteDB(): Promise<void>
 
-export type AsyncDb = BaseSQLiteDatabase<"async", any, typeof schema>
+export type AsyncDb = PostgresJsDatabase<typeof schema>

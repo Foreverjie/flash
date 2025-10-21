@@ -2,78 +2,88 @@ import type { FeedViewType } from "@follow/constants"
 import type { SupportedActionLanguage } from "@follow/shared/language"
 import type { EntrySettings } from "@follow-app/client-sdk"
 import { sql } from "drizzle-orm"
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core"
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core"
 
 import type { AttachmentsModel, ExtraModel, ImageColorsResult, MediaModel } from "./types"
 
-export const feedsTable = sqliteTable("feeds", {
-  id: text("id").primaryKey(),
+export const feedsTable = pgTable("feeds", {
+  id: varchar("id", { length: 255 }).primaryKey(),
   title: text("title"),
   url: text("url").notNull(),
   description: text("description"),
   image: text("image"),
   errorAt: text("error_at"),
   siteUrl: text("site_url"),
-  ownerUserId: text("owner_user_id"),
+  ownerUserId: varchar("owner_user_id", { length: 255 }),
   errorMessage: text("error_message"),
   subscriptionCount: integer("subscription_count"),
   updatesPerWeek: integer("updates_per_week"),
   latestEntryPublishedAt: text("latest_entry_published_at"),
-  tipUserIds: text("tip_users", { mode: "json" }).$type<string[]>(),
-  updatedAt: integer("published_at", { mode: "timestamp_ms" }),
+  tipUserIds: jsonb("tip_users").$type<string[]>(),
+  updatedAt: timestamp("published_at", { mode: "date" }),
 })
 
-export const subscriptionsTable = sqliteTable("subscriptions", {
-  feedId: text("feed_id"),
-  listId: text("list_id"),
-  inboxId: text("inbox_id"),
-  userId: text("user_id").notNull(),
+export const subscriptionsTable = pgTable("subscriptions", {
+  feedId: varchar("feed_id", { length: 255 }),
+  listId: varchar("list_id", { length: 255 }),
+  inboxId: varchar("inbox_id", { length: 255 }),
+  userId: varchar("user_id", { length: 255 }).notNull(),
   view: integer("view").notNull().$type<FeedViewType>(),
-  isPrivate: integer("is_private", { mode: "boolean" }).notNull(),
-  hideFromTimeline: integer("hide_from_timeline", { mode: "boolean" }),
+  isPrivate: boolean("is_private").notNull(),
+  hideFromTimeline: boolean("hide_from_timeline"),
   title: text("title"),
   category: text("category"),
   createdAt: text("created_at"),
-  type: text("type").notNull().$type<"feed" | "list" | "inbox">(),
-  id: text("id").primaryKey(),
+  type: varchar("type", { length: 50 }).notNull().$type<"feed" | "list" | "inbox">(),
+  id: varchar("id", { length: 255 }).primaryKey(),
 })
 
-export const inboxesTable = sqliteTable("inboxes", {
-  id: text("id").primaryKey(),
+export const inboxesTable = pgTable("inboxes", {
+  id: varchar("id", { length: 255 }).primaryKey(),
   title: text("title"),
   secret: text("secret").notNull(),
 })
 
-export const listsTable = sqliteTable("lists", {
-  id: text("id").primaryKey(),
-  userId: text("user_id"),
+export const listsTable = pgTable("lists", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  userId: varchar("user_id", { length: 255 }),
   title: text("title").notNull(),
-  feedIds: text("feed_ids", { mode: "json" }).$type<string>(),
+  feedIds: jsonb("feed_ids").$type<string>(),
   description: text("description"),
   view: integer("view").notNull().$type<FeedViewType>(),
   image: text("image"),
   fee: integer("fee"),
-  ownerUserId: text("owner_user_id"),
+  ownerUserId: varchar("owner_user_id", { length: 255 }),
   subscriptionCount: integer("subscription_count"),
   purchaseAmount: text("purchase_amount"),
 })
 
-export const unreadTable = sqliteTable("unread", {
-  id: text("subscription_id").notNull().primaryKey(),
+export const unreadTable = pgTable("unread", {
+  id: varchar("subscription_id", { length: 255 }).notNull().primaryKey(),
   count: integer("count").notNull(),
 })
 
-export const usersTable = sqliteTable("users", {
-  id: text("id").primaryKey(),
+export const usersTable = pgTable("users", {
+  id: varchar("id", { length: 255 }).primaryKey(),
   email: text("email"),
   handle: text("handle"),
   name: text("name"),
   image: text("image"),
-  isMe: integer("is_me", { mode: "boolean" }),
-  emailVerified: integer("email_verified", { mode: "boolean" }),
+  isMe: boolean("is_me"),
+  emailVerified: boolean("email_verified"),
   bio: text("bio"),
   website: text("website"),
-  socialLinks: text("social_links", { mode: "json" }).$type<{
+  socialLinks: jsonb("social_links").$type<{
     twitter?: string
     github?: string
     instagram?: string
@@ -82,58 +92,59 @@ export const usersTable = sqliteTable("users", {
     discord?: string
   }>(),
 })
-export const entriesTable = sqliteTable("entries", {
-  id: text("id").primaryKey(),
+
+export const entriesTable = pgTable("entries", {
+  id: varchar("id", { length: 255 }).primaryKey(),
   title: text("title"),
   url: text("url"),
   content: text("content"),
   readabilityContent: text("source_content"),
-  readabilityUpdatedAt: integer("readability_updated_at", { mode: "timestamp_ms" }),
+  readabilityUpdatedAt: timestamp("readability_updated_at", { mode: "date" }),
   description: text("description"),
   guid: text("guid").notNull(),
   author: text("author"),
   authorUrl: text("author_url"),
   authorAvatar: text("author_avatar"),
-  insertedAt: integer("inserted_at", { mode: "timestamp_ms" }).notNull(),
-  publishedAt: integer("published_at", { mode: "timestamp_ms" }).notNull(),
-  media: text("media", { mode: "json" }).$type<MediaModel[]>(),
-  categories: text("categories", { mode: "json" }).$type<string[]>(),
-  attachments: text("attachments", { mode: "json" }).$type<AttachmentsModel[]>(),
-  extra: text("extra", { mode: "json" }).$type<ExtraModel>(),
+  insertedAt: timestamp("inserted_at", { mode: "date" }).notNull(),
+  publishedAt: timestamp("published_at", { mode: "date" }).notNull(),
+  media: jsonb("media").$type<MediaModel[]>(),
+  categories: jsonb("categories").$type<string[]>(),
+  attachments: jsonb("attachments").$type<AttachmentsModel[]>(),
+  extra: jsonb("extra").$type<ExtraModel>(),
   language: text("language"),
 
-  feedId: text("feed_id"),
+  feedId: varchar("feed_id", { length: 255 }),
 
   inboxHandle: text("inbox_handle"),
-  read: integer("read", { mode: "boolean" }),
-  sources: text("sources", { mode: "json" }).$type<string[]>(),
-  settings: text("settings", { mode: "json" }).$type<EntrySettings>(),
+  read: boolean("read"),
+  sources: jsonb("sources").$type<string[]>(),
+  settings: jsonb("settings").$type<EntrySettings>(),
 })
 
-export const collectionsTable = sqliteTable("collections", {
-  feedId: text("feed_id"),
-  entryId: text("entry_id").notNull().primaryKey(),
+export const collectionsTable = pgTable("collections", {
+  feedId: varchar("feed_id", { length: 255 }),
+  entryId: varchar("entry_id", { length: 255 }).notNull().primaryKey(),
   createdAt: text("created_at"),
   view: integer("view").notNull().$type<FeedViewType>(),
 })
 
-export const summariesTable = sqliteTable(
+export const summariesTable = pgTable(
   "summaries",
   {
-    entryId: text("entry_id").notNull(),
+    entryId: varchar("entry_id", { length: 255 }).notNull(),
     summary: text("summary").notNull(),
     readabilitySummary: text("readability_summary"),
     createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-    language: text("language").$type<SupportedActionLanguage>(),
+    language: varchar("language", { length: 10 }).$type<SupportedActionLanguage>(),
   },
   (t) => [uniqueIndex("unq").on(t.entryId, t.language)],
 )
 
-export const translationsTable = sqliteTable(
+export const translationsTable = pgTable(
   "translations",
   (t) => ({
-    entryId: t.text("entry_id").notNull(),
-    language: t.text("language").$type<SupportedActionLanguage>().notNull(),
+    entryId: t.varchar("entry_id", { length: 255 }).notNull(),
+    language: t.varchar("language", { length: 10 }).$type<SupportedActionLanguage>().notNull(),
     title: t.text("title"),
     description: t.text("description"),
     content: t.text("content"),
@@ -146,29 +157,29 @@ export const translationsTable = sqliteTable(
   (t) => [uniqueIndex("translation-unique-index").on(t.entryId, t.language)],
 )
 
-export const imagesTable = sqliteTable("images", (t) => ({
+export const imagesTable = pgTable("images", (t) => ({
   url: t.text("url").notNull().primaryKey(),
-  colors: t.text("colors", { mode: "json" }).$type<ImageColorsResult>().notNull(),
+  colors: t.jsonb("colors").$type<ImageColorsResult>().notNull(),
   createdAt: t
-    .integer("created_at", { mode: "timestamp_ms" })
+    .timestamp("created_at", { mode: "date" })
     .notNull()
-    .default(sql`(unixepoch() * 1000)`),
+    .default(sql`now()`),
 }))
 
 // AI Chat Sessions Table
-export const aiChatTable = sqliteTable(
+export const aiChatTable = pgTable(
   "ai_chat_sessions",
   (t) => ({
-    chatId: t.text("id").notNull().primaryKey(),
+    chatId: t.varchar("id", { length: 255 }).notNull().primaryKey(),
     title: t.text("title"),
     createdAt: t
-      .integer("created_at", { mode: "timestamp_ms" })
+      .timestamp("created_at", { mode: "date" })
       .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+      .default(sql`now()`),
     updatedAt: t
-      .integer("updated_at", { mode: "timestamp_ms" })
+      .timestamp("updated_at", { mode: "date" })
       .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+      .default(sql`now()`),
   }),
   (table) => [index("idx_ai_chat_sessions_updated_at").on(table.updatedAt)],
 )
@@ -217,28 +228,28 @@ type UIMessagePart =
   | StepStartUIPart
 
 // AI Chat Messages Table - Rich text support
-export const aiChatMessagesTable = sqliteTable(
+export const aiChatMessagesTable = pgTable(
   "ai_chat_messages",
   (t) => ({
-    id: t.text("id").notNull().primaryKey(),
+    id: t.varchar("id", { length: 255 }).notNull().primaryKey(),
     chatId: t
-      .text("chat_id")
+      .varchar("chat_id", { length: 255 })
       .notNull()
       .references(() => aiChatTable.chatId, { onDelete: "cascade" }),
 
-    role: t.text("role").notNull().$type<"user" | "assistant" | "system">(),
+    role: t.varchar("role", { length: 20 }).notNull().$type<"user" | "assistant" | "system">(),
 
-    createdAt: t.integer("created_at", { mode: "timestamp_ms" }),
-    metadata: t.text("metadata", { mode: "json" }).$type<any>(),
+    createdAt: t.timestamp("created_at", { mode: "date" }),
+    metadata: t.jsonb("metadata").$type<any>(),
 
     status: t
-      .text("status")
+      .varchar("status", { length: 20 })
       .$type<"pending" | "streaming" | "completed" | "error">()
       .default("completed"),
-    finishedAt: t.integer("finished_at", { mode: "timestamp_ms" }),
+    finishedAt: t.timestamp("finished_at", { mode: "date" }),
 
     // Store UIMessage parts for complex assistant responses (tools, reasoning, etc)
-    messageParts: t.text("message_parts", { mode: "json" }).$type<UIMessagePart[]>(),
+    messageParts: t.jsonb("message_parts").$type<UIMessagePart[]>(),
   }),
   (table) => [
     index("idx_ai_chat_messages_chat_id_created_at").on(table.chatId, table.createdAt),

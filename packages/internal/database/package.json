@@ -29,6 +29,9 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -36,10 +39,10 @@
     "@follow/constants": "workspace:*",
     "@follow/models": "workspace:*",
     "@follow/shared": "workspace:*",
+    "@supabase/supabase-js": "^2.45.4",
     "ai": "5.0.48",
     "drizzle-orm": "0.44.5",
-    "expo-sqlite": "15.2.12",
-    "sqlocal": "npm:@hyoban/sqlocal@0.14.1-fork.4"
+    "postgres": "^3.4.5"
   },
   "devDependencies": {
     "@follow/configs": "workspace:*",
