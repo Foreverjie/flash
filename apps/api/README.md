@@ -2,7 +2,7 @@
 
 [![API CI](https://github.com/Foreverjie/flash/workflows/API%20CI/badge.svg)](https://github.com/Foreverjie/flash/actions/workflows/api-ci.yml)
 
-Hono.js-based API server for the Follow application.
+Hono.js-based API server for the Follow application with PostgreSQL database integration.
 
 ## Quick Start
 
@@ -10,12 +10,18 @@ Hono.js-based API server for the Follow application.
 # Install dependencies
 pnpm install
 
-# Start development server with hot reload
+# Configure environment variables
 cd apps/api
+cp .env.example .env
+# Edit .env and set POSTGRES_URL and other required variables
+
+# Start development server with hot reload
 pnpm dev
 
 # Server runs on http://localhost:3001
 ```
+
+> **Note**: The API requires a PostgreSQL database connection. See [DATABASE.md](./DATABASE.md) for detailed setup instructions.
 
 ## Development
 

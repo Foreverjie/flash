@@ -1,45 +1,57 @@
-import type { ExpoSQLiteDatabase } from "drizzle-orm/expo-sqlite"
-import { drizzle } from "drizzle-orm/expo-sqlite"
-import { migrate } from "drizzle-orm/expo-sqlite/migrator"
-import * as SQLite from "expo-sqlite"
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js"
+import { drizzle } from "drizzle-orm/postgres-js"
+import { migrate } from "drizzle-orm/postgres-js/migrator"
+import postgres from "postgres"
 
-import { SQLITE_DB_NAME } from "./constant"
-import migrations from "./drizzle/migrations"
+import { POSTGRES_URL } from "./constant"
 import * as schema from "./schemas"
 
-export let sqlite = SQLite.openDatabaseSync(SQLITE_DB_NAME)
+export let client: postgres.Sql | null = null
 
-let db: ExpoSQLiteDatabase<typeof schema> & {
-  $client: SQLite.SQLiteDatabase
-}
+let db: PostgresJsDatabase<typeof schema>
 
 export function initializeDB() {
-  db = drizzle(sqlite, {
+  // Create PostgreSQL client for React Native
+  // Note: React Native requires using a proxy/bridge to connect to PostgreSQL
+  // For production, consider using Supabase client directly or a REST API
+  client = postgres(POSTGRES_URL, {
+    max: 5, // Smaller pool for mobile
+    idle_timeout: 20,
+    connect_timeout: 10,
+  })
+
+  db = drizzle(client, {
     schema,
     logger: false,
   })
 }
+
 export { db }
 
 export async function migrateDB(): Promise<void> {
   try {
-    await migrate(db, migrations)
+    await migrate(db, { migrationsFolder: "./src/drizzle" })
   } catch (error) {
     console.error("Failed to migrate database:", error)
-    await deleteDB()
-    sqlite = SQLite.openDatabaseSync(SQLITE_DB_NAME)
-    initializeDB()
-    await migrate(db, migrations)
+    throw error
   }
 }
 
-export async function getDBFile() {}
-export async function exportDB() {}
+export async function getDBFile() {
+  throw new Error("Database export is not supported for PostgreSQL")
+}
+
+export async function exportDB() {
+  throw new Error("Database export is not supported for PostgreSQL")
+}
+
 export async function deleteDB() {
-  try {
-    await sqlite.closeAsync()
-  } catch {
-    /* empty */
+  // Close the connection if needed
+  if (client) {
+    await client.end()
+    client = null
   }
-  await SQLite.deleteDatabaseAsync(SQLITE_DB_NAME)
+  throw new Error(
+    "Database deletion is not supported for PostgreSQL. Please clear data from server.",
+  )
 }
