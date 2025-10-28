@@ -14,6 +14,10 @@ export function initializeDB() {
   // Create PostgreSQL client for React Native
   // Note: React Native requires using a proxy/bridge to connect to PostgreSQL
   // For production, consider using Supabase client directly or a REST API
+  if (!POSTGRES_URL) {
+    throw new Error("POSTGRES_URL is not defined")
+  }
+
   client = postgres(POSTGRES_URL, {
     max: 5, // Smaller pool for mobile
     idle_timeout: 20,
