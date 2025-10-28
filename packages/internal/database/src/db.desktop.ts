@@ -10,6 +10,9 @@ let db: PostgresJsDatabase<typeof schema>
 let client: postgres.Sql
 
 export async function initializeDB() {
+  if (!POSTGRES_URL) {
+    throw new Error("POSTGRES_URL is not defined")
+  }
   // Create PostgreSQL client
   client = postgres(POSTGRES_URL, {
     max: 10, // Connection pool size
