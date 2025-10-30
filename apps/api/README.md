@@ -2,7 +2,7 @@
 
 [![API CI](https://github.com/Foreverjie/flash/workflows/API%20CI/badge.svg)](https://github.com/Foreverjie/flash/actions/workflows/api-ci.yml)
 
-Hono.js-based API server for the Follow application with PostgreSQL database integration.
+Hono.js-based API server for the Follow application with PostgreSQL database, Supabase authentication, and Better Auth.
 
 ## Quick Start
 
@@ -13,7 +13,12 @@ pnpm install
 # Configure environment variables
 cd apps/api
 cp .env.example .env
-# Edit .env and set POSTGRES_URL and other required variables
+# Edit .env and set:
+# - POSTGRES_URL (PostgreSQL connection string)
+# - SUPABASE_URL (Supabase project URL - optional)
+# - SUPABASE_ANON_KEY (Supabase anonymous key - optional)
+# - GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET (OAuth - optional)
+# - STRIPE_SECRET_KEY (Subscriptions - optional)
 
 # Start development server with hot reload
 pnpm dev
@@ -21,7 +26,37 @@ pnpm dev
 # Server runs on http://localhost:3001
 ```
 
-> **Note**: The API requires a PostgreSQL database connection. See [DATABASE.md](./DATABASE.md) for detailed setup instructions.
+> **Note**: The API requires:
+>
+> - PostgreSQL database connection (see [DATABASE.md](./DATABASE.md))
+> - Better Auth is the primary authentication system (see [BETTER_AUTH.md](./BETTER_AUTH.md))
+> - Supabase Auth is also available as an alternative (see [AUTH.md](./AUTH.md))
+
+## Authentication Systems
+
+This API provides two authentication systems:
+
+1. **Better Auth** (Recommended) - `/better-auth/*`
+   - Complete authentication solution
+   - Social OAuth providers (GitHub, Google, etc.)
+   - Two-factor authentication
+   - Stripe subscription integration
+   - See [BETTER_AUTH.md](./BETTER_AUTH.md)
+
+2. **Supabase Auth** - `/auth/*`
+   - Alternative authentication backend
+   - Email/password, magic links
+   - PKCE flow support
+   - See [AUTH.md](./AUTH.md) and [PKCE.md](./PKCE.md)
+
+## Documentation
+
+- **[BETTER_AUTH.md](./BETTER_AUTH.md)** - Better Auth setup and usage (recommended)
+- **[AUTH.md](./AUTH.md)** - Supabase authentication API documentation
+- **[PKCE.md](./PKCE.md)** - PKCE flow implementation guide
+- **[DATABASE.md](./DATABASE.md)** - Database setup and management
+- **[AGENTS.md](./AGENTS.md)** - Agent-focused development guide
+- **[API.md](./API.md)** - General API documentation
 
 ## Development
 
