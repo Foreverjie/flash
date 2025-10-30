@@ -1,38 +1,67 @@
 import type { Context, Next } from "hono"
 
+import { supabase } from "../lib/supabase.js"
 import { sendUnauthorized } from "../utils/response"
 
+export interface AuthContext {
+  userId: string
+  email?: string
+  role?: string
+}
+
 /**
- * Mock authentication middleware
- * TODO: Implement real authentication with session validation
+ * Authentication middleware - verifies JWT token from Supabase
+ * Requires valid authentication token in Authorization header
  */
 export async function authMiddleware(c: Context, next: Next) {
-  // For now, just pass through
-  // In production, check for valid session/token
   const authHeader = c.req.header("Authorization")
 
-  if (!authHeader) {
-    // For development, we'll allow requests without auth
-    // return sendUnauthorized(c)
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return sendUnauthorized(c, "Missing or invalid authorization header")
   }
 
-  // Mock user context
-  c.set("userId", "mock-user-id")
-  c.set("userRole", "user")
+  const token = authHeader.replace("Bearer ", "")
 
-  await next()
+  try {
+    const { data, error } = await supabase.auth.getUser(token)
+
+    if (error || !data.user) {
+      return sendUnauthorized(c, "Invalid or expired token")
+    }
+
+    // Set user context
+    c.set("userId", data.user.id)
+    c.set("userEmail", data.user.email)
+    c.set("userRole", data.user.role || "user")
+
+    return await next()
+  } catch (error) {
+    console.error("Auth middleware error:", error)
+    return sendUnauthorized(c, "Authentication failed")
+  }
 }
 
 /**
  * Optional auth middleware - doesn't fail if no auth provided
+ * But validates token if present
  */
 export async function optionalAuth(c: Context, next: Next) {
   const authHeader = c.req.header("Authorization")
 
-  if (authHeader) {
-    // Set user context if available
-    c.set("userId", "mock-user-id")
-    c.set("userRole", "user")
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.replace("Bearer ", "")
+
+    try {
+      const { data } = await supabase.auth.getUser(token)
+
+      if (data.user) {
+        c.set("userId", data.user.id)
+        c.set("userEmail", data.user.email)
+        c.set("userRole", data.user.role || "user")
+      }
+    } catch {
+      // Silently ignore errors for optional auth
+    }
   }
 
   await next()

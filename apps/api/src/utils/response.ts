@@ -23,6 +23,16 @@ export function structuredSuccess<T>(data: T): StructuredSuccessResponse<T> {
 }
 
 /**
+ * Create a structured error response
+ */
+export function structuredError(message: string, code = 1) {
+  return {
+    code,
+    message,
+  }
+}
+
+/**
  * Create an empty success response
  */
 export function emptySuccess(): EmptyResponse {
