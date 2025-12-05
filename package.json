@@ -1,0 +1,85 @@
+{
+  "name": "@follow/monorepo",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@10.17.0",
+  "description": "Follow everything in one place",
+  "author": "Folo Team",
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/RSSNext",
+  "repository": {
+    "url": "https://github.com/RSSNext/follow",
+    "type": "git"
+  },
+  "scripts": {
+    "build:packages": "turbo run build --filter=\"./packages/**/*\"",
+    "build:web": "turbo run Folo#build:web",
+    "dedupe:locales": "eslint --fix locales/**",
+    "depcheck": "npx depcheck --quiet",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "icons:sync": "tsx scripts/svg-to-rn.ts && prettier --write apps/mobile/src/icons/**/*.tsx && eslint --fix apps/mobile/src/icons/**/*.tsx",
+    "icons:update": "tsx scripts/update-icon.ts",
+    "lint": "pnpm run lint:tsl && eslint",
+    "lint:fix": "eslint --fix",
+    "lint:tsl": "tsslint --project apps/*/tsconfig.json",
+    "mitproxy": "bash scripts/run-proxy.sh",
+    "polyfill-optimize": "pnpx nolyfill install",
+    "postinstall": "pnpm run build:packages",
+    "prepare": "simple-git-hooks && corepack prepare",
+    "reinstall": "rm -rf node_modules && rm -rf apps/**/node_modules && rm -rf packages/**/node_modules && pnpm install",
+    "test": "cross-env CI=1 pnpm --recursive run test",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "@babel/generator": "7.28.5",
+    "@babel/parser": "7.28.5",
+    "@babel/traverse": "7.28.5",
+    "@babel/types": "7.28.5",
+    "@eslint/compat": "1.4.1",
+    "@tsslint/cli": "2.0.7",
+    "@tsslint/config": "2.0.7",
+    "@tsslint/eslint": "2.0.7",
+    "@types/node": "24.5.2",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vercel/node": "5.5.4",
+    "cross-env": "10.1.0",
+    "eslint": "9.39.1",
+    "eslint-config-hyoban": "4.0.10",
+    "eslint-plugin-react-native": "5.0.0",
+    "fast-glob": "3.3.3",
+    "glob": "11.0.3",
+    "lint-staged": "16.2.6",
+    "prettier": "3.6.2",
+    "prettier-plugin-tailwindcss": "0.7.1",
+    "raw-body": "3.0.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "rimraf": "6.1.0",
+    "simple-git-hooks": "2.13.1",
+    "svg-parser": "2.0.4",
+    "tar": "7.5.2",
+    "tsx": "4.20.6",
+    "turbo": "2.6.0",
+    "typescript": "catalog:",
+    "vite": "7.1.11",
+    "vitest": "3.2.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged"
+  },
+  "lint-staged": {
+    "*": [
+      "eslint --fix",
+      "prettier --ignore-unknown --write"
+    ],
+    "apps/mobile/src/**/*": [
+      "bash scripts/increment-build-id.sh"
+    ],
+    "locales/**/*.json": [
+      "npm run dedupe:locales",
+      "git add locales"
+    ]
+  }
+}
