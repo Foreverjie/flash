@@ -1,9 +1,9 @@
 {
   "name": "@follow/api",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Follow API server based on Hono.js",
+  "description": "Follow API server based on Hono.js with Vercel deployment",
   "author": "Folo Team",
   "homepage": "https://github.com/RSSNext",
   "repository": {
@@ -13,7 +13,12 @@
   "main": "./dist/index.js",
   "scripts": {
     "build": "tsup",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
     "dev": "tsx watch src/index.ts",
+    "dev:vercel": "vercel dev",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "start": "node dist/index.js",
@@ -22,22 +27,28 @@
   },
   "dependencies": {
     "@better-auth/stripe": "1.3.28",
-    "@flash/database": "workspace:*",
     "@hono/node-server": "^1.13.7",
+    "@hono/zod-validator": "^0.4.3",
     "@supabase/supabase-js": "^2.47.10",
     "bcrypt": "6.0.0",
     "better-auth": "1.3.28",
     "dotenv": "17.2.3",
+    "drizzle-orm": "0.44.7",
     "hono": "^4.7.11",
     "pg": "8.16.3",
-    "stripe": "19.1.0"
+    "postgres": "^3.4.5",
+    "rss-parser": "^3.13.0",
+    "stripe": "19.1.0",
+    "zod": "3.25.75"
   },
   "devDependencies": {
     "@types/bcrypt": "6.0.0",
     "@types/node": "24.5.2",
+    "drizzle-kit": "0.31.6",
     "tsup": "^8.3.5",
     "tsx": "4.20.6",
     "typescript": "catalog:",
+    "vercel": "^39.3.0",
     "vitest": "3.2.4"
   }
 }

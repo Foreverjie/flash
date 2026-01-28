@@ -86,6 +86,13 @@ export function sendUnauthorized(c: Context, message = "Unauthorized") {
 }
 
 /**
+ * Send forbidden error
+ */
+export function sendForbidden(c: Context, message = "Forbidden") {
+  return sendError(c, message, 403, 403)
+}
+
+/**
  * Send validation error
  */
 export function sendValidationError(c: Context, message: string) {

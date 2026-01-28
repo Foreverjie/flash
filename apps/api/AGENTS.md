@@ -4,22 +4,62 @@ This guide provides agent-specific instructions for working with the Follow API 
 
 ## Overview
 
-The `apps/api` module is a lightweight Hono.js-based API server that provides backend services for the Follow application.
+The `apps/api` module is a Hono.js-based API server with Better-auth authentication, Drizzle ORM, and RSS adapter system. Designed for deployment on Vercel with PostgreSQL (Supabase).
 
 ## Technology Stack
 
 - **Framework**: Hono.js v4.7+ (fast, edge-ready web framework)
-- **Runtime**: Node.js with `@hono/node-server`
+- **Runtime**: Node.js with `@hono/node-server` (local) or Vercel (production)
+- **Database**: Supabase PostgreSQL via Drizzle ORM
+- **Auth**: Better-auth with Drizzle adapter
+- **Validation**: Zod + @hono/zod-validator
 - **Build Tool**: tsup (TypeScript bundler)
 - **Dev Server**: tsx with watch mode for hot reload
+
+## Project Structure
+
+```
+apps/api/
+├── src/
+│   ├── index.ts            # Entry point with Vercel adapter
+│   ├── auth/               # Better-auth configuration
+│   │   ├── index.ts        # Auth setup with Drizzle adapter
+│   │   └── client.ts       # Auth client for programmatic use
+│   ├── db/                 # Database layer
+│   │   ├── client.ts       # PostgreSQL/Drizzle client
+│   │   ├── schema.ts       # All table definitions
+│   │   └── index.ts        # Exports
+│   ├── lib/
+│   │   └── rss/            # RSS adapter system
+│   │       ├── types.ts    # RSS types
+│   │       ├── base-adapter.ts
+│   │       ├── default-adapter.ts
+│   │       ├── github-adapter.ts
+│   │       └── index.ts    # RSSManager
+│   ├── middleware/
+│   │   └── auth.ts         # Auth middleware (requireAuth, optionalAuth)
+│   ├── routes/             # API routes
+│   │   ├── auth.ts
+│   │   ├── feeds.ts
+│   │   ├── users.ts
+│   │   └── comments.ts
+│   └── utils/              # Utilities
+│       ├── logger.ts
+│       └── response.ts
+├── drizzle/                # Database migrations
+├── drizzle.config.ts       # Drizzle Kit configuration
+├── vercel.json             # Vercel deployment config
+└── package.json
+```
 
 ## Code Conventions
 
 ### File Structure
 
 - `src/index.ts` - Main application entry, server setup, and middleware
-- `src/routes/` - Route handlers, one file per route group
-- Each route file exports a Hono instance configured with related endpoints
+- `src/routes/` - Route handlers with zod validation
+- `src/db/schema.ts` - All Drizzle table definitions
+- `src/auth/` - Better-auth configuration
 
 ### TypeScript
 
@@ -31,23 +71,27 @@ The `apps/api` module is a lightweight Hono.js-based API server that provides ba
 ### Routing Patterns
 
 ```typescript
-// Route file: src/routes/example.ts
+// Route file with zod validation
+import { zValidator } from "@hono/zod-validator"
 import { Hono } from "hono"
+import { z } from "zod"
 
-const example = new Hono()
+import { requireAuth } from "../middleware/auth.js"
 
-example.get("/", (c) => {
-  return c.json({ message: "Example" })
+const router = new Hono()
+
+const createSchema = z.object({
+  title: z.string().min(1).max(200),
+  url: z.string().url(),
 })
 
-export default example
-```
+router.post("/", requireAuth, zValidator("json", createSchema), async (c) => {
+  const user = c.get("user")
+  const data = c.req.valid("json")
+  // ...
+})
 
-```typescript
-// Main file: src/index.ts
-import exampleRouter from "./routes/example"
-
-app.route("/example", exampleRouter)
+export default router
 ```
 
 ### Middleware
