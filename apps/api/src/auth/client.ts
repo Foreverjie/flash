@@ -11,7 +11,7 @@ const getBaseUrl = () => {
   return process.env.BETTER_AUTH_URL || "http://localhost:3001"
 }
 
-export const authClient = createAuthClient({
+export const authClient: ReturnType<typeof createAuthClient> = createAuthClient({
   baseURL: getBaseUrl(),
   basePath: "/api/auth",
 })
