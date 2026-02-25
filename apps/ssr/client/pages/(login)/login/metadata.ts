@@ -6,7 +6,7 @@ import { defineMetadata } from "../../../../src/meta-handler"
 
 const getTypedProviders = async () => {
   const apiFetch = createApiFetch()
-  const data = (await apiFetch("/better-auth/get-providers")) as Record<string, AuthProvider>
+  const data = (await apiFetch("/api/auth/get-providers")) as Record<string, AuthProvider>
 
   return data
 }

@@ -72,10 +72,17 @@ function RegisterForm() {
     setIsSubmitting(true)
 
     try {
-      const response = await captchaRef.current?.execute({ async: true })
+      let token = ""
 
-      if (!response?.response) {
-        return
+      if (import.meta.env.DEV) {
+        token = "dev-bypass-token"
+      } else {
+        const response = await captchaRef.current?.execute({ async: true })
+
+        if (!response?.response) {
+          return
+        }
+        token = response.response
       }
 
       await signUp.email({
@@ -94,7 +101,7 @@ function RegisterForm() {
             toast.error(context.error.message)
           },
           headers: {
-            "x-token": `hc:${response?.response}`,
+            "x-token": `hc:${token}`,
           },
         },
       })
@@ -151,7 +158,11 @@ function RegisterForm() {
               )}
             />
             {serverConfigs?.REFERRAL_ENABLED && <ReferralForm align="left" />}
-            <HCaptcha ref={captchaRef} sitekey={env.VITE_HCAPTCHA_SITE_KEY} size="invisible" />
+            {import.meta.env.DEV ? (
+              <div className="text-center text-xs text-accent">hCaptcha disabled in dev</div>
+            ) : (
+              <HCaptcha ref={captchaRef} sitekey={env.VITE_HCAPTCHA_SITE_KEY} size="invisible" />
+            )}
             <Button
               isLoading={isSubmitting}
               disabled={isSubmitting}

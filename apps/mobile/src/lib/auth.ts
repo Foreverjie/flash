@@ -47,7 +47,7 @@ const plugins = [
 ]
 
 export const authClient = createAuthClient({
-  baseURL: `${proxyEnv.API_URL}/better-auth`,
+  baseURL: `${proxyEnv.API_URL}/api/auth`,
   fetchOptions: {
     cache: "no-store",
     // Learn more: https://better-fetch.vercel.app/docs/hooks

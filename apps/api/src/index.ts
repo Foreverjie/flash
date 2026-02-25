@@ -40,6 +40,8 @@ app.use(
       const allowedOrigins = [
         "http://localhost:3000",
         "http://localhost:3001",
+        "http://localhost:5173", // Desktop dev server (alt port)
+        "http://localhost:2233", // Desktop dev server (default port)
         process.env.FRONTEND_URL,
         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
       ].filter(Boolean) as string[]
@@ -55,7 +57,20 @@ app.use(
 
       return null
     },
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-app-platform",
+      "x-app-version",
+      "x-app-name",
+      "x-app-dev",
+      "x-client-id",
+      "x-session-id",
+      "x-token",
+      "folo-referral-code",
+      "cache-control",
+      "user-agent",
+    ],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length", "X-Request-Id"],
     maxAge: 600,

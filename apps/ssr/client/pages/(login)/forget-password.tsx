@@ -54,7 +54,17 @@ export function Component() {
   const { isValid } = form.formState
   const updateMutation = useMutation({
     mutationFn: async (values: z.infer<typeof EmailSchema>) => {
-      const response = await captchaRef.current?.execute({ async: true })
+      let token = ""
+      if (import.meta.env.DEV) {
+        token = "dev-bypass-token"
+      } else {
+        const response = await captchaRef.current?.execute({ async: true })
+        if (!response?.response) {
+          throw new Error("Captcha verification failed")
+        }
+        token = response.response
+      }
+
       const res = await forgetPassword(
         {
           email: values.email,
@@ -62,7 +72,7 @@ export function Component() {
         },
         {
           headers: {
-            "x-token": `hc:${response?.response}`,
+            "x-token": `hc:${token}`,
           },
         },
       )
@@ -109,7 +119,11 @@ export function Component() {
                   </FormItem>
                 )}
               />
-              <HCaptcha ref={captchaRef} sitekey={env.VITE_HCAPTCHA_SITE_KEY} size="invisible" />
+              {import.meta.env.DEV ? (
+                <div className="text-center text-xs text-accent">hCaptcha disabled in dev</div>
+              ) : (
+                <HCaptcha ref={captchaRef} sitekey={env.VITE_HCAPTCHA_SITE_KEY} size="invisible" />
+              )}
               <div className="text-right">
                 <Button
                   disabled={!isValid || updateMutation.isPending}

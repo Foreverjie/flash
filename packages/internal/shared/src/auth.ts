@@ -73,7 +73,7 @@ export class Auth {
     },
   ) {
     this.authClient = createAuthClient({
-      baseURL: `${this.options.apiURL}/better-auth`,
+      baseURL: `${this.options.apiURL}/api/auth`,
       plugins: baseAuthPlugins,
       fetchOptions: {
         ...this.options.fetchOptions,

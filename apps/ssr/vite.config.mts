@@ -51,7 +51,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://api.follow.is",
+        target: "http://localhost:3001",
         changeOrigin: true,
         rewrite(path) {
           return path.replace("/api", "")

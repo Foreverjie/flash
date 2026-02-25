@@ -11,6 +11,12 @@ import Stripe from "stripe"
 
 import { db } from "../db/index.js"
 import * as schema from "../db/schema.js"
+import {
+  customGetProvidersPlugin,
+  deleteUserCustomPlugin,
+  getAccountInfoPlugin,
+  oneTimeTokenPlugin,
+} from "./plugins.js"
 
 // Get base URL for callbacks
 const getBaseUrl = () => {
@@ -128,6 +134,12 @@ export const auth = betterAuth({
 
   // Plugins
   plugins: [
+    // Custom plugins for desktop/mobile client compatibility
+    customGetProvidersPlugin(),
+    getAccountInfoPlugin(),
+    deleteUserCustomPlugin(),
+    oneTimeTokenPlugin(),
+
     // Two-factor authentication
     twoFactor({
       issuer: "Follow",
@@ -161,6 +173,8 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:2233",
+    "http://localhost:5173",
     process.env.FRONTEND_URL,
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   ].filter(Boolean) as string[],

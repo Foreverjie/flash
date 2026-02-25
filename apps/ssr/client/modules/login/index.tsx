@@ -303,16 +303,22 @@ function LoginWithPassword() {
         return
       }
 
-      const response = await captchaRef.current?.execute({ async: true })
-      if (!response?.response) {
-        setIsButtonLoading(false)
-        return
+      let token = ""
+      if (import.meta.env.DEV) {
+        token = "dev-bypass-token"
+      } else {
+        const response = await captchaRef.current?.execute({ async: true })
+        if (!response?.response) {
+          setIsButtonLoading(false)
+          return
+        }
+        token = response.response
       }
 
       const res = await loginHandler("credential", "app", {
         ...values,
         headers: {
-          "x-token": `hc:${response?.response}`,
+          "x-token": `hc:${token}`,
         },
       })
 
@@ -390,7 +396,11 @@ function LoginWithPassword() {
             )}
           />
         )}
-        <HCaptcha ref={captchaRef} sitekey={env.VITE_HCAPTCHA_SITE_KEY} size="invisible" />
+        {import.meta.env.DEV ? (
+          <div className="text-center text-xs text-accent">hCaptcha disabled in dev</div>
+        ) : (
+          <HCaptcha ref={captchaRef} sitekey={env.VITE_HCAPTCHA_SITE_KEY} size="invisible" />
+        )}
         <Button
           type="submit"
           buttonClassName="!mt-3 w-full"
