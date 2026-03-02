@@ -268,6 +268,11 @@ export const posts = pgTable(
     // Extra data
     language: varchar("language", { length: 10 }),
     extra: jsonb("extra").$type<Record<string, unknown>>(),
+    // Scrape status for detail content fetching
+    scrapeStatus: varchar("scrape_status", { length: 20 }).default("pending"),
+    scrapeAttempts: integer("scrape_attempts").default(0),
+    scrapeError: text("scrape_error"),
+    scrapedAt: timestamp("scraped_at", { mode: "date" }),
   },
   (table) => [
     uniqueIndex("posts_feed_guid_idx").on(table.feedId, table.guid),

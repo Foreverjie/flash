@@ -136,10 +136,19 @@ export function Login() {
             <div className="center mt-8 flex flex-col gap-4 sm:flex-row">
               <Button
                 variant="primary"
-                buttonClassName="h-12 !rounded-full px-10 text-lg"
+                buttonClassName="h-12 !rounded-full px-8 text-lg"
                 onClick={handleOpenApp}
               >
                 {t("redirect.openApp", { app_name: APP_NAME })}
+              </Button>
+              <Button
+                variant="outline"
+                buttonClassName="h-12 !rounded-full px-8 text-lg"
+                onClick={() => {
+                  window.location.href = "/"
+                }}
+              >
+                Continue to Web
               </Button>
             </div>
             {openFailed && callbackUrlWithScheme && (

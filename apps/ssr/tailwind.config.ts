@@ -12,6 +12,7 @@ export default withUIKit(
       "./node_modules/rc-modal-sheet/**/*.{js,ts,tsx}",
       "../../node_modules/rc-modal-sheet/**/*.{js,ts,tsx}",
       "../../packages/**/*.{ts,tsx}",
+      "!../../packages/**/node_modules",
     ],
     plugins: [daisyui],
     daisyui: {

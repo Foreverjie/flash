@@ -187,6 +187,9 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.4.3
         version: 0.4.3(hono@4.10.4)(zod@3.25.75)
+      '@mozilla/readability':
+        specifier: 0.6.0
+        version: 0.6.0(patch_hash=61709486ef07e9c8175a4b3f19f1aa4e2a1a75a3c557643c574d6cdacd6dd959)
       '@supabase/supabase-js':
         specifier: ^2.47.10
         version: 2.79.0(bufferutil@4.0.9)
@@ -205,6 +208,9 @@ importers:
       hono:
         specifier: ^4.7.11
         version: 4.10.4
+      linkedom:
+        specifier: 0.18.12
+        version: 0.18.12
       pg:
         specifier: 8.16.3
         version: 8.16.3
@@ -1834,7 +1840,7 @@ importers:
         version: '@hyoban/sqlocal@0.14.1-fork.4(bufferutil@4.0.9)(drizzle-orm@0.44.7(@opentelemetry/api@1.9.0)(@types/pg@8.15.5)(better-sqlite3@12.4.1)(expo-sqlite@15.2.12(expo@53.0.12(@babel/core@7.28.5)(@expo/metro-runtime@5.0.4(react-native@0.79.6(@babel/core@7.28.5)(@types/react@19.2.2)(bufferutil@4.0.9)(react@19.0.0)))(bufferutil@4.0.9)(graphql@16.12.0)(react-native-webview@13.15.0(react-native@0.79.6(@babel/core@7.28.5)(@types/react@19.2.2)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.5)(@types/react@19.2.2)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0))(react-native@0.79.6(@babel/core@7.28.5)(@types/react@19.2.2)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0))(gel@2.2.0)(kysely@0.28.8)(pg@8.16.3)(postgres@3.4.7))(kysely@0.28.8)'
       wa-sqlite:
         specifier: git+https://github.com/rhashimoto/wa-sqlite.git#v1.0.8
-        version: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/03c00ed67cd934bd664ae310234bba317928f851
+        version: git+https://git@github.com:rhashimoto/wa-sqlite.git#03c00ed67cd934bd664ae310234bba317928f851
     devDependencies:
       '@follow/configs':
         specifier: workspace:*
@@ -10959,29 +10965,32 @@ packages:
 
   glob@10.4.5:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@11.0.3:
     resolution: {integrity: sha512-2Nim7dha1KVkaiF4q6Dj+ngPPMdfvLJEOpZk/jKiUAkqKebpGAWQXAq9z1xu9HKu5lWfqw/FASuccEjyznjPaA==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@6.0.4:
     resolution: {integrity: sha512-MKZeRNyYZAVVVG1oZeLaWie1uweH40m9AZwIwxyPbTSX4hHrVYSzLg0Ro5Z5R7XKkIX+Cc6oD1rqeDJnwsB8/A==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@9.3.5:
     resolution: {integrity: sha512-e1LleDykUz2Iu+MTYdkSsuWX8lvAjAcs0Xef0lNIu0S2wOAzuTxCJtcd9S3cijlwYF18EsU3rzb8jPVobxDh9Q==}
     engines: {node: '>=16 || 14 >=14.17'}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-agent@3.0.0:
     resolution: {integrity: sha512-PT6XReJ+D07JvGoxQMkT6qji/jVNfX/h364XHZOWeRzy64sSFr+xJ5OX7LI3b4MPQzdL4H8Y8M0xzPpsVMwA8Q==}
@@ -13868,6 +13877,7 @@ packages:
   prebuild-install@7.1.3:
     resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
+    deprecated: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -16469,8 +16479,8 @@ packages:
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
 
-  wa-sqlite@https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/03c00ed67cd934bd664ae310234bba317928f851:
-    resolution: {tarball: https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/03c00ed67cd934bd664ae310234bba317928f851}
+  wa-sqlite@git+https://git@github.com:rhashimoto/wa-sqlite.git#03c00ed67cd934bd664ae310234bba317928f851:
+    resolution: {commit: 03c00ed67cd934bd664ae310234bba317928f851, repo: git@github.com:rhashimoto/wa-sqlite.git, type: git}
     version: 1.0.8
 
   walker@1.0.8:
@@ -35011,7 +35021,7 @@ snapshots:
 
   vscode-uri@3.1.0: {}
 
-  wa-sqlite@https://codeload.github.com/rhashimoto/wa-sqlite/tar.gz/03c00ed67cd934bd664ae310234bba317928f851: {}
+  wa-sqlite@git+https://git@github.com:rhashimoto/wa-sqlite.git#03c00ed67cd934bd664ae310234bba317928f851: {}
 
   walker@1.0.8:
     dependencies:

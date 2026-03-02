@@ -14,8 +14,10 @@ import type { AuthVariables } from "./middleware/auth.js"
 import { optionalAuth } from "./middleware/auth.js"
 import authRouter from "./routes/auth.js"
 import commentsRouter from "./routes/comments.js"
+import cronRouter from "./routes/cron.js"
 import feedsRouter from "./routes/feeds.js"
 import healthRouter from "./routes/health.js"
+import postsRouter from "./routes/posts.js"
 import usersRouter from "./routes/users.js"
 import { logger } from "./utils/logger.js"
 
@@ -108,9 +110,17 @@ app.route("/api/v1/users", usersRouter)
 app.route("/feeds", feedsRouter)
 app.route("/api/v1/feeds", feedsRouter)
 
+// Post routes (public timeline)
+app.route("/posts", postsRouter)
+app.route("/api/v1/posts", postsRouter)
+
 // Comment routes
 app.route("/comments", commentsRouter)
 app.route("/api/v1/comments", commentsRouter)
+
+// Cron routes (scheduled tasks)
+app.route("/cron", cronRouter)
+app.route("/api/cron", cronRouter)
 
 // ============================================================
 // Root Route
@@ -127,7 +137,9 @@ app.get("/", (c) => {
       authCustom: "/api/v1/auth",
       users: "/api/v1/users",
       feeds: "/api/v1/feeds",
+      posts: "/api/v1/posts",
       comments: "/api/v1/comments",
+      cron: "/api/cron/sync-feeds",
     },
     documentation: "https://docs.follow.app/api",
   })

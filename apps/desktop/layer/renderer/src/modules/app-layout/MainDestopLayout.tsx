@@ -1,6 +1,5 @@
-import { RootPortal } from "@follow/components/ui/portal/index.jsx"
 import { IN_ELECTRON, PROD } from "@follow/shared/constants"
-import { useWhoami } from "@follow/store/user/hooks"
+import { usePrefetchSessionUser, useWhoami } from "@follow/store/user/hooks"
 import { preventDefault } from "@follow/utils/dom"
 import type { PropsWithChildren } from "react"
 import * as React from "react"
@@ -13,15 +12,14 @@ import { useLoginModalShow } from "~/atoms/user"
 import { AppErrorBoundary } from "~/components/common/AppErrorBoundary"
 import { ErrorComponentType } from "~/components/errors/enum"
 import { PlainModal } from "~/components/ui/modal/stacked/custom-modal"
-import { DeclarativeModal } from "~/components/ui/modal/stacked/declarative-modal"
 import { ROOT_CONTAINER_ID } from "~/constants/dom"
 import { EnvironmentIndicator } from "~/modules/app/EnvironmentIndicator"
-import { LoginModalContent } from "~/modules/auth/LoginModalContent"
 import { DebugRegistry } from "~/modules/debug/registry"
 import { EntriesProvider } from "~/modules/entry-column/context/EntriesContext"
 import { CmdF } from "~/modules/panel/cmdf"
 import { SearchCmdK } from "~/modules/panel/cmdk"
 import { CmdNTrigger } from "~/modules/panel/cmdn"
+import { PublicTimelineLayout } from "~/modules/public-timeline"
 import { AppNotificationContainer } from "~/modules/upgrade/lazy/index"
 
 import { NewUserGuide } from "./subscription-column/components/NewUserGuide"
@@ -140,6 +138,12 @@ const errorTypes = [
 export function MainDestopLayout() {
   const isAuthFail = useLoginModalShow()
   const user = useWhoami()
+  const sessionQuery = usePrefetchSessionUser()
+
+  // Show public timeline when:
+  // 1. Session check completed and no user found (sessionQuery settled + no user)
+  // 2. Or explicit auth failure (401 received)
+  const showPublicTimeline = (sessionQuery.isFetched && !user) || (isAuthFail && !user)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -151,37 +155,28 @@ export function MainDestopLayout() {
         <AppNotificationContainer />
       </Suspense>
 
-      <EntriesProvider>
-        <SubscriptionColumnContainer />
+      {showPublicTimeline ? (
+        // Public mode: show feeds & posts from public API without auth
+        <PublicTimelineLayout />
+      ) : (
+        <>
+          <EntriesProvider>
+            <SubscriptionColumnContainer />
 
-        <main
-          ref={setMainContainerElement}
-          className="flex min-w-0 flex-1 bg-theme-background pt-[calc(var(--fo-window-padding-top)_-10px)] !outline-none"
-          // NOTE: tabIndex for main element can get by `document.activeElement`
-          tabIndex={-1}
-        >
-          <AppErrorBoundary errorType={errorTypes}>
-            <Outlet />
-          </AppErrorBoundary>
-        </main>
-      </EntriesProvider>
+            <main
+              ref={setMainContainerElement}
+              className="flex min-w-0 flex-1 bg-theme-background pt-[calc(var(--fo-window-padding-top)_-10px)] !outline-none"
+              // NOTE: tabIndex for main element can get by `document.activeElement`
+              tabIndex={-1}
+            >
+              <AppErrorBoundary errorType={errorTypes}>
+                <Outlet />
+              </AppErrorBoundary>
+            </main>
+          </EntriesProvider>
 
-      <NewUserGuide />
-
-      {isAuthFail && !user && (
-        <RootPortal>
-          <DeclarativeModal
-            id="login"
-            CustomModalComponent={PlainModal}
-            open
-            overlay
-            title="Login"
-            canClose={false}
-            clickOutsideToDismiss={false}
-          >
-            <LoginModalContent canClose={false} runtime={IN_ELECTRON ? "app" : "browser"} />
-          </DeclarativeModal>
-        </RootPortal>
+          <NewUserGuide />
+        </>
       )}
 
       <SearchCmdK />

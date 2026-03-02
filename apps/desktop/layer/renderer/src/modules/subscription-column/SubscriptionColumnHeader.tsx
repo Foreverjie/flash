@@ -58,6 +58,12 @@ export const SubscriptionColumnHeader = memo(() => {
           </ActionButton>
         </Link>
 
+        <Link to="/explore" tabIndex={-1}>
+          <ActionButton tooltip={t("words.explore")}>
+            <i className="i-mgc-world-2-cute-re size-5 text-text-secondary" />
+          </ActionButton>
+        </Link>
+
         <ProfileButton method="modal" animatedAvatar />
         <LayoutActionButton />
       </div>
