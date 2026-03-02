@@ -157,4 +157,62 @@ cronRouter.get("/scrape-stats", async (c) => {
   }
 })
 
+/**
+ * GET /cron/sync-all
+ * Combined daily job for Vercel Hobby (1 cron/day limit).
+ * Runs the full pipeline sequentially: sync feeds → enqueue → process scrape batches.
+ *
+ * Vercel Hobby has a 10s function timeout, so we keep scrape batches small.
+ * For heavier workloads, call the individual endpoints manually or upgrade.
+ */
+cronRouter.get("/sync-all", async (c) => {
+  const startTime = Date.now()
+  const phases: Record<string, unknown> = {}
+
+  try {
+    // Phase 1: Sync RSS feeds
+    logger.info("[Cron] sync-all — Phase 1: Syncing feeds")
+    const feedSummary = await syncAllFeeds({ concurrency: 3 })
+    phases.feedSync = {
+      totalFeeds: feedSummary.totalFeeds,
+      successCount: feedSummary.successCount,
+      errorCount: feedSummary.errorCount,
+      newPostsTotal: feedSummary.newPostsTotal,
+      durationMs: feedSummary.durationMs,
+    }
+
+    // Phase 2: Enqueue posts that need scraping
+    logger.info("[Cron] sync-all — Phase 2: Enqueueing posts for scraping")
+    const enqueueResult = await enqueuePostsForScraping(50)
+    phases.scrapeEnqueue = enqueueResult
+
+    // Phase 3: Process a small scrape batch (keep within timeout)
+    logger.info("[Cron] sync-all — Phase 3: Processing scrape batch")
+    const scrapeResult = await processScrapeBatch(3, 2)
+    phases.scrapeProcess = {
+      processed: scrapeResult.processed,
+      succeeded: scrapeResult.succeeded,
+      failed: scrapeResult.failed,
+      durationMs: scrapeResult.durationMs,
+    }
+
+    const stats = await getScrapeStats()
+    const totalDuration = Date.now() - startTime
+
+    logger.info(`[Cron] sync-all completed in ${totalDuration}ms`)
+
+    return c.json(
+      structuredSuccess({
+        message: "Daily sync completed",
+        durationMs: totalDuration,
+        phases,
+        queueStats: stats,
+      }),
+    )
+  } catch (error) {
+    logger.error("[Cron] sync-all failed:", error)
+    return sendError(c, "Daily sync failed", 500, 500)
+  }
+})
+
 export default cronRouter
