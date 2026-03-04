@@ -17,11 +17,7 @@ export const AIChatStoreContext = createContext<UseBoundStoreWithEqualityFn<Stor
 )
 
 export const useAIChatStore = () => {
-  const store = use(AIChatStoreContext)
-  if (!store && import.meta.env.DEV) {
-    throw new Error("useAIChatStore must be used within a AIChatStoreContext")
-  }
-  return store
+  return use(AIChatStoreContext) || null
 }
 
 export type AIRootStateContext = {

@@ -1,5 +1,5 @@
-import { whoamiQueryKey } from "@follow/store/user/hooks"
-import { userSyncService } from "@follow/store/user/store"
+import { invalidateUserSession, whoamiQueryKey } from "@follow/store/user/hooks"
+import { userActions, userSyncService } from "@follow/store/user/store"
 import { tracker } from "@follow/tracker"
 import { clearStorage } from "@follow/utils/ns"
 import type { FetchError } from "ofetch"
@@ -89,9 +89,10 @@ export const useSession = (options?: { enabled?: boolean }) => {
   } as const
 }
 
-export const handleSessionChanges = () => {
+export const handleSessionChanges = async () => {
+  await userSyncService.whoami()
+  invalidateUserSession()
   ipcServices?.auth.sessionChanged()
-  window.location.reload()
 }
 
 export const signOut = async () => {
@@ -107,7 +108,8 @@ export const signOut = async () => {
   await tracker.manager.clear()
   await ipcServices?.auth.signOut()
   await signOutFn()
-  window.location.reload()
+  await userActions.removeCurrentUser()
+  invalidateUserSession()
 }
 
 export const deleteUser = async ({ TOTPCode }: { TOTPCode?: string }) => {

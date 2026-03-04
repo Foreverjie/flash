@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { useModalStack } from "~/components/ui/modal/stacked/hooks"
 import { oneTimeToken } from "~/lib/auth"
 import { handleSessionChanges } from "~/queries/auth"
 
@@ -26,6 +27,7 @@ export const TokenModalContent = () => {
     resolver: zodResolver(formSchema),
   })
   const { t } = useTranslation("common")
+  const { dismissAll } = useModalStack()
   const [isLoading, setIsLoading] = useState(false)
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -43,7 +45,8 @@ export const TokenModalContent = () => {
         token = inputToken.slice("auth?token=".length)
       }
       await oneTimeToken.apply({ token })
-      handleSessionChanges()
+      await handleSessionChanges()
+      dismissAll()
     } catch (e) {
       console.error("Failed to apply one-time token:", e)
       toast.error("Failed to apply one-time token")

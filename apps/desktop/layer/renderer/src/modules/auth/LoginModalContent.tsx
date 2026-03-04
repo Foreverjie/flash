@@ -8,8 +8,8 @@ import { useIsDark } from "@follow/hooks"
 import type { LoginRuntime } from "@follow/shared/auth"
 import { stopPropagation } from "@follow/utils/dom"
 import { cn } from "@follow/utils/utils"
-import { m } from "motion/react"
-import { useEffect, useState } from "react"
+import { AnimatePresence, m } from "motion/react"
+import { useState } from "react"
 import { Trans, useTranslation } from "react-i18next"
 
 import { useServerConfigs } from "~/atoms/server-configs"
@@ -41,8 +41,14 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
 
   const providers = Object.entries(authProviders || [])
 
-  const [isRegister, setIsRegister] = useState(true)
+  const initialLastMethod = authClient.getLastUsedLoginMethod()
+  const [isRegister, setIsRegister] = useState(!initialLastMethod)
   const [isEmail, setIsEmail] = useState(false)
+  const [lastMethod] = useState(() => {
+    let m = initialLastMethod
+    if (m === "email") m = "credential"
+    return m
+  })
 
   const handleOpenLegal = (type: "privacy" | "tos") => {
     const path = {
@@ -66,18 +72,6 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
   const handleLoginStateChange = (state: "register" | "login") => {
     setIsRegister(state === "register")
   }
-
-  const [lastMethod, setLastMethod] = useState<string | null>(null)
-  useEffect(() => {
-    let lastMethodValue = authClient.getLastUsedLoginMethod()
-    if (lastMethodValue === "email") {
-      lastMethodValue = "credential"
-    }
-    if (lastMethodValue) {
-      setIsRegister(false)
-      setLastMethod(lastMethodValue)
-    }
-  }, [lastMethod])
 
   const Inner = (
     <>
@@ -103,73 +97,94 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
         <Folo className="ml-2 size-14" />
       </div>
 
-      {isEmail ? (
-        isRegister ? (
-          <RegisterForm onLoginStateChange={handleLoginStateChange} />
+      <AnimatePresence mode="wait" initial={false}>
+        {isEmail ? (
+          <m.div
+            key="email-form"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={Spring.presets.snappy}
+          >
+            {isRegister ? (
+              <RegisterForm onLoginStateChange={handleLoginStateChange} />
+            ) : (
+              <LoginWithPassword runtime={runtime} onLoginStateChange={handleLoginStateChange} />
+            )}
+          </m.div>
         ) : (
-          <LoginWithPassword runtime={runtime} onLoginStateChange={handleLoginStateChange} />
-        )
-      ) : (
-        <div className="mb-3 flex flex-col items-center justify-center gap-4">
-          {isLoading
-            ? // Skeleton loaders to prevent CLS
-              Array.from({ length: 4 })
-                .fill(0)
-                .map((_, index) => (
-                  <div
-                    key={index}
-                    className="relative h-12 w-full animate-pulse rounded-xl border border-material-medium bg-material-ultra-thick"
-                  />
-                ))
-            : providers.map(([key, provider]) => (
-                <MotionButtonBase
-                  key={key}
-                  onClick={() => {
-                    if (key === "credential") {
-                      setIsEmail(true)
-                    } else {
-                      loginHandler(key, "app")
-                    }
-                  }}
-                  className="center relative w-full gap-2 rounded-xl border py-3 pl-5 font-semibold duration-200 hover:bg-material-medium"
-                >
-                  <img
-                    className={cn(
-                      "absolute left-9 h-5",
-                      !provider.iconDark64 &&
-                        "dark:brightness-[0.85] dark:hue-rotate-180 dark:invert",
-                    )}
-                    src={isDark ? provider.iconDark64 || provider.icon64 : provider.icon64}
-                  />
-                  <span>{t("login.continueWith", { provider: provider.name })}</span>
-                  {lastMethod === key && (
-                    <div className="absolute -right-2 -top-2 rounded-xl bg-accent px-2 py-0.5 text-sm text-white">
-                      {t("login.lastUsed")}
-                    </div>
-                  )}
-                </MotionButtonBase>
-              ))}
+          <m.div
+            key="providers"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={Spring.presets.snappy}
+          >
+            <div className="mb-3 flex flex-col items-center justify-center gap-4">
+              {isLoading
+                ? // Skeleton loaders to prevent CLS
+                  Array.from({ length: 4 })
+                    .fill(0)
+                    .map((_, index) => (
+                      <div
+                        key={index}
+                        className="relative h-12 w-full animate-pulse rounded-xl border border-material-medium bg-material-ultra-thick"
+                      />
+                    ))
+                : providers.map(([key, provider]) => (
+                    <MotionButtonBase
+                      key={key}
+                      onClick={() => {
+                        if (key === "credential") {
+                          setIsEmail(true)
+                        } else {
+                          loginHandler(key, "app")
+                        }
+                      }}
+                      className="center relative w-full gap-2 rounded-xl border py-3 pl-5 font-semibold duration-200 hover:bg-material-medium"
+                    >
+                      <img
+                        className={cn(
+                          "absolute left-9 h-5",
+                          !provider.iconDark64 &&
+                            "dark:brightness-[0.85] dark:hue-rotate-180 dark:invert",
+                        )}
+                        src={isDark ? provider.iconDark64 || provider.icon64 : provider.icon64}
+                      />
+                      <span>{t("login.continueWith", { provider: provider.name })}</span>
+                      {lastMethod === key && (
+                        <div className="absolute -right-2 -top-2 rounded-xl bg-accent px-2 py-0.5 text-sm text-white">
+                          {t("login.lastUsed")}
+                        </div>
+                      )}
+                    </MotionButtonBase>
+                  ))}
 
-          {isRegister && serverConfigs?.REFERRAL_ENABLED && (
-            <ReferralForm className="mb-4 w-full" />
-          )}
-          <div className="-mb-1.5 mt-1 text-center text-xs leading-4 text-text-secondary">
-            <a onClick={() => handleOpenToken()} className="hover:underline">
-              {t("login.enter_token")}
-            </a>
-          </div>
-          <div className="text-center text-xs leading-4 text-text-secondary">
-            <span>{t("login.agree_to")}</span>{" "}
-            <a onClick={() => handleOpenLegal("tos")} className="text-accent hover:underline">
-              {t("login.terms")}
-            </a>{" "}
-            &{" "}
-            <a onClick={() => handleOpenLegal("privacy")} className="text-accent hover:underline">
-              {t("login.privacy")}
-            </a>
-          </div>
-        </div>
-      )}
+              {isRegister && serverConfigs?.REFERRAL_ENABLED && (
+                <ReferralForm className="mb-4 w-full" />
+              )}
+              <div className="-mb-1.5 mt-1 text-center text-xs leading-4 text-text-secondary">
+                <a onClick={() => handleOpenToken()} className="hover:underline">
+                  {t("login.enter_token")}
+                </a>
+              </div>
+              <div className="text-center text-xs leading-4 text-text-secondary">
+                <span>{t("login.agree_to")}</span>{" "}
+                <a onClick={() => handleOpenLegal("tos")} className="text-accent hover:underline">
+                  {t("login.terms")}
+                </a>{" "}
+                &{" "}
+                <a
+                  onClick={() => handleOpenLegal("privacy")}
+                  className="text-accent hover:underline"
+                >
+                  {t("login.privacy")}
+                </a>
+              </div>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {!isEmail && (
         <>

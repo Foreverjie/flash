@@ -10,11 +10,9 @@ import { z } from "zod"
 import type { User } from "../auth/index.js"
 import { comments, db, posts } from "../db/index.js"
 import { requireAuth } from "../middleware/auth.js"
+import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
 import { sendError, sendNotFound, structuredSuccess } from "../utils/response.js"
-
-// Helper to generate IDs
-const generateId = () => `comment_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
 // Route types
 type CommentsVariables = {
@@ -199,7 +197,7 @@ commentsRouter.post("/", requireAuth, zValidator("json", createCommentSchema), a
     const [comment] = await db
       .insert(comments)
       .values({
-        id: generateId(),
+        id: generateSnowflakeId(),
         postId,
         userId: user.id,
         parentId: parentId || null,

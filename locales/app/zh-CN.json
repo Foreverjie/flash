@@ -314,6 +314,7 @@
   "player.playback_rate": "播放速度",
   "player.unmute": "取消静音",
   "player.volume": "音量",
+  "public_timeline.login_cta": "登录以订阅信息源，解锁完整体验",
   "quick_add.placeholder": "在此输入订阅源地址以快速订阅…",
   "quick_add.title": "快速订阅",
   "register.confirm_password": "确认密码",

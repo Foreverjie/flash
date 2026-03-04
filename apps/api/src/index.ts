@@ -15,9 +15,11 @@ import { optionalAuth } from "./middleware/auth.js"
 import authRouter from "./routes/auth.js"
 import commentsRouter from "./routes/comments.js"
 import cronRouter from "./routes/cron.js"
+import entriesRouter from "./routes/entries.js"
 import feedsRouter from "./routes/feeds.js"
 import healthRouter from "./routes/health.js"
 import postsRouter from "./routes/posts.js"
+import subscriptionsRouter from "./routes/subscriptions.js"
 import usersRouter from "./routes/users.js"
 import { logger } from "./utils/logger.js"
 
@@ -89,6 +91,14 @@ app.use("*", optionalAuth)
 
 // Mount Better-auth handler for all auth operations
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
+// Also mount at /better-auth/* for client-sdk compatibility (sdk uses /better-auth prefix)
+app.on(["POST", "GET"], "/better-auth/*", async (c) => {
+  // Rewrite URL from /better-auth/* to /api/auth/* for Better Auth handler
+  const url = new URL(c.req.url)
+  url.pathname = url.pathname.replace(/^\/better-auth/, "/api/auth")
+  const rewrittenRequest = new Request(url.toString(), c.req.raw)
+  return auth.handler(rewrittenRequest)
+})
 
 // ============================================================
 // API Routes
@@ -113,6 +123,14 @@ app.route("/api/v1/feeds", feedsRouter)
 // Post routes (public timeline)
 app.route("/posts", postsRouter)
 app.route("/api/v1/posts", postsRouter)
+
+// Subscription routes
+app.route("/subscriptions", subscriptionsRouter)
+app.route("/api/v1/subscriptions", subscriptionsRouter)
+
+// Entry routes (authenticated timeline)
+app.route("/entries", entriesRouter)
+app.route("/api/v1/entries", entriesRouter)
 
 // Comment routes
 app.route("/comments", commentsRouter)

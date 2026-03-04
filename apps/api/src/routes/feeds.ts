@@ -11,12 +11,9 @@ import type { User } from "../auth/index.js"
 import { db, feeds, posts, subscriptions } from "../db/index.js"
 import { rssManager } from "../lib/rss/index.js"
 import { requireAuth } from "../middleware/auth.js"
+import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
 import { sendError, sendNotFound, structuredSuccess } from "../utils/response.js"
-
-// Helper to generate IDs
-const generateId = () => `feed_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-const generatePostId = () => `post_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
 // Route types
 type FeedsVariables = {
@@ -146,7 +143,7 @@ feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (
     const [newFeed] = await db
       .insert(feeds)
       .values({
-        id: generateId(),
+        id: generateSnowflakeId(),
         url,
         title: title || feedData.title,
         description: description || feedData.description,
@@ -167,7 +164,7 @@ feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (
     // Insert initial posts
     if (feedData.items.length > 0) {
       const postsToInsert = feedData.items.slice(0, 50).map((item) => ({
-        id: generatePostId(),
+        id: generateSnowflakeId(),
         feedId: newFeed.id,
         guid: item.guid,
         title: item.title,
@@ -343,7 +340,7 @@ feedsRouter.post(
 
         if (!existingPost) {
           await db.insert(posts).values({
-            id: generatePostId(),
+            id: generateSnowflakeId(),
             feedId: id,
             guid: item.guid,
             title: item.title,
@@ -457,7 +454,7 @@ feedsRouter.post("/subscribe", requireAuth, zValidator("json", subscribeSchema),
     const [subscription] = await db
       .insert(subscriptions)
       .values({
-        id: `sub_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        id: generateSnowflakeId(),
         userId: user.id,
         feedId,
         title,

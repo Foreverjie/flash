@@ -315,6 +315,7 @@
   "player.playback_rate": "Playback Rate",
   "player.unmute": "Unmute",
   "player.volume": "Volume",
+  "public_timeline.login_cta": "Sign in to subscribe to feeds and unlock the full experience",
   "quick_add.placeholder": "Quick follow a feed, typing feed url here...",
   "quick_add.title": "Quick Follow",
   "register.confirm_password": "Confirm Password",

@@ -311,6 +311,7 @@
   "player.playback_rate": "再生速度",
   "player.unmute": "ミュート解除",
   "player.volume": "音量",
+  "public_timeline.login_cta": "ログインしてフィードを購読し、すべての機能をお楽しみください",
   "quick_add.placeholder": "フィードをクイックフォローします、フィードのurlをここに入力してください...",
   "quick_add.title": "クイックフォロー",
   "register.confirm_password": "パスワードを確認する",

@@ -28,11 +28,23 @@ export const useChatActions = () => {
   return store((state) => state.chatActions)
 }
 
+const noopBlockActions = {
+  addBlock: () => {},
+  addOrUpdateBlock: () => {},
+  removeBlock: () => {},
+  clearBlocks: () => {},
+  updateBlock: () => {},
+} as BlockSlice["blockActions"]
+
 /**
- * Hook to get the block actions
+ * Hook to get the block actions.
+ * Returns no-op functions when AI chat context is not available.
  */
-export const useBlockActions = () => {
+export const useBlockActions = (): BlockSlice["blockActions"] => {
   const store = useAIChatStore()
+  if (!store) {
+    return noopBlockActions
+  }
   return store((state) => state.blockActions)
 }
 
@@ -80,7 +92,13 @@ export const useSyncStateActions = () => {
   return store((state) => state.chatActions)
 }
 
-export const useChatBlockActions = () => useAIChatStore()((state) => state.blockActions)
+export const useChatBlockActions = (): BlockSlice["blockActions"] => {
+  const store = useAIChatStore()
+  if (!store) {
+    return noopBlockActions
+  }
+  return store((state) => state.blockActions)
+}
 /**
  * Hook to get the chat status
  */

@@ -15,7 +15,7 @@ import HCaptcha from "@hcaptcha/react-hcaptcha"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRef } from "react"
 import { useForm } from "react-hook-form"
-import { useTranslation } from "react-i18next"
+import { Trans, useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -50,7 +50,7 @@ export function LoginWithPassword({
     mode: "all",
   })
 
-  const { present } = useModalStack()
+  const { present, dismissAll } = useModalStack()
 
   const captchaRef = useRef<HCaptcha>(null)
 
@@ -68,7 +68,7 @@ export function LoginWithPassword({
       return
     }
 
-    if ((res?.data as any)?.twoFactorRedirect) {
+    if (res?.data && "twoFactorRedirect" in res.data && res.data.twoFactorRedirect) {
       present({
         title: tSettings("profile.totp_code.title"),
         content: () => {
@@ -80,15 +80,17 @@ export function LoginWithPassword({
                   throw new Error(error?.message ?? "Invalid TOTP code")
                 }
               }}
-              onSuccess={() => {
-                handleSessionChanges()
+              onSuccess={async () => {
+                await handleSessionChanges()
+                dismissAll()
               }}
             />
           )
         },
       })
     } else {
-      handleSessionChanges()
+      await handleSessionChanges()
+      dismissAll()
     }
   }
 
@@ -149,16 +151,18 @@ export function LoginWithPassword({
 
       <Divider className="my-4" />
 
-      <div className="flex items-center justify-center gap-1 pb-2 text-center text-sm">
-        If you don't have an account,{" "}
-        <button
-          type="button"
-          className="flex cursor-pointer items-center gap-1 text-accent hover:underline"
-          onClick={() => onLoginStateChange("register")}
-        >
-          Sign up
-          <i className="i-mgc-right-cute-fi !text-text" />
-        </button>
+      <div
+        className="flex cursor-pointer items-center justify-center gap-1 pb-2 text-center text-sm"
+        onClick={() => onLoginStateChange("register")}
+      >
+        <Trans
+          t={t}
+          i18nKey="login.no_account"
+          components={{
+            strong: <span className="text-accent" />,
+          }}
+        />
+        <i className="i-mgc-right-cute-fi !text-text" />
       </div>
     </Form>
   )
@@ -192,6 +196,7 @@ export function RegisterForm({
     mode: "all",
   })
 
+  const { dismissAll } = useModalStack()
   const serverConfigs = useServerConfigs()
 
   const captchaRef = useRef<HCaptcha>(null)
@@ -204,8 +209,9 @@ export function RegisterForm({
       name: values.email.split("@")[0]!,
       callbackURL: "/",
       fetchOptions: {
-        onSuccess() {
-          handleSessionChanges()
+        async onSuccess() {
+          await handleSessionChanges()
+          dismissAll()
         },
         onError(context) {
           toast.error(context.error.message)
@@ -271,16 +277,18 @@ export function RegisterForm({
       </Form>
       <Divider className="my-4" />
 
-      <div className="flex items-center justify-center gap-1 pb-2 text-center text-sm">
-        If you already have an account,{" "}
-        <button
-          type="button"
-          className="flex cursor-pointer items-center gap-1 text-accent hover:underline"
-          onClick={() => onLoginStateChange("login")}
-        >
-          Sign in
-          <i className="i-mgc-right-cute-fi !text-text" />
-        </button>
+      <div
+        className="flex cursor-pointer items-center justify-center gap-1 pb-2 text-center text-sm"
+        onClick={() => onLoginStateChange("login")}
+      >
+        <Trans
+          t={t}
+          i18nKey="login.have_account"
+          components={{
+            strong: <span className="text-accent" />,
+          }}
+        />
+        <i className="i-mgc-right-cute-fi !text-text" />
       </div>
     </div>
   )

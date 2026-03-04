@@ -8,9 +8,8 @@ import { eq, isNull, lt, or } from "drizzle-orm"
 
 import { db, feeds, posts } from "../db/index.js"
 import { rssManager } from "../lib/rss/index.js"
+import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
-
-const generatePostId = () => `post_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 
 export interface SyncResult {
   feedId: string
@@ -83,7 +82,7 @@ async function syncFeed(feed: typeof feeds.$inferSelect): Promise<SyncResult> {
     // Insert new posts in batches (skip duplicates via unique constraint)
     if (feedData.items.length > 0) {
       const postsToInsert = feedData.items.map((item) => ({
-        id: generatePostId(),
+        id: generateSnowflakeId(),
         feedId: feed.id,
         guid: item.guid,
         title: item.title,

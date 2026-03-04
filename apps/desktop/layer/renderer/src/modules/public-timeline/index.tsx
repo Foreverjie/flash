@@ -1,16 +1,21 @@
+import { Spring } from "@follow/components/constants/spring.js"
 import { useMobile } from "@follow/components/hooks/useMobile.js"
 import { Folo } from "@follow/components/icons/folo.js"
 import { Logo } from "@follow/components/icons/logo.jsx"
-import { ActionButton } from "@follow/components/ui/button/index.js"
+import { ActionButton, Button } from "@follow/components/ui/button/index.js"
 import { PanelSplitter } from "@follow/components/ui/divider/PanelSplitter.js"
 import { PresentSheet } from "@follow/components/ui/sheet/Sheet.js"
 import { stopPropagation } from "@follow/utils/dom"
 import { cn } from "@follow/utils/utils"
+import { m } from "motion/react"
 import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 
 import { useUISettingKey } from "~/atoms/settings/ui"
+import { PlainModal } from "~/components/ui/modal/stacked/custom-modal"
+import { useModalStack } from "~/components/ui/modal/stacked/hooks"
+import { LoginModalContent } from "~/modules/auth/LoginModalContent"
 
 import { PublicEntryList } from "./entry-list"
 import { PublicFeedSidebar } from "./feed-sidebar"
@@ -45,6 +50,17 @@ export function PublicTimelineLayout() {
   }, [])
 
   const { t } = useTranslation()
+  const { present } = useModalStack()
+
+  const handleOpenLogin = useCallback(() => {
+    present({
+      CustomModalComponent: PlainModal,
+      title: "Login",
+      id: "login",
+      content: () => <LoginModalContent runtime={window.electron ? "app" : "browser"} />,
+      clickOutsideToDismiss: true,
+    })
+  }, [present])
 
   return (
     <>
@@ -84,10 +100,21 @@ export function PublicTimelineLayout() {
       {/* Middle: Entry list */}
       <main
         className={cn(
-          "flex min-w-0 flex-1 bg-theme-background",
+          "flex min-w-0 flex-1 flex-col bg-theme-background",
           "pt-[calc(var(--fo-window-padding-top)_-10px)]",
         )}
       >
+        <m.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={Spring.presets.snappy}
+          className="mx-4 mb-2 mt-4 flex items-center justify-between rounded-xl border border-material-medium bg-material-ultra-thick px-5 py-3"
+        >
+          <span className="text-sm text-text-secondary">{t("public_timeline.login_cta")}</span>
+          <Button variant="primary" onClick={handleOpenLogin}>
+            {t("words.login")}
+          </Button>
+        </m.div>
         <PublicEntryList
           selectedFeedId={selectedFeedId}
           selectedFeedTitle={selectedFeedTitle}
