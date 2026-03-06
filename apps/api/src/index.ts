@@ -19,6 +19,7 @@ import entriesRouter from "./routes/entries.js"
 import feedsRouter from "./routes/feeds.js"
 import healthRouter from "./routes/health.js"
 import postsRouter from "./routes/posts.js"
+import readsRouter from "./routes/reads.js"
 import subscriptionsRouter from "./routes/subscriptions.js"
 import usersRouter from "./routes/users.js"
 import { logger } from "./utils/logger.js"
@@ -131,6 +132,10 @@ app.route("/api/v1/subscriptions", subscriptionsRouter)
 // Entry routes (authenticated timeline)
 app.route("/entries", entriesRouter)
 app.route("/api/v1/entries", entriesRouter)
+
+// Read status routes
+app.route("/reads", readsRouter)
+app.route("/api/v1/reads", readsRouter)
 
 // Comment routes
 app.route("/comments", commentsRouter)

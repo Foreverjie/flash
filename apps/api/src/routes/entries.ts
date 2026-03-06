@@ -2,11 +2,11 @@
  * Entries Routes
  * Returns entries with feed data in the format expected by the client SDK (EntryWithFeed).
  */
-import { and, desc, eq, gt, inArray, lt } from "drizzle-orm"
+import { and, desc, eq, inArray, lt } from "drizzle-orm"
 import { Hono } from "hono"
 
 import type { User } from "../auth/index.js"
-import { db, feeds, posts, subscriptions } from "../db/index.js"
+import { db, feeds, posts, readStatus, subscriptions } from "../db/index.js"
 import { requireAuth } from "../middleware/auth.js"
 
 type EntriesVariables = {
@@ -19,9 +19,13 @@ const entriesRouter = new Hono<{ Variables: EntriesVariables }>()
 /**
  * Transform a post + feed row into the EntryWithFeed shape expected by apiMorph.toEntryList.
  */
-function toEntryWithFeed(post: typeof posts.$inferSelect, feed: typeof feeds.$inferSelect | null) {
+function toEntryWithFeed(
+  post: typeof posts.$inferSelect,
+  feed: typeof feeds.$inferSelect | null,
+  read = false,
+) {
   return {
-    read: false,
+    read,
     view: 1, // FeedViewType.Articles
     from: [],
     feeds: {
@@ -106,22 +110,28 @@ entriesRouter.post("/", requireAuth, async (c) => {
   const conditions = [inArray(posts.feedId, targetFeedIds)]
 
   if (publishedAfter) {
-    conditions.push(gt(posts.publishedAt, new Date(publishedAfter)))
+    // publishedAfter is a cursor: fetch entries older than this timestamp (next page in DESC order)
+    conditions.push(lt(posts.publishedAt, new Date(publishedAfter)))
   }
   if (publishedBefore) {
     conditions.push(lt(posts.publishedAt, new Date(publishedBefore)))
   }
 
-  // Fetch posts with their feeds
+  // Fetch posts with their feeds and read status
   const postRows = await db
-    .select()
+    .select({
+      posts,
+      feeds,
+      readStatusId: readStatus.id,
+    })
     .from(posts)
     .leftJoin(feeds, eq(posts.feedId, feeds.id))
+    .leftJoin(readStatus, and(eq(readStatus.postId, posts.id), eq(readStatus.userId, user.id)))
     .where(and(...conditions))
     .orderBy(desc(posts.publishedAt))
     .limit(Math.min(limit, 100))
 
-  const data = postRows.map((row) => toEntryWithFeed(row.posts, row.feeds))
+  const data = postRows.map((row) => toEntryWithFeed(row.posts, row.feeds, !!row.readStatusId))
 
   return c.json({ code: 0, data })
 })
@@ -136,10 +146,20 @@ entriesRouter.get("/", requireAuth, async (c) => {
     return c.json({ code: 404, data: null }, 404)
   }
 
+  const user = c.get("user")
+
   const [row] = await db
-    .select()
+    .select({
+      posts,
+      feeds,
+      readStatusId: readStatus.id,
+    })
     .from(posts)
     .leftJoin(feeds, eq(posts.feedId, feeds.id))
+    .leftJoin(
+      readStatus,
+      and(eq(readStatus.postId, posts.id), user ? eq(readStatus.userId, user.id) : undefined),
+    )
     .where(eq(posts.id, id))
     .limit(1)
 
@@ -147,10 +167,12 @@ entriesRouter.get("/", requireAuth, async (c) => {
     return c.json({ code: 404, data: null }, 404)
   }
 
+  const isRead = !!row.readStatusId
   const feed = row.feeds
   return c.json({
     code: 0,
     data: {
+      read: isRead,
       feeds: {
         type: "feed" as const,
         id: feed?.id ?? row.posts.feedId,
