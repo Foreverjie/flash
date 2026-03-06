@@ -10,6 +10,7 @@ export default defineConfig({
 
   clean: true,
   format: ["esm"],
+  outExtension: () => ({ js: ".js" }),
   external: ["lightningcss", "vite"],
   treeshake: true,
 
