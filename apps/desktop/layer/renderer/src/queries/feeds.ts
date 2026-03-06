@@ -1,5 +1,5 @@
 import { env } from "@follow/shared/env.desktop"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { defineQuery } from "~/lib/defineQuery"
 
@@ -14,6 +14,7 @@ export interface FeedItem {
   lastFetchedAt: string | null
   errorAt: string | null
   createdAt: string | null
+  subscriptionCount?: number | null
 }
 
 export interface FeedsResponse {
@@ -27,6 +28,10 @@ export interface FeedsResponse {
   }
 }
 
+export interface UserSubscription {
+  feedId: string
+}
+
 const API_BASE = env.VITE_API_URL
 
 async function fetchFeeds(page: number, limit: number): Promise<FeedsResponse> {
@@ -34,6 +39,14 @@ async function fetchFeeds(page: number, limit: number): Promise<FeedsResponse> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Failed to fetch feeds: ${res.status}`)
   return res.json() as Promise<FeedsResponse>
+}
+
+async function fetchUserSubscriptions(): Promise<UserSubscription[]> {
+  const url = `${API_BASE}/api/v1/subscriptions`
+  const res = await fetch(url, { credentials: "include" })
+  if (!res.ok) return []
+  const json = await res.json()
+  return (json.data ?? []).map((s: { feedId: string }) => ({ feedId: s.feedId }))
 }
 
 export const feedsQuery = {
@@ -52,5 +65,60 @@ export function usePublicFeedsQuery(page = 1, limit = 200) {
   return useQuery({
     queryKey: query.key,
     queryFn: query.fn,
+  })
+}
+
+/**
+ * Hook: fetch user's subscribed feed IDs (authenticated)
+ */
+export function useUserSubscriptionsQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["user", "subscriptions"],
+    queryFn: fetchUserSubscriptions,
+    enabled,
+  })
+}
+
+/**
+ * Hook: subscribe to a feed
+ */
+export function useSubscribeFeedMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (feedId: string) => {
+      const res = await fetch(`${API_BASE}/api/v1/subscriptions`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedId }),
+      })
+      if (!res.ok) throw new Error(`Failed to subscribe: ${res.status}`)
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "subscriptions"] })
+    },
+  })
+}
+
+/**
+ * Hook: unsubscribe from a feed
+ */
+export function useUnsubscribeFeedMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (feedId: string) => {
+      const res = await fetch(`${API_BASE}/api/v1/subscriptions`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedId }),
+      })
+      if (!res.ok) throw new Error(`Failed to unsubscribe: ${res.status}`)
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "subscriptions"] })
+    },
   })
 }
