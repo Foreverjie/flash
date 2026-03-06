@@ -10,7 +10,6 @@ export default defineConfig({
 
   clean: true,
   format: ["esm"],
-  outExtension: () => ({ js: ".js" }),
   external: ["lightningcss", "vite"],
   treeshake: true,
 
@@ -22,7 +21,7 @@ export default defineConfig({
     hooks.hook("build:done", async () => {
       if (process.env.VERCEL !== "1") return
 
-      const outputFile = "dist/server/index.js"
+      const outputFile = "dist/server/index.mjs"
       const tempFile = `${outputFile}.tmp`
 
       try {
