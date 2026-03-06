@@ -1,3 +1,4 @@
+import { useMobile } from "@follow/components/hooks/useMobile.js"
 import { IN_ELECTRON, PROD } from "@follow/shared/constants"
 import { usePrefetchSessionUser, useWhoami } from "@follow/store/user/hooks"
 import { preventDefault } from "@follow/utils/dom"
@@ -136,6 +137,7 @@ const errorTypes = [
  * // based on the route configuration in generated-routes.ts
  */
 export function MainDestopLayout() {
+  const isMobile = useMobile()
   const isAuthFail = useLoginModalShow()
   const user = useWhoami()
   const sessionQuery = usePrefetchSessionUser()
@@ -161,7 +163,7 @@ export function MainDestopLayout() {
       ) : (
         <>
           <EntriesProvider>
-            <SubscriptionColumnContainer />
+            {!isMobile && <SubscriptionColumnContainer />}
 
             <main
               ref={setMainContainerElement}

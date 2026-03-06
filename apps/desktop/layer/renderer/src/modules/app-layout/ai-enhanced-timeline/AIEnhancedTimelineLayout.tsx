@@ -1,4 +1,5 @@
 import { Spring } from "@follow/components/constants/spring.js"
+import { useMobile } from "@follow/components/hooks/useMobile.js"
 import { PanelSplitter } from "@follow/components/ui/divider/index.js"
 import { FeedViewType } from "@follow/constants"
 import { defaultUISettings } from "@follow/shared/settings/defaults"
@@ -12,6 +13,7 @@ import { useResizable } from "react-resizable-layout"
 import { getUISettings, setUISetting, useUISettingKey } from "~/atoms/settings/ui"
 import { m } from "~/components/common/Motion"
 import { ROUTE_ENTRY_PENDING } from "~/constants"
+import { useBackHome } from "~/hooks/biz/useNavigateEntry"
 import { useRouteParamsSelector } from "~/hooks/biz/useRouteParams"
 import { useShowEntryDetailsColumn } from "~/hooks/biz/useShowEntryDetailsColumn"
 import { EntryContentPlaceholder } from "~/modules/app-layout/entry-content/EntryContentPlaceholder"
@@ -23,12 +25,47 @@ import { MainViewHotkeysProvider } from "~/providers/main-view-hotkeys-provider"
 
 const MIN_ENTRY_WIDTH = isSafari() ? 356 : 300
 
+const MobileTimelineLayout = () => {
+  const { entryId } = useRouteParamsSelector((state) => ({
+    entryId: state.entryId,
+  }))
+  const realEntryId = entryId === ROUTE_ENTRY_PENDING ? "" : entryId
+  const backHome = useBackHome()
+
+  if (realEntryId) {
+    return (
+      <div className="flex size-full flex-col">
+        <div className="flex items-center border-b px-2 py-1">
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-lg p-2 text-accent"
+            onClick={() => backHome()}
+          >
+            <i className="i-mgc-arrow-left-cute-re text-lg" />
+            <span className="text-sm">Back</span>
+          </button>
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <EntryContent entryId={realEntryId} className="h-full" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex size-full flex-col">
+      <EntryColumn />
+    </div>
+  )
+}
+
 const TimelineLayoutImpl = () => {
   const { view, entryId } = useRouteParamsSelector((state) => ({
     view: state.view,
     entryId: state.entryId,
   }))
 
+  const isMobile = useMobile()
   const realEntryId = entryId === ROUTE_ENTRY_PENDING ? "" : entryId
   const showEntryDetailsColumn = useShowEntryDetailsColumn()
   const hasSelectedEntry = Boolean(realEntryId)
@@ -85,6 +122,10 @@ const TimelineLayoutImpl = () => {
     setTimelineColumnWidth(defaultUISettings.entryColWidth)
     window.dispatchEvent(new Event("resize"))
   }, [setTimelineColumnWidth])
+
+  if (isMobile) {
+    return <MobileTimelineLayout />
+  }
 
   return (
     <div

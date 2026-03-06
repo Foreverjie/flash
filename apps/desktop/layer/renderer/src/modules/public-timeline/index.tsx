@@ -64,38 +64,42 @@ export function PublicTimelineLayout() {
 
   return (
     <>
-      {/* Left sidebar: Subscription/Feed Column */}
-      <div
-        className="relative flex h-full flex-col pt-2.5"
-        style={{ width: `${feedColWidth}px`, flexShrink: 0 }}
-      >
-        {/* Header mimics SubscriptionColumnHeader */}
-        <div className="ml-4 mr-3 flex items-center justify-between">
-          <div className="relative flex items-center gap-1 text-lg font-semibold">
-            <Logo className="mr-1 size-6" />
-            <Folo className="size-8" />
-          </div>
-          <div className="relative flex items-center gap-2" onClick={stopPropagation}>
-            <Link to="/discover" tabIndex={-1}>
-              <ActionButton shortcut="$mod+T" tooltip={t("words.discover")}>
-                <i className="i-mgc-add-cute-re size-5 text-text-secondary" />
-              </ActionButton>
-            </Link>
-            <Link to="/explore" tabIndex={-1}>
-              <ActionButton tooltip={t("words.explore")}>
-                <i className="i-mgc-world-2-cute-re size-5 text-text-secondary" />
-              </ActionButton>
-            </Link>
-          </div>
-        </div>
+      {/* Left sidebar: Subscription/Feed Column (hidden on mobile) */}
+      {!mobile && (
+        <>
+          <div
+            className="relative flex h-full flex-col pt-2.5"
+            style={{ width: `${feedColWidth}px`, flexShrink: 0 }}
+          >
+            {/* Header mimics SubscriptionColumnHeader */}
+            <div className="ml-4 mr-3 flex items-center justify-between">
+              <div className="relative flex items-center gap-1 text-lg font-semibold">
+                <Logo className="mr-1 size-6" />
+                <Folo className="size-8" />
+              </div>
+              <div className="relative flex items-center gap-2" onClick={stopPropagation}>
+                <Link to="/discover" tabIndex={-1}>
+                  <ActionButton shortcut="$mod+T" tooltip={t("words.discover")}>
+                    <i className="i-mgc-add-cute-re size-5 text-text-secondary" />
+                  </ActionButton>
+                </Link>
+                <Link to="/explore" tabIndex={-1}>
+                  <ActionButton tooltip={t("words.explore")}>
+                    <i className="i-mgc-world-2-cute-re size-5 text-text-secondary" />
+                  </ActionButton>
+                </Link>
+              </div>
+            </div>
 
-        {/* Feed list */}
-        <div className="mt-3 flex h-0 grow flex-col">
-          <PublicFeedSidebar selectedFeedId={selectedFeedId} onSelectFeed={handleSelectFeed} />
-        </div>
-      </div>
+            {/* Feed list */}
+            <div className="mt-3 flex h-0 grow flex-col">
+              <PublicFeedSidebar selectedFeedId={selectedFeedId} onSelectFeed={handleSelectFeed} />
+            </div>
+          </div>
 
-      <PanelSplitter isDragging={false} cursor="col-resize" />
+          <PanelSplitter isDragging={false} cursor="col-resize" />
+        </>
+      )}
 
       {/* Middle: Entry list */}
       <main
