@@ -175,6 +175,8 @@ export const auth = betterAuth({
     "http://localhost:3001",
     "http://localhost:2233",
     "http://localhost:5173",
+    "https://scflash.win",
+    "https://api.scflash.win",
     process.env.FRONTEND_URL,
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   ].filter(Boolean) as string[],
