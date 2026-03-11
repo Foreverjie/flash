@@ -55,7 +55,7 @@ export const InputV2 = ({
           "ring-accent/20 focus:border-accent/80 duration-200 focus:outline-none focus:ring-2",
           "focus:!bg-accent/5",
           "border-border border",
-          "placeholder:text-text-tertiary dark:bg-zinc-700/[0.15] dark:text-zinc-200",
+          "placeholder:text-text-tertiary dark:bg-fill-quinary dark:text-text",
           "hover:border-accent/60",
           props.type === "password" && "font-mono placeholder:font-sans",
           "w-full",
@@ -74,7 +74,8 @@ export const InputV2 = ({
           type="button"
           onClick={handleClear}
           className="text-text-tertiary hover:text-text-secondary absolute right-3 top-1/2 hidden -translate-y-1/2 items-center transition-colors group-focus-within:flex"
-          tabIndex={-1}
+          tabIndex={0}
+          aria-label="Clear input"
         >
           <i className="i-mingcute-close-circle-fill" />
         </button>

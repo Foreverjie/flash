@@ -11,6 +11,7 @@ import Stripe from "stripe"
 
 import { db } from "../db/index.js"
 import * as schema from "../db/schema.js"
+import { sendPasswordResetEmail, sendVerificationEmail } from "../lib/email.js"
 import {
   customGetProvidersPlugin,
   deleteUserCustomPlugin,
@@ -57,7 +58,7 @@ export const auth = betterAuth({
   // Email and password configuration
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: process.env.NODE_ENV === "production",
+    requireEmailVerification: true,
     minPasswordLength: 8,
     maxPasswordLength: 128,
     password: {
@@ -69,10 +70,16 @@ export const auth = betterAuth({
       },
     },
     sendResetPassword: async ({ user, url }) => {
-      // TODO: Integrate with email service (Resend, SendGrid, etc.)
-      console.info(`[Auth] Password reset requested for ${user.email}`)
-      console.info(`[Auth] Reset URL: ${url}`)
+      await sendPasswordResetEmail(user.email, url)
     },
+  },
+
+  // Email verification configuration (required for sendVerificationEmail endpoint)
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendVerificationEmail(user.email, url)
+    },
+    sendOnSignUp: true,
   },
 
   // Session configuration

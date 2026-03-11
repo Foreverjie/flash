@@ -25,14 +25,11 @@ export const Slider = ({
     <SliderPrimitive.Track
       className={cn(
         "relative h-1.5 w-full grow overflow-hidden rounded-full",
-        variant === "primary" ? "bg-accent/20" : "bg-zinc-200 dark:bg-zinc-700",
+        variant === "primary" ? "bg-accent/20" : "bg-fill-tertiary",
       )}
     >
       <SliderPrimitive.Range
-        className={cn(
-          "absolute h-full",
-          variant === "primary" ? "bg-accent" : "bg-zinc-400 dark:bg-zinc-500",
-        )}
+        className={cn("absolute h-full", variant === "primary" ? "bg-accent" : "bg-fill")}
       />
     </SliderPrimitive.Track>
     <SliderPrimitive.Thumb
@@ -40,7 +37,7 @@ export const Slider = ({
         "bg-background block size-4 rounded-full border shadow transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50",
         variant === "primary"
           ? "border-accent/50 focus-visible:ring-accent"
-          : "border-zinc-400 focus-visible:ring-zinc-400 dark:border-zinc-500 dark:focus-visible:ring-zinc-500",
+          : "border-fill focus-visible:ring-fill",
       )}
     />
   </SliderPrimitive.Root>

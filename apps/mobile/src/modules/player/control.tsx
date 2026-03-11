@@ -39,6 +39,8 @@ export function PlayPauseButton({ size = 24, className, color }: ControlButtonPr
         onPress={() => {
           playing ? player.pause() : player.play()
         }}
+        accessibilityRole="button"
+        accessibilityLabel={playing ? "Pause" : "Play"}
       >
         {playing ? (
           <PauseCuteFiIcon color={color ?? label} width={size} height={size} />
@@ -64,6 +66,16 @@ export function SeekButton({
         onPress={() => {
           player.seekBy(offset)
         }}
+        accessibilityRole="button"
+        accessibilityLabel={
+          offset === 30
+            ? "Skip forward 30 seconds"
+            : offset === -15
+              ? "Rewind 15 seconds"
+              : offset > 0
+                ? "Skip forward"
+                : "Rewind"
+        }
       >
         {offset === 30 ? (
           <RewindForward30CuteReIcon color={color ?? label} width={size} height={size} />
@@ -85,14 +97,19 @@ export function RateSelector() {
     <View className="flex-row items-center justify-center">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
-          <Text
-            className={cn(
-              "w-[43] text-lg font-bold",
-              isBackgroundLight ? "text-black/70" : "text-white/70",
-            )}
+          <View
+            accessibilityRole="button"
+            accessibilityLabel={`Playback speed, ${currentRate} times`}
           >
-            {currentRate}x
-          </Text>
+            <Text
+              className={cn(
+                "w-[43] text-lg font-bold",
+                isBackgroundLight ? "text-black/70" : "text-white/70",
+              )}
+            >
+              {currentRate}x
+            </Text>
+          </View>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content>
           {allowedRate.map((rate) => (
@@ -119,6 +136,8 @@ export function StopButton({ size = 24, className, color }: ControlButtonProps) 
         player.reset()
         navigation.back()
       }}
+      accessibilityRole="button"
+      accessibilityLabel="Stop playback"
     >
       <StopCircleCuteFiIcon color={color ?? label} width={size} height={size} />
     </TouchableOpacity>

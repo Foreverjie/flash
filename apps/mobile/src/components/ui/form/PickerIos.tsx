@@ -52,7 +52,13 @@ export function PickerIos<T>({
   return (
     <>
       {/* Trigger */}
-      <Pressable onPress={() => setIsOpen(!isOpen)}>
+      <Pressable
+        onPress={() => setIsOpen(!isOpen)}
+        accessibilityRole="button"
+        accessibilityLabel={valueToLabelMap.get(currentValue)}
+        accessibilityHint="Double tap to open picker"
+        accessibilityState={{ expanded: isOpen }}
+      >
         <View
           className={cn(
             "h-10 flex-row items-center rounded-lg border border-system-fill/80 bg-system-fill/30 pl-4 pr-2",

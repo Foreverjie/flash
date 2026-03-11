@@ -19,41 +19,60 @@ import { Input } from "@follow/components/ui/input/index.js"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import * as React from "react"
+import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router"
+import { Link, useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 import { z } from "zod"
 
-const passwordSchema = z.string().min(8).max(128)
-const initPasswordFormSchema = z
-  .object({
-    newPassword: passwordSchema,
-    confirmPassword: passwordSchema,
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  })
+const createPasswordFormSchema = (messages: {
+  passwordMin: string
+  passwordMax: string
+  passwordsDontMatch: string
+}) => {
+  const passwordSchema = z.string().min(8, messages.passwordMin).max(128, messages.passwordMax)
+  return z
+    .object({
+      newPassword: passwordSchema,
+      confirmPassword: passwordSchema,
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: messages.passwordsDontMatch,
+      path: ["confirmPassword"],
+    })
+}
 
 export function Component() {
   const { t } = useTranslation()
-  const form = useForm<z.infer<typeof initPasswordFormSchema>>({
-    resolver: zodResolver(initPasswordFormSchema),
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get("token")
+
+  const passwordFormSchema = useMemo(
+    () =>
+      createPasswordFormSchema({
+        passwordMin: t("login.reset_password.password_min"),
+        passwordMax: t("login.reset_password.password_max"),
+        passwordsDontMatch: t("login.reset_password.passwords_dont_match"),
+      }),
+    [t],
+  )
+  const form = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
     defaultValues: {
       newPassword: "",
       confirmPassword: "",
     },
+    mode: "all",
   })
 
   const { isValid } = form.formState
 
   const navigate = useNavigate()
   const updateMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof initPasswordFormSchema>) => {
-      const token = new URLSearchParams(window.location.search).get("token")
+    mutationFn: async (values: z.infer<typeof passwordFormSchema>) => {
       if (!token) {
-        throw new Error("Token not found")
+        throw new Error(t("login.reset_password.invalid_token"))
       }
 
       const res = await resetPassword({ newPassword: values.newPassword, token })
@@ -71,8 +90,28 @@ export function Component() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof initPasswordFormSchema>) {
+  function onSubmit(values: z.infer<typeof passwordFormSchema>) {
     updateMutation.mutate(values)
+  }
+
+  if (!token) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Card className="w-[500px] max-w-full">
+          <CardHeader>
+            <CardTitle>{t("login.reset_password.label")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="mb-4">
+              {t("login.reset_password.invalid_token")}
+            </CardDescription>
+            <Link to="/forget-password" className="text-accent hover:underline">
+              {t("login.reset_password.request_new_link")}
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -80,7 +119,7 @@ export function Component() {
       <Card className="w-[500px] max-w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span>{t("login.forget_password.label")}</span>
+            <span>{t("login.reset_password.label")}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -203,9 +203,13 @@ const ProfileForm: FC<{
                 <View className="ml-auto flex-row gap-2">
                   <Text className="text-secondary-label">{whoami.email}</Text>
                   {whoami.emailVerified ? (
-                    <CheckCircleCuteReIcon height={18} width={18} color={"#00C75F"} />
+                    <View accessibilityLabel="Email verified" accessible>
+                      <CheckCircleCuteReIcon height={18} width={18} color={"#00C75F"} />
+                    </View>
                   ) : (
-                    <CloseCircleFillIcon height={18} width={18} color={"#FF3B30"} />
+                    <View accessibilityLabel="Email not verified" accessible>
+                      <CloseCircleFillIcon height={18} width={18} color={"#FF3B30"} />
+                    </View>
                   )}
                 </View>
               }

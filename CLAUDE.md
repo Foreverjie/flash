@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Folo (fork of [RSSNext/Folo](https://github.com/RSSNext/Folo)) — an RSS/content aggregation platform. Monorepo managed by **pnpm workspaces + Turborepo**.
+Follow (fork of [RSSNext/Follow](https://github.com/RSSNext/follow)) — an RSS/content aggregation platform. Monorepo managed by **pnpm workspaces + Turborepo**.
 
 ### Apps
 
 - `apps/desktop` — Electron + Vite + React 19 (renderer is also the primary web app)
 - `apps/mobile` — React Native via Expo 53
-- `apps/ssr` — Fastify + React 19 SSR for sharing/OG pages
+- `apps/ssr` — Fastify v5 + React 19 SSR for sharing/OG pages (Satori for OG image generation)
 - `apps/api` — Hono.js API server, deployed on Vercel with Supabase PostgreSQL
 
 ### Shared packages
@@ -53,11 +53,17 @@ pnpm run build:web                    # Build web version
 ### Auth
 
 - **Better Auth** with Drizzle adapter, mounted at `/api/auth/*`. Supports email/password, GitHub OAuth, Google OAuth, 2FA
+- Email verification required in production; password reset via email
+
+### Email
+
+- **Resend** for transactional emails (verification, password reset). Config in `apps/api/src/lib/email.ts`
+- Falls back to console logging when `RESEND_API_KEY` is not set (local dev)
 
 ### API routing (Hono)
 
 - Route files in `apps/api/src/routes/` export Hono instances, mounted in `src/index.ts` with dual paths (`/resource` and `/api/v1/resource`)
-- Middleware: `requireAuth` (blocks unauthenticated), `optionalAuth` (populates user if present)
+- Middleware in `apps/api/src/middleware/`: `requireAuth` (blocks unauthenticated), `optionalAuth` (populates user if present), `requireAdmin`
 - Validation: `@hono/zod-validator` with Zod schemas
 
 ### Desktop renderer routing

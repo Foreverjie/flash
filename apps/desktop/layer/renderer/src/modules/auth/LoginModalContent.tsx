@@ -189,7 +189,11 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
       {!isEmail && (
         <>
           <Divider className="mb-5 mt-4" />
-          <div className="pb-2 text-center font-medium" onClick={() => setIsRegister(!isRegister)}>
+          <button
+            type="button"
+            className="w-full pb-2 text-center font-medium"
+            onClick={() => setIsRegister(!isRegister)}
+          >
             <Trans
               t={t}
               i18nKey={isRegister ? "login.have_account" : "login.no_account"}
@@ -197,7 +201,7 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
                 strong: <span className="text-accent" />,
               }}
             />
-          </div>
+          </button>
         </>
       )}
     </>

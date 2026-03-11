@@ -86,7 +86,13 @@ export const Switch = ({
   })
 
   return (
-    <Pressable onPress={handlePress} className="opacity-100" style={styles.container}>
+    <Pressable
+      onPress={handlePress}
+      className="opacity-100"
+      style={styles.container}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+    >
       <Animated.View
         style={[
           styles.track,

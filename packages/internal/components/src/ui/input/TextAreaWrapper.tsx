@@ -97,8 +97,8 @@ export const TextAreaWrapper = ({
         isFocused && "!border-accent/80 ring-2",
 
         // Theme colors
-        "placeholder:text-text-tertiary dark:text-zinc-200",
-        "bg-theme-background dark:bg-zinc-700/[0.15]",
+        "placeholder:text-text-tertiary dark:text-text",
+        "bg-theme-background dark:bg-fill-quinary",
 
         paddingClassName,
         wrapperClassName,

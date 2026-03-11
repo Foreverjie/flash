@@ -150,6 +150,8 @@ export const PlainTextField = ({
             textInputRef.current?.clear()
             props.onChangeText?.("")
           }}
+          accessibilityRole="button"
+          accessibilityLabel="Clear text"
         >
           <CloseCircleFillIcon height={16} width={16} color={secondaryLabelColor} />
         </TouchableOpacity>

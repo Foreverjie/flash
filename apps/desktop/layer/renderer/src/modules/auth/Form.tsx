@@ -13,7 +13,7 @@ import type { LoginRuntime } from "@follow/shared/auth"
 import { env } from "@follow/shared/env.desktop"
 import HCaptcha from "@hcaptcha/react-hcaptcha"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { Trans, useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -21,16 +21,17 @@ import { z } from "zod"
 
 import { useServerConfigs } from "~/atoms/server-configs"
 import { useModalStack } from "~/components/ui/modal/stacked/hooks"
-import { loginHandler, signUp, twoFactor } from "~/lib/auth"
+import { loginHandler, sendVerificationEmail, signUp, twoFactor } from "~/lib/auth"
 import { handleSessionChanges } from "~/queries/auth"
 
 import { TOTPForm } from "../profile/two-factor"
 import { ReferralForm } from "./ReferralForm"
 
-const formSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8).max(128),
-})
+const createFormSchema = (passwordMinMsg: string) =>
+  z.object({
+    email: z.string().email(),
+    password: z.string().min(8, passwordMinMsg).max(128),
+  })
 
 export function LoginWithPassword({
   runtime,
@@ -41,6 +42,7 @@ export function LoginWithPassword({
 }) {
   const { t } = useTranslation("app")
   const { t: tSettings } = useTranslation("settings")
+  const formSchema = createFormSchema(t("login.password_min_length"))
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -117,15 +119,21 @@ export function LoginWithPassword({
             <FormItem className="mt-4">
               <FormLabel className="flex items-center justify-between">
                 <span>{t("login.password")}</span>
-                <a
-                  href={`${env.VITE_WEB_URL}/forget-password`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    window.open(
+                      `${env.VITE_WEB_URL}/forget-password`,
+                      "_blank",
+                      "noopener,noreferrer",
+                    )
+                  }}
                   tabIndex={-1}
                   className="block py-1 text-xs text-accent hover:underline"
                 >
                   {t("login.forget_password.note")}
-                </a>
+                </button>
               </FormLabel>
               <FormControl>
                 <Input type="password" {...field} />
@@ -151,8 +159,9 @@ export function LoginWithPassword({
 
       <Divider className="my-4" />
 
-      <div
-        className="flex cursor-pointer items-center justify-center gap-1 pb-2 text-center text-sm"
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center justify-center gap-1 pb-2 text-center text-sm"
         onClick={() => onLoginStateChange("register")}
       >
         <Trans
@@ -163,21 +172,22 @@ export function LoginWithPassword({
           }}
         />
         <i className="i-mgc-right-cute-fi !text-text" />
-      </div>
+      </button>
     </Form>
   )
 }
 
-const registerFormSchema = z
-  .object({
-    email: z.string().email(),
-    password: z.string().min(8).max(128),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  })
+const createRegisterFormSchema = (messages: { passwordMin: string; passwordsDontMatch: string }) =>
+  z
+    .object({
+      email: z.string().email(),
+      password: z.string().min(8, messages.passwordMin).max(128),
+      confirmPassword: z.string(),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: messages.passwordsDontMatch,
+      path: ["confirmPassword"],
+    })
 
 export function RegisterForm({
   onLoginStateChange,
@@ -185,7 +195,13 @@ export function RegisterForm({
   onLoginStateChange: (state: "register" | "login") => void
 }) {
   const { t } = useTranslation("app")
+  const [registeredEmail, setRegisteredEmail] = useState("")
+  const [isResending, setIsResending] = useState(false)
 
+  const registerFormSchema = createRegisterFormSchema({
+    passwordMin: t("login.password_min_length"),
+    passwordsDontMatch: t("login.passwords_dont_match"),
+  })
   const form = useForm<z.infer<typeof registerFormSchema>>({
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
@@ -196,7 +212,6 @@ export function RegisterForm({
     mode: "all",
   })
 
-  const { dismissAll } = useModalStack()
   const serverConfigs = useServerConfigs()
 
   const captchaRef = useRef<HCaptcha>(null)
@@ -209,9 +224,8 @@ export function RegisterForm({
       name: values.email.split("@")[0]!,
       callbackURL: "/",
       fetchOptions: {
-        async onSuccess() {
-          await handleSessionChanges()
-          dismissAll()
+        onSuccess() {
+          setRegisteredEmail(values.email)
         },
         onError(context) {
           toast.error(context.error.message)
@@ -221,6 +235,40 @@ export function RegisterForm({
         },
       },
     })
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="flex flex-col items-center space-y-4 py-4">
+        <i className="i-mgc-mail-cute-re text-4xl text-accent" />
+        <h2 className="text-lg font-semibold">{t("register.verify_email.title")}</h2>
+        <p className="text-center text-sm text-text-secondary">
+          {t("register.verify_email.description", { email: registeredEmail })}
+        </p>
+        <Button
+          variant="outline"
+          isLoading={isResending}
+          onClick={async () => {
+            setIsResending(true)
+            try {
+              await sendVerificationEmail({ email: registeredEmail })
+              toast.success(t("register.verify_email.resend_success"))
+            } finally {
+              setIsResending(false)
+            }
+          }}
+        >
+          {t("register.verify_email.resend")}
+        </Button>
+        <button
+          type="button"
+          className="text-sm text-accent hover:underline"
+          onClick={() => onLoginStateChange("login")}
+        >
+          {t("register.verify_email.back_to_sign_in")}
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -277,8 +325,9 @@ export function RegisterForm({
       </Form>
       <Divider className="my-4" />
 
-      <div
-        className="flex cursor-pointer items-center justify-center gap-1 pb-2 text-center text-sm"
+      <button
+        type="button"
+        className="flex w-full cursor-pointer items-center justify-center gap-1 pb-2 text-center text-sm"
         onClick={() => onLoginStateChange("login")}
       >
         <Trans
@@ -289,7 +338,7 @@ export function RegisterForm({
           }}
         />
         <i className="i-mgc-right-cute-fi !text-text" />
-      </div>
+      </button>
     </div>
   )
 }

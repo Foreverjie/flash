@@ -16,13 +16,13 @@ export const styledButtonVariant = cva(
       {
         variant: "primary",
         status: "disabled",
-        className: "text-zinc-50 bg-theme-disabled",
+        className: "text-white bg-theme-disabled",
       },
       {
         variant: "outline",
         status: "disabled",
         className:
-          "text-theme-disabled border-theme-inactive dark:border-zinc-800 hover:!bg-theme-background",
+          "text-theme-disabled border-theme-inactive dark:border-border hover:!bg-theme-background",
       },
       {
         variant: "text",
@@ -49,15 +49,15 @@ export const styledButtonVariant = cva(
         primary: cn(
           "bg-accent",
           "hover:contrast-[1.10] hover:shadow-md hover:shadow-accent/20 active:contrast-125 active:shadow-none",
-          "disabled:bg-theme-disabled disabled:dark:text-zinc-50 disabled:shadow-none",
-          "text-zinc-100",
+          "disabled:bg-theme-disabled disabled:dark:text-white disabled:shadow-none",
+          "text-white",
           "focus-visible:ring-accent/30",
-          "transition-all duration-200",
+          "transition-[color,background-color,filter,box-shadow] duration-200",
         ),
 
         outline: cn(
           "bg-theme-background transition-colors duration-200",
-          "border border-border hover:border-accent/50 hover:bg-zinc-50/80 dark:bg-neutral-900/30 dark:hover:bg-neutral-900/80",
+          "border border-border hover:border-accent/50 hover:bg-fill-quaternary dark:bg-fill-quaternary dark:hover:bg-fill-tertiary",
           "focus-visible:ring-accent/30",
           "hover:shadow-sm",
         ),
@@ -71,7 +71,7 @@ export const styledButtonVariant = cva(
           "px-2",
           "hover:bg-material-ultra-thick",
           "focus-visible:ring-accent/30",
-          "transition-all duration-200",
+          "transition-colors duration-200",
         ),
       },
     },

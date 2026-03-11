@@ -20,10 +20,11 @@ import { env } from "@follow/shared/env.ssr"
 import HCaptcha from "@hcaptcha/react-hcaptcha"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import * as React from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -38,6 +39,8 @@ const createEmailSchema = (t: any) =>
 export function Component() {
   const { t } = useTranslation()
 
+  const [emailSent, setEmailSent] = useState(false)
+  const [sentEmail, setSentEmail] = useState("")
   const captchaRef = useRef<HCaptcha>(null)
 
   const EmailSchema = createEmailSchema(t)
@@ -83,13 +86,34 @@ export function Component() {
     onError: (error) => {
       toast.error(error.message)
     },
-    onSuccess: () => {
-      toast.success(t("login.forget_password.success"))
+    onSuccess: (_data, variables) => {
+      setSentEmail(variables.email)
+      setEmailSent(true)
     },
   })
 
   function onSubmit(values: z.infer<typeof EmailSchema>) {
     updateMutation.mutate(values)
+  }
+
+  if (emailSent) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Card className="w-[500px] max-w-full">
+          <CardHeader>
+            <CardTitle>{t("login.forget_password.label")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <CardDescription>
+              {t("login.forget_password.email_sent_description", { email: sentEmail })}
+            </CardDescription>
+            <Link to="/login" className="block text-center text-sm text-accent hover:underline">
+              {t("login.forget_password.back_to_sign_in")}
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -119,9 +143,7 @@ export function Component() {
                   </FormItem>
                 )}
               />
-              {import.meta.env.DEV ? (
-                <div className="text-center text-xs text-accent">hCaptcha disabled in dev</div>
-              ) : (
+              {!import.meta.env.DEV && (
                 <HCaptcha ref={captchaRef} sitekey={env.VITE_HCAPTCHA_SITE_KEY} size="invisible" />
               )}
               <div className="text-right">

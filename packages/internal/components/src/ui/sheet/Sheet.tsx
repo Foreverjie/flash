@@ -121,7 +121,7 @@ export const PresentSheet = ({
           {dismissible && (
             <div
               className={cn(
-                "mx-auto mb-8 h-1.5 w-12 shrink-0 rounded-full bg-zinc-300 dark:bg-neutral-800",
+                "bg-fill-secondary mx-auto mb-8 h-1.5 w-12 shrink-0 rounded-full",
                 dismissableClassName,
               )}
             />
@@ -164,7 +164,7 @@ export const PresentSheet = ({
           <div ref={setHolderRef} />
         </Drawer.Content>
         <Drawer.Overlay
-          className="fixed inset-0 bg-neutral-800/40"
+          className="fixed inset-0 bg-black/40"
           style={{
             zIndex: overlayZIndex,
           }}

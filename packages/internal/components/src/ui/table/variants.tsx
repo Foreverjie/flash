@@ -4,7 +4,7 @@ export const tableHeadVariants = cva("", {
   variants: {
     size: {
       default: "h-12 px-4",
-      sm: "h-6 px-3 font-normal text-zinc-800 dark:text-zinc-500",
+      sm: "h-6 px-3 font-normal text-text-secondary",
     },
   },
   defaultVariants: {

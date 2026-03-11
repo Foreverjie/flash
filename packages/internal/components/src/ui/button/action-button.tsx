@@ -107,7 +107,7 @@ export const ActionButton = ({
       onFocusCapture={stopPropagation}
       className={cn(
         "no-drag-region pointer-events-auto inline-flex items-center justify-center",
-        active && typeof icon !== "function" && "bg-zinc-500/15 hover:bg-zinc-500/20",
+        active && typeof icon !== "function" && "bg-fill-secondary hover:bg-fill",
         "hover:bg-theme-item-hover data-[state=open]:bg-theme-item-active rounded-md duration-200",
         "disabled:cursor-not-allowed disabled:opacity-50",
         clickableDisabled && "cursor-not-allowed opacity-50",

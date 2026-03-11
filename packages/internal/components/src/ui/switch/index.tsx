@@ -91,7 +91,7 @@ function Switch({
           animate={isChecked ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
           transition={{ type: "spring", bounce: 0 }}
           className={cn(
-            "absolute left-1 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500",
+            "text-text-quaternary absolute left-1 top-1/2 -translate-y-1/2",
             size === "sm" ? "[&_svg]:size-2.5" : "[&_svg]:size-3",
           )}
         >
@@ -105,7 +105,7 @@ function Switch({
           animate={isChecked ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
           transition={{ type: "spring", bounce: 0 }}
           className={cn(
-            "absolute right-1 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400",
+            "text-text-quaternary absolute right-1 top-1/2 -translate-y-1/2",
             size === "sm" ? "[&_svg]:size-2.5" : "[&_svg]:size-3",
           )}
         >
@@ -117,7 +117,7 @@ function Switch({
         data-slot="switch-thumb"
         whileTap="tab"
         className={cn(
-          "bg-background z-[1] flex items-center justify-center rounded-full text-neutral-500 shadow-lg ring-0 dark:text-neutral-400",
+          "bg-background text-text-tertiary z-[1] flex items-center justify-center rounded-full shadow-lg ring-0",
           size === "sm" ? "[&_svg]:size-2.5" : "[&_svg]:size-3",
           "absolute",
         )}

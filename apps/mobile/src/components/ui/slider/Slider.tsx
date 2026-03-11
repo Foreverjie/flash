@@ -67,6 +67,11 @@ export interface SliderProps {
    * Step value for the slider
    */
   step?: number
+
+  /**
+   * Accessibility label for screen readers
+   */
+  accessibilityLabel?: string
 }
 
 export type SliderRef = {
@@ -89,6 +94,7 @@ export const Slider = ({
   style,
   disabled = false,
   step,
+  accessibilityLabel = "Slider",
 }: SliderProps & { ref?: React.Ref<SliderRef | null> }) => {
   const trackWidth = useSharedValue(0)
   const thumbPosition = useSharedValue(0)
@@ -215,6 +221,13 @@ export const Slider = ({
       <Pressable
         style={[styles.trackContainer, { height: Math.max(trackHeight, thumbWidth) }]}
         onPress={onTrackPress}
+        accessibilityRole="adjustable"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityValue={{
+          min: minimumValue,
+          max: maximumValue,
+          now: value,
+        }}
         onLayout={(event) => {
           trackWidth.value = event.nativeEvent.layout.width
           thumbPosition.value = getThumbPosition(value)

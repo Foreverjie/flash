@@ -97,6 +97,14 @@ export const EntryNormalItem = memo(
             "flex flex-row items-center pl-6",
           )}
           onPress={handlePress}
+          accessibilityRole="button"
+          accessibilityLabel={[
+            entry.title || "Untitled entry",
+            feed?.title && `from ${feed.title}`,
+            !entry.read && "unread",
+          ]
+            .filter(Boolean)
+            .join(", ")}
         >
           {!entry.read && (
             <View

@@ -1,9 +1,16 @@
 import { useServerConfigs } from "@client/atoms/server-configs"
-import { loginHandler, signUp } from "@client/lib/auth"
+import { loginHandler, sendVerificationEmail, signUp } from "@client/lib/auth"
 import { ReferralForm } from "@client/modules/referral"
 import { useAuthProviders } from "@client/query/users"
 import { Logo } from "@follow/components/icons/logo.jsx"
 import { Button, MotionButtonBase } from "@follow/components/ui/button/index.jsx"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@follow/components/ui/card/index.jsx"
 import { Divider } from "@follow/components/ui/divider/index.js"
 import {
   Form,
@@ -20,11 +27,12 @@ import { tracker } from "@follow/tracker"
 import { cn } from "@follow/utils/utils"
 import HCaptcha from "@hcaptcha/react-hcaptcha"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
 import { useRef, useState } from "react"
 import * as React from "react"
 import { useForm } from "react-hook-form"
 import { Trans, useTranslation } from "react-i18next"
-import { useNavigate } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -52,6 +60,7 @@ function RegisterForm() {
   const serverConfigs = useServerConfigs()
   const { t } = useTranslation()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState("")
   const navigate = useNavigate()
   const captchaRef = useRef<HCaptcha>(null)
 
@@ -65,6 +74,18 @@ function RegisterForm() {
   })
   const [isEmail, setIsEmail] = useState(false)
   const isDark = useIsDark()
+
+  const resendMutation = useMutation({
+    mutationFn: async () => {
+      await sendVerificationEmail({ email: registeredEmail })
+    },
+    onSuccess: () => {
+      toast.success(t("register.verify_email.resend_success"))
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
 
   const { data: authProviders } = useAuthProviders()
 
@@ -95,7 +116,7 @@ function RegisterForm() {
             tracker.register({
               type: "email",
             })
-            navigate("/login")
+            setRegisteredEmail(values.email)
           },
           onError(context) {
             toast.error(context.error.message)
@@ -108,6 +129,35 @@ function RegisterForm() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Card className="w-[500px] max-w-full">
+          <CardHeader>
+            <CardTitle>{t("register.verify_email.title")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <CardDescription>
+              {t("register.verify_email.description", { email: registeredEmail })}
+            </CardDescription>
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                isLoading={resendMutation.isPending}
+                onClick={() => resendMutation.mutate()}
+              >
+                {t("register.verify_email.resend")}
+              </Button>
+            </div>
+            <Link to="/login" className="block text-center text-sm text-accent hover:underline">
+              {t("register.verify_email.back_to_sign_in")}
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
