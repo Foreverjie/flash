@@ -35,7 +35,7 @@ describe("GET /internal/scrapling/feeds", () => {
     })
     // DB may be empty in unit test — just check shape
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = (await res.json()) as { data: unknown }
     expect(body).toHaveProperty("data")
     expect(Array.isArray(body.data)).toBe(true)
   })

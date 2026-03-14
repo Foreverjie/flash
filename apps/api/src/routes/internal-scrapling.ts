@@ -17,7 +17,7 @@ router.use("*", async (c, next) => {
   if (!key || key !== process.env.INTERNAL_API_KEY) {
     return c.json({ code: 401, message: "Unauthorized" }, 401)
   }
-  await next()
+  return next()
 })
 
 const scrapedPostSchema = z.object({

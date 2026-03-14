@@ -18,6 +18,7 @@ import cronRouter from "./routes/cron.js"
 import entriesRouter from "./routes/entries.js"
 import feedsRouter from "./routes/feeds.js"
 import healthRouter from "./routes/health.js"
+import internalScraplingRouter from "./routes/internal-scrapling.js"
 import postsRouter from "./routes/posts.js"
 import readsRouter from "./routes/reads.js"
 import subscriptionsRouter from "./routes/subscriptions.js"
@@ -150,6 +151,9 @@ app.route("/api/v1/comments", commentsRouter)
 // Cron routes (scheduled tasks)
 app.route("/cron", cronRouter)
 app.route("/api/cron", cronRouter)
+
+// Internal routes for scraping service communication (no /api/v1/ mirror — service-to-service only)
+app.route("/internal/scrapling", internalScraplingRouter)
 
 // ============================================================
 // Root Route
