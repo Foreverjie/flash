@@ -10,6 +10,7 @@ import { z } from "zod"
 import type { User } from "../auth/index.js"
 import { db, feeds, posts, subscriptions } from "../db/index.js"
 import { rssManager } from "../lib/rss/index.js"
+import { scrapingClient } from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
@@ -296,6 +297,22 @@ feedsRouter.post(
 
       if (!feed) {
         return sendNotFound(c, "Feed")
+      }
+
+      // Delegate to Python scraping service for x_timeline feeds
+      if (feed.adapterType === "x_timeline") {
+        try {
+          const handle = feed.url.replace("x_timeline://", "")
+          const result = await scrapingClient.scrape({ feedId: feed.id, handle })
+          return c.json(structuredSuccess({ message: "Feed refreshed", newPosts: result.inserted }))
+        } catch (err) {
+          logger.error(`[Feeds] Scraping service error for feed ${id}:`, err)
+          await db
+            .update(feeds)
+            .set({ errorAt: new Date(), errorMessage: "Scraping service unavailable" })
+            .where(eq(feeds.id, id))
+          return sendError(c, "Scraper service unavailable", 500, 500)
+        }
       }
 
       // Fetch latest content
