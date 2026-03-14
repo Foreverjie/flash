@@ -301,9 +301,16 @@ feedsRouter.post(
 
       // Delegate to Python scraping service for x_timeline feeds
       if (feed.adapterType === "x_timeline") {
+        const handle = feed.url.replace("x_timeline://", "")
+        if (!handle) {
+          return sendError(c, "Malformed x_timeline URL", 400, 400)
+        }
         try {
-          const handle = feed.url.replace("x_timeline://", "")
           const result = await scrapingClient.scrape({ feedId: feed.id, handle })
+          await db
+            .update(feeds)
+            .set({ lastFetchedAt: new Date(), errorAt: null, errorMessage: null })
+            .where(eq(feeds.id, feed.id))
           return c.json(structuredSuccess({ message: "Feed refreshed", newPosts: result.inserted }))
         } catch (err) {
           logger.error(`[Feeds] Scraping service error for feed ${id}:`, err)

@@ -54,4 +54,28 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
     expect(res.status).toBe(200)
     expect(body.data.newPosts).toBe(3)
   })
+
+  it("returns 500 and records error when scraping service fails", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "x_timeline://elonmusk",
+      adapterType: "x_timeline",
+    })
+
+    server.use(
+      http.post("http://scraper.test/scrape", () =>
+        HttpResponse.json({ error: "blocked" }, { status: 503 }),
+      ),
+    )
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/feed-123/refresh", { method: "POST" })
+    expect(res.status).toBe(500)
+    // db.update should have been called to record the error
+    expect(db.update).toHaveBeenCalled()
+  })
 })
