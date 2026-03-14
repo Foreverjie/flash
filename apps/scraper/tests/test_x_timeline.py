@@ -1,19 +1,8 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 import pytest
 
 from scraper.scrapers.x_timeline import XTimelineScraper
 from scraper.models import ScrapedPost
-
-
-def make_mock_tweet(tweet_id: str, text: str, timestamp: str, media_urls: list[str] = []):
-    tweet = MagicMock()
-    tweet.get.side_effect = lambda key, default=None: {
-        "data-tweet-id": tweet_id,
-        "href": f"https://x.com/testuser/status/{tweet_id}",
-    }.get(key, default)
-    tweet.css_first.return_value = MagicMock()
-    tweet.css_first.return_value.text = text
-    return tweet
 
 
 @pytest.mark.asyncio

@@ -72,7 +72,7 @@ class XTimelineScraper(BaseScraper):
 
         return ScrapedPost(
             guid=tweet_url,
-            title=text[:100],
+            title=text,
             url=tweet_url,
             content=text,
             published_at=published_at,
