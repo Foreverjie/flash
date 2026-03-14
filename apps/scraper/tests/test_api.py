@@ -1,8 +1,16 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import AsyncClient, ASGITransport
 
 from scraper.main import app
+
+
+# Autouse fixture: prevent real APScheduler from starting during tests
+@pytest.fixture(autouse=True)
+def no_scheduler():
+    mock_sched = MagicMock()
+    with patch("scraper.main.start_scheduler", return_value=mock_sched):
+        yield
 
 
 @pytest.mark.asyncio

@@ -1,16 +1,30 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from scraper.client import NodeApiClient
 from scraper.config import settings
 from scraper.models import ScrapeRequest
+from scraper.scheduler import start_scheduler
 from scraper.scrapers.x_timeline import XTimelineScraper
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Scrapling Service")
+_scheduler = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _scheduler
+    _scheduler = start_scheduler()
+    yield
+    if _scheduler:
+        _scheduler.shutdown()
+
+
+app = FastAPI(title="Scrapling Service", lifespan=lifespan)
 
 scraper = XTimelineScraper()
 node_client = NodeApiClient(
