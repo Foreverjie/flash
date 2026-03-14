@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 
 from scraper.client import NodeApiClient
 from scraper.config import settings
@@ -40,7 +40,9 @@ async def health():
 
 
 @app.post("/scrape")
-async def scrape(req: ScrapeRequest):
+async def scrape(req: ScrapeRequest, x_internal_key: str = Header(None)):
+    if x_internal_key != settings.internal_api_key:
+        raise HTTPException(status_code=401, detail="Unauthorized")
     try:
         posts = await scraper.scrape(req.handle)
         inserted = 0

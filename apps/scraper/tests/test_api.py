@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import AsyncClient, ASGITransport
 
+from scraper.config import settings
 from scraper.main import app
 
 
@@ -22,6 +23,13 @@ async def test_health_returns_ok():
 
 
 @pytest.mark.asyncio
+async def test_scrape_without_key_returns_401():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/scrape", json={"feed_id": "123", "handle": "elonmusk"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_scrape_triggers_scraper_and_returns_inserted():
     mock_posts = []  # empty — no new posts
     with (
@@ -29,7 +37,11 @@ async def test_scrape_triggers_scraper_and_returns_inserted():
         patch("scraper.main.node_client.ingest_posts", new=AsyncMock(return_value=0)),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post("/scrape", json={"feed_id": "123", "handle": "elonmusk"})
+            resp = await client.post(
+                "/scrape",
+                json={"feed_id": "123", "handle": "elonmusk"},
+                headers={"x-internal-key": settings.internal_api_key},
+            )
     assert resp.status_code == 200
     assert resp.json()["inserted"] == 0
 
@@ -50,5 +62,9 @@ async def test_scrape_returns_inserted_count_from_ingest():
         patch("scraper.main.node_client.ingest_posts", new=AsyncMock(return_value=1)),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.post("/scrape", json={"feed_id": "123", "handle": "foo"})
+            resp = await client.post(
+                "/scrape",
+                json={"feed_id": "123", "handle": "foo"},
+                headers={"x-internal-key": settings.internal_api_key},
+            )
     assert resp.json()["inserted"] == 1
