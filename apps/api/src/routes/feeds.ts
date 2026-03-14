@@ -23,11 +23,27 @@ type FeedsVariables = {
 }
 
 // Validation schemas
-const createFeedSchema = z.object({
-  url: z.string().url("Invalid feed URL"),
-  title: z.string().max(200).optional(),
-  description: z.string().max(1000).optional(),
-})
+// z.union (not discriminatedUnion) — discriminatedUnion requires a required literal
+// on each member, which would break existing callers that omit `type` entirely.
+const createFeedSchema = z.union([
+  // Standard RSS feed (existing callers omit `type`)
+  z.object({
+    type: z.literal("rss").optional(),
+    url: z.string().url("Invalid feed URL"),
+    title: z.string().max(200).optional(),
+    description: z.string().max(1000).optional(),
+  }),
+  // X timeline feed — user provides a handle (e.g. "elonmusk" or "@elonmusk")
+  z.object({
+    type: z.literal("x_timeline"),
+    handle: z
+      .string()
+      .min(1)
+      .max(50)
+      .transform((h) => h.replace(/^@/, "")), // strip leading @
+    title: z.string().max(200).optional(),
+  }),
+])
 
 const updateFeedSchema = z.object({
   title: z.string().max(200).optional(),
@@ -120,7 +136,36 @@ feedsRouter.get("/:id", zValidator("param", z.object({ id: z.string().min(1) }))
 feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (c) => {
   try {
     const user = c.get("user")
-    const { url, title, description } = c.req.valid("json")
+    const body = c.req.valid("json")
+
+    if (body.type === "x_timeline") {
+      const syntheticUrl = `x_timeline://${body.handle}`
+
+      const existing = await db.query.feeds.findFirst({
+        where: eq(feeds.url, syntheticUrl),
+      })
+
+      if (existing) {
+        return c.json(structuredSuccess({ feed: existing, isNew: false }))
+      }
+
+      const feedId = generateSnowflakeId()
+      const [newFeed] = await db
+        .insert(feeds)
+        .values({
+          id: feedId,
+          url: syntheticUrl,
+          title: body.title ?? `@${body.handle} on X`,
+          adapterType: "x_timeline",
+        })
+        .returning()
+
+      return c.json(structuredSuccess({ feed: newFeed, isNew: true }), 201)
+    }
+
+    // --- RSS path below (body.type is "rss" or undefined) ---
+    // Safe to destructure url/title/description now that x_timeline is handled above
+    const { url, title, description } = body
 
     // Check if feed already exists
     const existingFeed = await db.query.feeds.findFirst({

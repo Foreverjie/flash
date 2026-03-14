@@ -79,3 +79,43 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
     expect(db.update).toHaveBeenCalled()
   })
 })
+
+describe("POST /feeds — x_timeline creation", () => {
+  beforeEach(async () => {
+    vi.resetModules()
+    process.env.SCRAPER_SERVICE_URL = "http://scraper.test"
+    process.env.INTERNAL_API_KEY = "test-key"
+  })
+
+  it("returns 201 with new feed when creating an x_timeline feed by handle", async () => {
+    const { db } = await import("../db/index.js")
+    // No existing feed found
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null)
+    // Simulate insert returning new feed row
+    const mockInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "new-feed", url: "x_timeline://elonmusk", adapterType: "x_timeline" },
+          ]),
+      }),
+    })
+    ;(db as unknown as Record<string, unknown>).insert = mockInsert
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "x_timeline", handle: "@elonmusk" }),
+    })
+
+    expect(res.status).toBe(201)
+    const body = (await res.json()) as { data: { feed: { adapterType: string }; isNew: boolean } }
+    expect(body.data.feed.adapterType).toBe("x_timeline")
+    expect(body.data.isNew).toBe(true)
+  })
+})
