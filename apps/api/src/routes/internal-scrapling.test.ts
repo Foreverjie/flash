@@ -1,24 +1,27 @@
 // apps/api/src/routes/internal-scrapling.test.ts
 import { Hono } from "hono"
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import internalScraplingRouter from "./internal-scrapling"
 
-// Helper: mount router with internal key
-function makeApp(internalKey = "test-key") {
+// Helper: mount router without touching env (env is set via vi.stubEnv)
+function makeApp() {
   const app = new Hono()
-  app.use("*", async (c, next) => {
-    // simulate env
-    process.env.INTERNAL_API_KEY = internalKey
-    await next()
-  })
   app.route("/internal/scrapling", internalScraplingRouter)
   return app
 }
 
 describe("GET /internal/scrapling/feeds", () => {
+  beforeEach(() => {
+    vi.stubEnv("INTERNAL_API_KEY", "test-key")
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it("returns 401 without correct key", async () => {
-    const app = makeApp("real-key")
+    vi.stubEnv("INTERNAL_API_KEY", "real-key")
+    const app = makeApp()
     const res = await app.request("/internal/scrapling/feeds", {
       headers: { "x-internal-key": "wrong-key" },
     })
@@ -26,7 +29,7 @@ describe("GET /internal/scrapling/feeds", () => {
   })
 
   it("returns 200 with feed list when key is valid", async () => {
-    const app = makeApp("test-key")
+    const app = makeApp()
     const res = await app.request("/internal/scrapling/feeds", {
       headers: { "x-internal-key": "test-key" },
     })
@@ -39,8 +42,16 @@ describe("GET /internal/scrapling/feeds", () => {
 })
 
 describe("POST /internal/scrapling/ingest", () => {
+  beforeEach(() => {
+    vi.stubEnv("INTERNAL_API_KEY", "test-key")
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it("returns 401 without correct key", async () => {
-    const app = makeApp("real-key")
+    vi.stubEnv("INTERNAL_API_KEY", "real-key")
+    const app = makeApp()
     const res = await app.request("/internal/scrapling/ingest", {
       method: "POST",
       headers: { "content-type": "application/json", "x-internal-key": "wrong" },
@@ -50,7 +61,7 @@ describe("POST /internal/scrapling/ingest", () => {
   })
 
   it("returns 400 when feedId is missing", async () => {
-    const app = makeApp("test-key")
+    const app = makeApp()
     const res = await app.request("/internal/scrapling/ingest", {
       method: "POST",
       headers: { "content-type": "application/json", "x-internal-key": "test-key" },

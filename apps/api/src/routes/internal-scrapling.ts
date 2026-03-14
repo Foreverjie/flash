@@ -25,7 +25,7 @@ const scrapedPostSchema = z.object({
   title: z.string().max(200),
   url: z.string().url(),
   content: z.string(),
-  published_at: z.string(),
+  published_at: z.string().datetime({ offset: true }),
   author: z.string(),
   media: z
     .array(z.object({ url: z.string(), type: z.enum(["image", "video", "audio"]) }))
