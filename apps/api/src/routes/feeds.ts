@@ -160,6 +160,10 @@ feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (
         })
         .returning()
 
+      if (!newFeed) {
+        return sendError(c, "Failed to create feed", 500, 500)
+      }
+
       return c.json(structuredSuccess({ feed: newFeed, isNew: true }), 201)
     }
 
