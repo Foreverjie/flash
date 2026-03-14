@@ -27,9 +27,13 @@ async def health():
 
 @app.post("/scrape")
 async def scrape(req: ScrapeRequest):
-    posts = await scraper.scrape(req.handle)
-    inserted = 0
-    if posts:
-        inserted = await node_client.ingest_posts(feed_id=req.feed_id, posts=posts)
-    logger.info("Scraped @%s: %d new posts inserted", req.handle, inserted)
-    return {"inserted": inserted}
+    try:
+        posts = await scraper.scrape(req.handle)
+        inserted = 0
+        if posts:
+            inserted = await node_client.ingest_posts(feed_id=req.feed_id, posts=posts)
+        logger.info("Scraped @%s: %d new posts inserted", req.handle, inserted)
+        return {"inserted": inserted}
+    except Exception as exc:
+        logger.error("Scrape request failed for @%s: %s", req.handle, exc)
+        return {"inserted": 0}
