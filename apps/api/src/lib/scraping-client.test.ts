@@ -47,6 +47,6 @@ describe("ScrapingClient", () => {
       ),
     )
 
-    await expect(client.scrape({ feedId: "1", handle: "foo" })).rejects.toThrow()
+    await expect(client.scrape({ feedId: "1", handle: "foo" })).rejects.toThrow("503")
   })
 })

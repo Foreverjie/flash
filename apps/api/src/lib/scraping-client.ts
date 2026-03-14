@@ -30,10 +30,16 @@ export class ScrapingClient {
       })
 
       if (!resp.ok) {
-        throw new Error(`Scraping service error: ${resp.status}`)
+        const body = await resp.text().catch(() => "")
+        throw new Error(`Scraping service error: ${resp.status}${body ? ` — ${body}` : ""}`)
       }
 
       return (await resp.json()) as ScrapeResult
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new Error(`Scraping service timed out after ${this.timeoutMs}ms`)
+      }
+      throw err
     } finally {
       clearTimeout(timer)
     }
