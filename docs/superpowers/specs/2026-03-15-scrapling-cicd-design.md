@@ -101,15 +101,20 @@ permissions:
 1. SSH into VPS using `appleboy/ssh-action` with host/username/key from secrets, port hardcoded to `22` (override with `VPS_PORT` secret if needed)
 2. Remote commands — `docker pull` or `docker run` failure stops the sequence and leaves the old container running; `stop` and `rm` use `|| true` so the script is safe on first run when no container exists yet:
    ```bash
-   docker pull ghcr.io/<owner>/flash-scraper:latest && \
-   docker stop scraper || true && \
-   docker rm scraper || true && \
-   docker run -d \
-     --name scraper \
-     --restart unless-stopped \
-     --env-file /opt/scraper/.env \
-     -p 8000:8000 \
-     ghcr.io/<owner>/flash-scraper:latest
+   IMAGE=ghcr.io/<owner>/flash-scraper:latest
+   if docker pull $IMAGE; then
+     docker stop scraper || true
+     docker rm scraper || true
+     docker run -d \
+       --name scraper \
+       --restart unless-stopped \
+       --env-file /opt/scraper/.env \
+       -p 8000:8000 \
+       $IMAGE
+   else
+     echo "docker pull failed — existing container left running" >&2
+     exit 1
+   fi
    ```
 
 ---
