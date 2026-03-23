@@ -67,21 +67,33 @@ useEffect(() => {
 }, [data])
 ```
 
-**Follow button:** Uses `subscriptionSyncService` from `@follow/store` for mutations so the Zustand store, unread counts, tracker events, and local cache all stay in sync with the sidebar/timeline.
+**Follow button & subscription state:** The modal uses the same TanStack Query hooks as the Explore feed list (`useUserSubscriptionsQuery`, `useSubscribeFeedMutation`, `useUnsubscribeFeedMutation` from `~/queries/feeds`). Both the modal and the underlying feed cards read from the same `["user", "subscriptions"]` query cache. Both mutation hooks call `queryClient.invalidateQueries({ queryKey: ["user", "subscriptions"] })` on success, so subscribing/unsubscribing in the modal automatically updates the feed card beneath it (and vice versa).
 
-**Store hydration:** The modal calls `usePrefetchSubscription()` from `@follow/store/subscription/hooks` on mount. This is a TanStack Query hook (staleTime: 30min) that calls `subscriptionSyncService.fetch()` to hydrate the Zustand subscription store. It's idempotent — if the store is already hydrated (e.g. user opened the subscription column), the query is a no-op. This ensures `subscriptionSyncService.unsubscribe()` can find the subscription in the store.
+**Sidebar/timeline consistency (Zustand store):** The sidebar and timeline rely on the Zustand subscription store (populated by `subscriptionSyncService.fetch()` via `usePrefetchSubscription()` in `SubscriptionColumn`). The Explore page mutation hooks only invalidate the TanStack Query cache — they do **not** sync the Zustand store. This means:
 
-**Reading status:** Uses `useIsSubscribed(feedId)` from `@follow/store/subscription/hooks` which reads from the hydrated Zustand store — consistent with how the rest of the app checks subscription state.
+- **When `SubscriptionColumn` is mounted** (normal authenticated layout): the sidebar already re-renders from its own `usePrefetchSubscription()` query on a 30-minute stale cycle, so it will eventually catch up. For immediate sync, the mutation hooks also invalidate the `["subscription"]` query key prefix, which matches all `["subscription", view]` keys (TanStack Query uses prefix matching by default, `exact: false`). This triggers the column's `usePrefetchSubscription()` to refetch and rebuild the Zustand store.
+- **When `SubscriptionColumn` is not mounted** (public mode, sidebar hidden): the Zustand store stays empty/stale. This is acceptable because there is no sidebar visible to show inconsistent state. When the column eventually mounts, `usePrefetchSubscription()` runs a fresh fetch and hydrates the store with correct data.
+
+```typescript
+// In mutation onSuccess callbacks:
+queryClient.invalidateQueries({ queryKey: ["user", "subscriptions"] }) // Explore page
+queryClient.invalidateQueries({ queryKey: ["subscription"] }) // sidebar (if mounted)
+// Note: TanStack Query's invalidateQueries uses prefix matching by default
+// (exact: false). ["subscription"] matches all ["subscription", view] keys
+// created by usePrefetchSubscription(view?) in SubscriptionColumn.
+```
+
+**Why not call `subscriptionSyncService.subscribe()`/`.unsubscribe()` directly?**
+
+- `subscriptionSyncService.subscribe()` makes its own API call via `api().subscriptions.create()`, which would duplicate the `POST /subscriptions` the mutation hook already made.
+- `subscriptionSyncService.unsubscribe(feedId)` looks up `get().data[feedId]` in the Zustand store and returns early if not found. When the store is empty (before `SubscriptionColumn` mounts), every unsubscribe silently no-ops.
+- Calling store internals directly (e.g. `subscriptionActions.upsertMany()`) would require the fully denormalized `SubscriptionModel` with feed/list metadata that the `/api/v1/subscriptions` POST endpoint doesn't return — it only returns `{ subscription, existed }` with minimal fields.
 
 **Auth guard:** The modal checks `useWhoami()` before rendering subscription controls. Unauthenticated users see no follow button (or a disabled one with toast on click).
 
 **Component structure:** The modal renders `<FeedPostsModalBody>` for anonymous users (no subscription hooks) or `<AuthenticatedFeedPostsModalBody>` for authenticated users. This avoids conditional hook calls.
 
-**Store hydration:** The subscription store is already hydrated at app startup by `usePrefetchSubscription()` in the subscription column (`modules/subscription-column/index.tsx:8`). The explore modal does **NOT** call `usePrefetchSubscription()` or `subscriptionSyncService.fetch()` — doing so would reset the store (`resetBeforeUpsert: true`), blowing away expanded categories, selection state, and unread cache, causing sidebar flicker. Instead, the modal reads from the already-hydrated store via `useIsSubscribed()`.
-
 ```tsx
-import { FeedViewType } from "@follow/constants"
-
 // FeedPostsModal renders one of two components based on auth
 function FeedPostsModal({ feed }: FeedPostsModalProps) {
   const user = useWhoami()
@@ -92,29 +104,29 @@ function FeedPostsModal({ feed }: FeedPostsModalProps) {
   )
 }
 
-// Only rendered for authenticated users — hooks called unconditionally
+// Only rendered for authenticated users — hooks called unconditionally.
+// Still pass !!user to useUserSubscriptionsQuery as a safety guard:
+// useWhoami() reads from an async session query and can briefly return
+// null during resolution, so the enabled flag prevents 401s in that window.
 function AuthenticatedFeedPostsModalBody({ feed }: { feed: FeedItem }) {
-  // Read from already-hydrated Zustand store (hydrated at app start
-  // by subscription-column). No re-fetch — avoids store reset.
-  const isSubscribed = useIsSubscribed(feed.id)
+  const user = useWhoami()
+  const { data: subscriptions } = useUserSubscriptionsQuery(!!user)
+  const subscribedFeedIds = useMemo(
+    () => new Set(subscriptions?.map((s) => s.feedId) ?? []),
+    [subscriptions],
+  )
+  const isSubscribed = subscribedFeedIds.has(feed.id)
+
+  const subscribeMutation = useSubscribeFeedMutation()
+  const unsubscribeMutation = useUnsubscribeFeedMutation()
 
   const handleToggleSubscribe = useCallback(() => {
     if (isSubscribed) {
-      subscriptionSyncService.unsubscribe(feed.id)
+      unsubscribeMutation.mutate(feed.id)
     } else {
-      // Full SubscriptionForm payload (types.ts:6-15)
-      subscriptionSyncService.subscribe({
-        url: feed.url,
-        view: FeedViewType.Articles,
-        category: null,
-        isPrivate: false,
-        hideFromTimeline: null,
-        title: null,
-        feedId: feed.id,
-        listId: undefined,
-      })
+      subscribeMutation.mutate(feed.id)
     }
-  }, [isSubscribed, feed.id, feed.url])
+  }, [isSubscribed, feed.id, subscribeMutation, unsubscribeMutation])
 
   return (
     <FeedPostsModalBody
@@ -124,8 +136,6 @@ function AuthenticatedFeedPostsModalBody({ feed }: { feed: FeedItem }) {
   )
 }
 ```
-
-**SubscriptionForm payload:** The `subscribe()` call passes the complete `SubscriptionForm` shape (matching `packages/internal/store/src/modules/subscription/types.ts:6-15`): `url`, `view`, `category`, `isPrivate`, `hideFromTimeline`, `title`, `feedId`, `listId`. All optional fields set to sensible defaults.
 
 **View selection:** For MVP, defaults to `FeedViewType.Articles`. This matches auto-subscribe behavior elsewhere. Users can change the view via subscription edit (Edit in sidebar). A view picker can be added later if the explore page expands to filter by content type.
 
@@ -220,8 +230,8 @@ Changes needed:
 - `usePostsQuery(page, limit, feedId)` — TanStack Query hook for `GET /api/v1/posts?feedId=X`
 - `usePostDetailQuery(postId)` — TanStack Query hook for `GET /api/v1/posts/:id`
 - `usePublicFeedsQuery()` — feed list query
-- `useIsSubscribed(feedId)` — from `@follow/store/subscription/hooks`, reads subscription status from store (already hydrated at app start by subscription-column)
-- `subscriptionSyncService.subscribe()` / `.unsubscribe()` — from `@follow/store`, syncs Zustand store + unread counts + tracker + local cache
+- `useUserSubscriptionsQuery(enabled)` — TanStack Query hook for `GET /api/v1/subscriptions`, returns user's subscribed feed IDs. Must be gated by auth (`enabled: !!user`) to avoid 401s for anonymous visitors
+- `useSubscribeFeedMutation()` / `useUnsubscribeFeedMutation()` — TanStack Query mutations that invalidate both `["user", "subscriptions"]` (Explore page) and `["subscription"]` (Zustand store via `usePrefetchSubscription`) on success
 - `useWhoami()` — from `@follow/store/user/hooks`, auth guard for follow button
 
 ## Data Flow
@@ -234,9 +244,11 @@ FeedCard.onClick(feed)
     → appends results to useState<PostItem[]> accumulator
     → renders FeedPostItem[] from accumulated posts
     → "Load more" increments page → fetches next page → appends
-    → usePrefetchSubscription() hydrates Zustand store on mount
-    → Follow/Unfollow → subscriptionSyncService.subscribe/unsubscribe
-      → updates Zustand store + unread counts + tracker + local cache
+    → useUserSubscriptionsQuery(!!user) reads subscription state from TanStack Query cache
+    → Follow/Unfollow → useSubscribeFeedMutation / useUnsubscribeFeedMutation
+      → POST/DELETE /api/v1/subscriptions
+      → onSuccess: invalidates ["user", "subscriptions"] query cache (syncs modal + feed cards)
+      → onSuccess: invalidates ["subscription"] query cache (syncs sidebar if SubscriptionColumn mounted)
     → FeedPostItem.onClick(post)
       → useModalStack().present(<PostDetailModalContent postId={post.id} />)
         → usePostDetailQuery(post.id)
@@ -245,7 +257,7 @@ FeedCard.onClick(feed)
         → "Open original" → window.open(post.url)
 ```
 
-Post data flows through TanStack Query. Subscription state flows through the Zustand store (hydrated via `usePrefetchSubscription` on modal mount), keeping the explore module consistent with the rest of the app.
+Post data flows through TanStack Query. Subscription mutations invalidate two query keys: `["user", "subscriptions"]` (keeps the modal and feed list in sync via shared cache) and `["subscription"]` (triggers `usePrefetchSubscription` refetch in `SubscriptionColumn`, which calls `subscriptionSyncService.fetch()` to rebuild the Zustand store with full feed/list/unread data for the sidebar/timeline).
 
 ## API Endpoints Used
 
