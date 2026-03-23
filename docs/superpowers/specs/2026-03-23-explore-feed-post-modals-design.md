@@ -67,7 +67,10 @@ useEffect(() => {
 }, [data])
 ```
 
-**Follow button:** Uses `subscriptionSyncService.subscribe()` / `subscriptionSyncService.unsubscribe()` from `@follow/store` (not the legacy query-level mutations). This ensures the Zustand subscription store, unread counts, and tracker events all stay in sync — matching how the rest of the app (sidebar, discover forms, subscription column) handles follow/unfollow.
+**Follow button — hybrid approach:**
+
+- **Reading subscription status:** Uses `useUserSubscriptionsQuery()` (same as `FeedCard` in `feed-list.tsx`) to derive a `subscribedFeedIds` Set. This ensures the modal shows correct status even on cold boot before the Zustand subscription store is hydrated.
+- **Mutations:** Uses `subscriptionSyncService.subscribe()` / `.unsubscribe()` from `@follow/store` for the actual follow/unfollow action. This keeps the Zustand store, unread counts, and tracker events in sync — matching the rest of the app. After mutation, also invalidate the `useUserSubscriptionsQuery` cache so the modal's local status updates immediately.
 
 **Auth guard for follow button:** The modal must check `useWhoami()` before calling subscribe/unsubscribe. If the user is not authenticated, show a toast ("Please login to subscribe") instead of firing the mutation. This replicates the same guard used in `FeedCard` (`feed-list.tsx:82-86`).
 
@@ -81,9 +84,10 @@ const handleToggleSubscribe = useCallback(() => {
     return
   }
   if (isSubscribed) {
-    subscriptionSyncService.unsubscribe(subscriptionId)
+    // unsubscribe expects the feed ID, not the subscription ID
+    subscriptionSyncService.unsubscribe(feed.id)
   } else {
-    subscriptionSyncService.subscribe({ feedId: feed.id, ... })
+    subscriptionSyncService.subscribe({ feedId: feed.id, view: 1 })
   }
 }, [isAuthenticated, isSubscribed, feed.id])
 ```
@@ -180,7 +184,7 @@ Changes needed:
 - `usePostDetailQuery(postId)` — TanStack Query hook for `GET /api/v1/posts/:id`
 - `usePublicFeedsQuery()` — feed list query
 - `subscriptionSyncService.subscribe()` / `.unsubscribe()` — from `@follow/store`, syncs Zustand store + unread counts + tracker
-- `useIsSubscribed(feedId)` — from `@follow/store/subscription/hooks`, checks subscription status
+- `useUserSubscriptionsQuery()` — from `~/queries/feeds`, fetches user's subscriptions for status checks (keeps existing hydration path — the Explore page may load before the subscription store is hydrated, so this query ensures we always have fresh data)
 - `useWhoami()` — from `@follow/store/user/hooks`, auth guard for follow button
 
 ## Data Flow
