@@ -97,7 +97,7 @@ jobs:
                 --name scraper \
                 --restart unless-stopped \
                 --env-file /opt/scraper/.env \
-                -p 8000:8000 \
+                -p 8001:8000 \
                 $IMAGE
             else
               echo "docker pull failed — existing container left running" >&2
