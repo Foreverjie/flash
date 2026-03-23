@@ -47,9 +47,46 @@ interface FeedPostsModalProps {
 }
 ```
 
-**Data:** Uses existing `usePostsQuery(page, limit, feedId)` from `~/queries/posts`. This calls `GET /api/v1/posts?feedId=X&page=1&limit=20`. Pagination via "Load more" accumulating pages in local state.
+**Data & Pagination:** The modal maintains a `useState<PostItem[]>` accumulator for loaded posts and a `page` counter. Each "Load more" click fetches the next page via `usePostsQuery(page, limit, feedId)` (which calls `GET /api/v1/posts?feedId=X&page=N&limit=20`) and appends the new items to the accumulator. The initial page loads on mount. The "Load more" button is hidden when `hasMore` is false.
 
-**Follow button:** Uses `useSubscribeFeedMutation()` / `useUnsubscribeFeedMutation()` from `~/queries/feeds`. Shows "Follow" or "Following" based on `useUserSubscriptionsQuery()`.
+```typescript
+// Pagination state inside FeedPostsModal
+const [allPosts, setAllPosts] = useState<PostItem[]>([])
+const [page, setPage] = useState(1)
+const { data, isLoading } = usePostsQuery(page, 20, feed.id)
+
+// Append new page results to accumulator
+useEffect(() => {
+  if (data?.data) {
+    setAllPosts((prev) => {
+      const existingIds = new Set(prev.map((p) => p.id))
+      const newPosts = data.data.filter((p) => !existingIds.has(p.id))
+      return [...prev, ...newPosts]
+    })
+  }
+}, [data])
+```
+
+**Follow button:** Uses `subscriptionSyncService.subscribe()` / `subscriptionSyncService.unsubscribe()` from `@follow/store` (not the legacy query-level mutations). This ensures the Zustand subscription store, unread counts, and tracker events all stay in sync — matching how the rest of the app (sidebar, discover forms, subscription column) handles follow/unfollow.
+
+**Auth guard for follow button:** The modal must check `useWhoami()` before calling subscribe/unsubscribe. If the user is not authenticated, show a toast ("Please login to subscribe") instead of firing the mutation. This replicates the same guard used in `FeedCard` (`feed-list.tsx:82-86`).
+
+```typescript
+const user = useWhoami()
+const isAuthenticated = !!user
+
+const handleToggleSubscribe = useCallback(() => {
+  if (!isAuthenticated) {
+    toast.error(t("explore.login_to_subscribe"))
+    return
+  }
+  if (isSubscribed) {
+    subscriptionSyncService.unsubscribe(subscriptionId)
+  } else {
+    subscriptionSyncService.subscribe({ feedId: feed.id, ... })
+  }
+}, [isAuthenticated, isSubscribed, feed.id])
+```
 
 **Modal config:**
 
@@ -142,26 +179,31 @@ Changes needed:
 - `usePostsQuery(page, limit, feedId)` — TanStack Query hook for `GET /api/v1/posts?feedId=X`
 - `usePostDetailQuery(postId)` — TanStack Query hook for `GET /api/v1/posts/:id`
 - `usePublicFeedsQuery()` — feed list query
-- `useSubscribeFeedMutation()` / `useUnsubscribeFeedMutation()` — follow/unfollow
-- `useUserSubscriptionsQuery()` — check subscription status
+- `subscriptionSyncService.subscribe()` / `.unsubscribe()` — from `@follow/store`, syncs Zustand store + unread counts + tracker
+- `useIsSubscribed(feedId)` — from `@follow/store/subscription/hooks`, checks subscription status
+- `useWhoami()` — from `@follow/store/user/hooks`, auth guard for follow button
 
 ## Data Flow
 
 ```
 FeedCard.onClick(feed)
   → useModalStack().present(<FeedPostsModal feed={feed} />)
-    → usePostsQuery(1, 20, feed.id)
-      → GET /api/v1/posts?feedId={feed.id}&page=1&limit=20
-    → renders FeedPostItem[] from query cache
+    → usePostsQuery(page, 20, feed.id)  // page starts at 1
+      → GET /api/v1/posts?feedId={feed.id}&page=N&limit=20
+    → appends results to useState<PostItem[]> accumulator
+    → renders FeedPostItem[] from accumulated posts
+    → "Load more" increments page → fetches next page → appends
+    → Follow/Unfollow → subscriptionSyncService.subscribe/unsubscribe
+      → syncs Zustand store + unread counts + tracker
     → FeedPostItem.onClick(post)
-      → useModalStack().present(<PostDetailContent postId={post.id} />)
+      → useModalStack().present(<PostDetailModalContent postId={post.id} />)
         → usePostDetailQuery(post.id)
           → GET /api/v1/posts/{post.id}
         → renders formattedContent.html → content → description (priority chain)
         → "Open original" → window.open(post.url)
 ```
 
-No entry store involvement. All data flows through TanStack Query, scoped to the explore module.
+No entry store involvement for post data. Subscription mutations flow through `@follow/store`'s `subscriptionSyncService` to keep all UI surfaces in sync. Post data flows through TanStack Query, scoped to the explore module.
 
 ## API Endpoints Used
 
@@ -215,4 +257,3 @@ New UI strings need keys added to locale files (`en`, `zh-CN`, `ja`). Keys neede
 - Readability mode toggle
 - AI summary in post detail
 - Keyboard navigation between posts
-- `useInfiniteQuery` for pagination (can be optimized later)
