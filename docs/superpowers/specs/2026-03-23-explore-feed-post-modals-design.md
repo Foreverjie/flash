@@ -67,16 +67,26 @@ useEffect(() => {
 }, [data])
 ```
 
-**Follow button — hybrid approach:**
+**Follow button:** Uses the same query-level hooks as `FeedCard` in `feed-list.tsx` — keeping the explore module self-contained and avoiding Zustand store hydration issues:
 
-- **Reading subscription status:** Uses `useUserSubscriptionsQuery()` (same as `FeedCard` in `feed-list.tsx`) to derive a `subscribedFeedIds` Set. This ensures the modal shows correct status even on cold boot before the Zustand subscription store is hydrated.
-- **Mutations:** Uses `subscriptionSyncService.subscribe()` / `.unsubscribe()` from `@follow/store` for the actual follow/unfollow action. This keeps the Zustand store, unread counts, and tracker events in sync — matching the rest of the app. After mutation, also invalidate the `useUserSubscriptionsQuery` cache so the modal's local status updates immediately.
+- **Reading status:** `useUserSubscriptionsQuery(isAuthenticated)` — gated by auth to avoid 401s for guests. Derives a `subscribedFeedIds` Set from the response.
+- **Mutations:** `useSubscribeFeedMutation()` / `useUnsubscribeFeedMutation()` from `~/queries/feeds`. Both invalidate the `["user", "subscriptions"]` query cache on success, so the button state updates immediately.
 
-**Auth guard for follow button:** The modal must check `useWhoami()` before calling subscribe/unsubscribe. If the user is not authenticated, show a toast ("Please login to subscribe") instead of firing the mutation. This replicates the same guard used in `FeedCard` (`feed-list.tsx:82-86`).
+**Why not subscriptionSyncService?** The sync service reads subscription state from the Zustand store (`useSubscriptionStore.getState().data[feedId]`), which may not be hydrated on cold boot if the user hasn't opened the subscription column yet. This would make unsubscribe a no-op. The query-level hooks hit the API directly and are self-contained — the right fit for a discovery context.
+
+**Auth guard:** The modal checks `useWhoami()` before calling mutations. Unauthenticated users see a toast instead.
 
 ```typescript
 const user = useWhoami()
 const isAuthenticated = !!user
+const { data: subscriptions } = useUserSubscriptionsQuery(isAuthenticated)
+const subscribedFeedIds = useMemo(
+  () => new Set(subscriptions?.map((s) => s.feedId) ?? []),
+  [subscriptions],
+)
+const isSubscribed = subscribedFeedIds.has(feed.id)
+const subscribeMutation = useSubscribeFeedMutation()
+const unsubscribeMutation = useUnsubscribeFeedMutation()
 
 const handleToggleSubscribe = useCallback(() => {
   if (!isAuthenticated) {
@@ -84,10 +94,9 @@ const handleToggleSubscribe = useCallback(() => {
     return
   }
   if (isSubscribed) {
-    // unsubscribe expects the feed ID, not the subscription ID
-    subscriptionSyncService.unsubscribe(feed.id)
+    unsubscribeMutation.mutate(feed.id)
   } else {
-    subscriptionSyncService.subscribe({ feedId: feed.id, view: 1 })
+    subscribeMutation.mutate(feed.id)
   }
 }, [isAuthenticated, isSubscribed, feed.id])
 ```
@@ -183,8 +192,8 @@ Changes needed:
 - `usePostsQuery(page, limit, feedId)` — TanStack Query hook for `GET /api/v1/posts?feedId=X`
 - `usePostDetailQuery(postId)` — TanStack Query hook for `GET /api/v1/posts/:id`
 - `usePublicFeedsQuery()` — feed list query
-- `subscriptionSyncService.subscribe()` / `.unsubscribe()` — from `@follow/store`, syncs Zustand store + unread counts + tracker
-- `useUserSubscriptionsQuery()` — from `~/queries/feeds`, fetches user's subscriptions for status checks (keeps existing hydration path — the Explore page may load before the subscription store is hydrated, so this query ensures we always have fresh data)
+- `useUserSubscriptionsQuery(isAuthenticated)` — from `~/queries/feeds`, fetches user's subscriptions for status checks; gated by auth to avoid 401s for guests
+- `useSubscribeFeedMutation()` / `useUnsubscribeFeedMutation()` — from `~/queries/feeds`, query-level mutations that invalidate subscription cache on success
 - `useWhoami()` — from `@follow/store/user/hooks`, auth guard for follow button
 
 ## Data Flow
@@ -197,8 +206,8 @@ FeedCard.onClick(feed)
     → appends results to useState<PostItem[]> accumulator
     → renders FeedPostItem[] from accumulated posts
     → "Load more" increments page → fetches next page → appends
-    → Follow/Unfollow → subscriptionSyncService.subscribe/unsubscribe
-      → syncs Zustand store + unread counts + tracker
+    → Follow/Unfollow → useSubscribeFeedMutation/useUnsubscribeFeedMutation
+      → POST/DELETE /api/v1/subscriptions → invalidates ["user","subscriptions"] cache
     → FeedPostItem.onClick(post)
       → useModalStack().present(<PostDetailModalContent postId={post.id} />)
         → usePostDetailQuery(post.id)
@@ -207,7 +216,7 @@ FeedCard.onClick(feed)
         → "Open original" → window.open(post.url)
 ```
 
-No entry store involvement for post data. Subscription mutations flow through `@follow/store`'s `subscriptionSyncService` to keep all UI surfaces in sync. Post data flows through TanStack Query, scoped to the explore module.
+No entry store or Zustand subscription store involvement. All data (posts and subscription status) flows through TanStack Query, keeping the explore module fully self-contained.
 
 ## API Endpoints Used
 
