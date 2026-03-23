@@ -73,11 +73,15 @@ useEffect(() => {
 
 **Reading status:** Uses `useIsSubscribed(feedId)` from `@follow/store/subscription/hooks` which reads from the hydrated Zustand store — consistent with how the rest of the app checks subscription state.
 
-**Auth guard:** The modal checks `useWhoami()` before calling mutations. Unauthenticated users see a toast. The `usePrefetchSubscription()` call is also gated by auth.
+**Auth guard:** The modal checks `useWhoami()` before rendering subscription controls. Unauthenticated users see no follow button (or a disabled one with toast on click).
 
 **Component structure:** The modal renders `<FeedPostsModalBody>` for anonymous users (no subscription hooks) or `<AuthenticatedFeedPostsModalBody>` for authenticated users. This avoids conditional hook calls.
 
+**Store hydration:** The subscription store is already hydrated at app startup by `usePrefetchSubscription()` in the subscription column (`modules/subscription-column/index.tsx:8`). The explore modal does **NOT** call `usePrefetchSubscription()` or `subscriptionSyncService.fetch()` — doing so would reset the store (`resetBeforeUpsert: true`), blowing away expanded categories, selection state, and unread cache, causing sidebar flicker. Instead, the modal reads from the already-hydrated store via `useIsSubscribed()`.
+
 ```tsx
+import { FeedViewType } from "@follow/constants"
+
 // FeedPostsModal renders one of two components based on auth
 function FeedPostsModal({ feed }: FeedPostsModalProps) {
   const user = useWhoami()
@@ -90,23 +94,27 @@ function FeedPostsModal({ feed }: FeedPostsModalProps) {
 
 // Only rendered for authenticated users — hooks called unconditionally
 function AuthenticatedFeedPostsModalBody({ feed }: { feed: FeedItem }) {
-  usePrefetchSubscription() // hydrates Zustand store; idempotent
+  // Read from already-hydrated Zustand store (hydrated at app start
+  // by subscription-column). No re-fetch — avoids store reset.
   const isSubscribed = useIsSubscribed(feed.id)
 
   const handleToggleSubscribe = useCallback(() => {
     if (isSubscribed) {
       subscriptionSyncService.unsubscribe(feed.id)
     } else {
-      // No view selector in Explore — default to Articles.
-      // If the user has an existing subscription in a different view,
-      // this creates a new one in Articles. Acceptable for MVP;
-      // a view picker can be added later if needed.
+      // Full SubscriptionForm payload (types.ts:6-15)
       subscriptionSyncService.subscribe({
-        feedId: feed.id,
+        url: feed.url,
         view: FeedViewType.Articles,
+        category: null,
+        isPrivate: false,
+        hideFromTimeline: null,
+        title: null,
+        feedId: feed.id,
+        listId: undefined,
       })
     }
-  }, [isSubscribed, feed.id])
+  }, [isSubscribed, feed.id, feed.url])
 
   return (
     <FeedPostsModalBody
@@ -117,11 +125,9 @@ function AuthenticatedFeedPostsModalBody({ feed }: { feed: FeedItem }) {
 }
 ```
 
-**View selection:** For MVP, the subscribe call defaults to `FeedViewType.Articles`. This matches how auto-subscribe works elsewhere (e.g., `autoSubscribeIfEmpty` in subscriptions.ts sets view to 1/Articles for all feeds). A view picker dropdown can be added to the modal header in a future iteration if the explore page expands to filter by content type. This is acceptable because:
+**SubscriptionForm payload:** The `subscribe()` call passes the complete `SubscriptionForm` shape (matching `packages/internal/store/src/modules/subscription/types.ts:6-15`): `url`, `view`, `category`, `isPrivate`, `hideFromTimeline`, `title`, `feedId`, `listId`. All optional fields set to sensible defaults.
 
-- The explore page currently only shows feeds, not filtered by view type
-- Users can change the view later via the subscription edit flow (long-press → Edit in sidebar)
-- It matches the existing auto-subscribe behavior for new users
+**View selection:** For MVP, defaults to `FeedViewType.Articles`. This matches auto-subscribe behavior elsewhere. Users can change the view via subscription edit (Edit in sidebar). A view picker can be added later if the explore page expands to filter by content type.
 
 **Modal config:**
 
@@ -214,8 +220,7 @@ Changes needed:
 - `usePostsQuery(page, limit, feedId)` — TanStack Query hook for `GET /api/v1/posts?feedId=X`
 - `usePostDetailQuery(postId)` — TanStack Query hook for `GET /api/v1/posts/:id`
 - `usePublicFeedsQuery()` — feed list query
-- `usePrefetchSubscription()` — from `@follow/store/subscription/hooks`, hydrates Zustand subscription store on modal mount (idempotent, 30min staleTime)
-- `useIsSubscribed(feedId)` — from `@follow/store/subscription/hooks`, reads subscription status from hydrated store
+- `useIsSubscribed(feedId)` — from `@follow/store/subscription/hooks`, reads subscription status from store (already hydrated at app start by subscription-column)
 - `subscriptionSyncService.subscribe()` / `.unsubscribe()` — from `@follow/store`, syncs Zustand store + unread counts + tracker + local cache
 - `useWhoami()` — from `@follow/store/user/hooks`, auth guard for follow button
 
