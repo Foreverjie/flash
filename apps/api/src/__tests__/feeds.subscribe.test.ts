@@ -7,14 +7,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { db, feeds, subscriptions } from "../db/index.js"
 import app from "../index.js"
-import type { TestSession, TestUser } from "./mocks/auth.js"
+import type { TestUser } from "./mocks/auth.js"
 import { cleanupTestUser, createAuthenticatedUser } from "./mocks/auth.js"
 import { createRssHandler } from "./mocks/handlers.js"
 import { server } from "./setup.js"
 
 describe("POST /feeds/subscribe", () => {
   let testUser: TestUser
-  let _testSession: TestSession
   let authHeaders: Record<string, string>
   let testFeedId: string
 
@@ -26,7 +25,6 @@ describe("POST /feeds/subscribe", () => {
       email: `test-${Date.now()}@example.com`,
     })
     testUser = auth.user
-    _testSession = auth.session
     authHeaders = auth.headers
 
     // Add RSS handler for the test feed URL
