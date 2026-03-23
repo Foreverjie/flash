@@ -76,13 +76,17 @@ useEffect(() => {
 **Auth guard:** The modal checks `useWhoami()` before calling mutations. Unauthenticated users see a toast. The `usePrefetchSubscription()` call is also gated by auth.
 
 ```typescript
+import { FeedViewType } from "@follow/constants"
+
 const user = useWhoami()
 const isAuthenticated = !!user
 
-// Hydrate subscription store on modal mount (idempotent, 30min staleTime)
-usePrefetchSubscription(isAuthenticated ? undefined : (-1 as any))
-// Note: pass a sentinel value when unauthenticated to disable the query,
-// or gate with enabled. Exact gating TBD at implementation time.
+// Hydrate subscription store on modal mount — only when authenticated.
+// usePrefetchSubscription hits the authenticated /subscriptions API,
+// so it must NOT be called for anonymous visitors.
+if (isAuthenticated) {
+  usePrefetchSubscription()
+}
 
 const isSubscribed = useIsSubscribed(feed.id)
 
@@ -94,10 +98,12 @@ const handleToggleSubscribe = useCallback(() => {
   if (isSubscribed) {
     subscriptionSyncService.unsubscribe(feed.id)
   } else {
-    subscriptionSyncService.subscribe({ feedId: feed.id, view: 1 })
+    subscriptionSyncService.subscribe({ feedId: feed.id, view: FeedViewType.Articles })
   }
 }, [isAuthenticated, isSubscribed, feed.id])
 ```
+
+Note: The conditional `usePrefetchSubscription()` call violates React's rules of hooks. At implementation time, extract the authenticated modal body into a separate component (e.g. `<AuthenticatedFeedPostsModal>`) that always calls the hook, and conditionally render it based on auth state. The spec shows the logic flow; the exact component split is an implementation detail.
 
 **Modal config:**
 
