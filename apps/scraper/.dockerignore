@@ -1,0 +1,10 @@
+# apps/scraper/.dockerignore
+**/__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+tests/
+pyproject.toml
+.env
+.gitignore
+*.md
