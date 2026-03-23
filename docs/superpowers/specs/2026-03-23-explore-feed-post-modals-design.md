@@ -75,35 +75,53 @@ useEffect(() => {
 
 **Auth guard:** The modal checks `useWhoami()` before calling mutations. Unauthenticated users see a toast. The `usePrefetchSubscription()` call is also gated by auth.
 
-```typescript
-import { FeedViewType } from "@follow/constants"
+**Component structure:** The modal renders `<FeedPostsModalBody>` for anonymous users (no subscription hooks) or `<AuthenticatedFeedPostsModalBody>` for authenticated users. This avoids conditional hook calls.
 
-const user = useWhoami()
-const isAuthenticated = !!user
-
-// Hydrate subscription store on modal mount — only when authenticated.
-// usePrefetchSubscription hits the authenticated /subscriptions API,
-// so it must NOT be called for anonymous visitors.
-if (isAuthenticated) {
-  usePrefetchSubscription()
+```tsx
+// FeedPostsModal renders one of two components based on auth
+function FeedPostsModal({ feed }: FeedPostsModalProps) {
+  const user = useWhoami()
+  return user ? (
+    <AuthenticatedFeedPostsModalBody feed={feed} />
+  ) : (
+    <FeedPostsModalBody feed={feed} followButton={null} />
+  )
 }
 
-const isSubscribed = useIsSubscribed(feed.id)
+// Only rendered for authenticated users — hooks called unconditionally
+function AuthenticatedFeedPostsModalBody({ feed }: { feed: FeedItem }) {
+  usePrefetchSubscription() // hydrates Zustand store; idempotent
+  const isSubscribed = useIsSubscribed(feed.id)
 
-const handleToggleSubscribe = useCallback(() => {
-  if (!isAuthenticated) {
-    toast.error(t("explore.login_to_subscribe"))
-    return
-  }
-  if (isSubscribed) {
-    subscriptionSyncService.unsubscribe(feed.id)
-  } else {
-    subscriptionSyncService.subscribe({ feedId: feed.id, view: FeedViewType.Articles })
-  }
-}, [isAuthenticated, isSubscribed, feed.id])
+  const handleToggleSubscribe = useCallback(() => {
+    if (isSubscribed) {
+      subscriptionSyncService.unsubscribe(feed.id)
+    } else {
+      // No view selector in Explore — default to Articles.
+      // If the user has an existing subscription in a different view,
+      // this creates a new one in Articles. Acceptable for MVP;
+      // a view picker can be added later if needed.
+      subscriptionSyncService.subscribe({
+        feedId: feed.id,
+        view: FeedViewType.Articles,
+      })
+    }
+  }, [isSubscribed, feed.id])
+
+  return (
+    <FeedPostsModalBody
+      feed={feed}
+      followButton={<FollowButton isSubscribed={isSubscribed} onToggle={handleToggleSubscribe} />}
+    />
+  )
+}
 ```
 
-Note: The conditional `usePrefetchSubscription()` call violates React's rules of hooks. At implementation time, extract the authenticated modal body into a separate component (e.g. `<AuthenticatedFeedPostsModal>`) that always calls the hook, and conditionally render it based on auth state. The spec shows the logic flow; the exact component split is an implementation detail.
+**View selection:** For MVP, the subscribe call defaults to `FeedViewType.Articles`. This matches how auto-subscribe works elsewhere (e.g., `autoSubscribeIfEmpty` in subscriptions.ts sets view to 1/Articles for all feeds). A view picker dropdown can be added to the modal header in a future iteration if the explore page expands to filter by content type. This is acceptable because:
+
+- The explore page currently only shows feeds, not filtered by view type
+- Users can change the view later via the subscription edit flow (long-press → Edit in sidebar)
+- It matches the existing auto-subscribe behavior for new users
 
 **Modal config:**
 
