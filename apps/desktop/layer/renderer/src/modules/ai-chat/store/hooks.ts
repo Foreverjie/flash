@@ -34,7 +34,7 @@ const noopBlockActions = {
   removeBlock: () => {},
   clearBlocks: () => {},
   updateBlock: () => {},
-} as BlockSlice["blockActions"]
+} as unknown as BlockSlice["blockActions"]
 
 /**
  * Hook to get the block actions.

@@ -154,7 +154,7 @@ const FeedCard = memo(
         <div className="shrink-0">
           <Button
             variant={isSubscribed ? "outline" : "primary"}
-            className="text-xs"
+            buttonClassName="text-xs"
             disabled={isPending}
             onClick={handleToggleSubscribe}
           >

@@ -10,6 +10,7 @@ import { z } from "zod"
 import type { User } from "../auth/index.js"
 import { db, feeds, posts, subscriptions } from "../db/index.js"
 import { rssManager } from "../lib/rss/index.js"
+import { scrapingClient } from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
@@ -22,11 +23,27 @@ type FeedsVariables = {
 }
 
 // Validation schemas
-const createFeedSchema = z.object({
-  url: z.string().url("Invalid feed URL"),
-  title: z.string().max(200).optional(),
-  description: z.string().max(1000).optional(),
-})
+// z.union (not discriminatedUnion) — discriminatedUnion requires a required literal
+// on each member, which would break existing callers that omit `type` entirely.
+const createFeedSchema = z.union([
+  // Standard RSS feed (existing callers omit `type`)
+  z.object({
+    type: z.literal("rss").optional(),
+    url: z.string().url("Invalid feed URL"),
+    title: z.string().max(200).optional(),
+    description: z.string().max(1000).optional(),
+  }),
+  // X timeline feed — user provides a handle (e.g. "elonmusk" or "@elonmusk")
+  z.object({
+    type: z.literal("x_timeline"),
+    handle: z
+      .string()
+      .min(1)
+      .max(50)
+      .transform((h) => h.replace(/^@/, "")), // strip leading @
+    title: z.string().max(200).optional(),
+  }),
+])
 
 const updateFeedSchema = z.object({
   title: z.string().max(200).optional(),
@@ -119,7 +136,40 @@ feedsRouter.get("/:id", zValidator("param", z.object({ id: z.string().min(1) }))
 feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (c) => {
   try {
     const user = c.get("user")
-    const { url, title, description } = c.req.valid("json")
+    const body = c.req.valid("json")
+
+    if (body.type === "x_timeline") {
+      const syntheticUrl = `x_timeline://${body.handle}`
+
+      const existing = await db.query.feeds.findFirst({
+        where: eq(feeds.url, syntheticUrl),
+      })
+
+      if (existing) {
+        return c.json(structuredSuccess({ feed: existing, isNew: false }))
+      }
+
+      const feedId = generateSnowflakeId()
+      const [newFeed] = await db
+        .insert(feeds)
+        .values({
+          id: feedId,
+          url: syntheticUrl,
+          title: body.title ?? `@${body.handle} on X`,
+          adapterType: "x_timeline",
+        })
+        .returning()
+
+      if (!newFeed) {
+        return sendError(c, "Failed to create feed", 500, 500)
+      }
+
+      return c.json(structuredSuccess({ feed: newFeed, isNew: true }), 201)
+    }
+
+    // --- RSS path below (body.type is "rss" or undefined) ---
+    // Safe to destructure url/title/description now that x_timeline is handled above
+    const { url, title, description } = body
 
     // Check if feed already exists
     const existingFeed = await db.query.feeds.findFirst({
@@ -296,6 +346,29 @@ feedsRouter.post(
 
       if (!feed) {
         return sendNotFound(c, "Feed")
+      }
+
+      // Delegate to Python scraping service for x_timeline feeds
+      if (feed.adapterType === "x_timeline") {
+        const handle = feed.url.replace("x_timeline://", "")
+        if (!handle) {
+          return sendError(c, "Malformed x_timeline URL", 400, 400)
+        }
+        try {
+          const result = await scrapingClient.scrape({ feedId: feed.id, handle })
+          await db
+            .update(feeds)
+            .set({ lastFetchedAt: new Date(), errorAt: null, errorMessage: null })
+            .where(eq(feeds.id, feed.id))
+          return c.json(structuredSuccess({ message: "Feed refreshed", newPosts: result.inserted }))
+        } catch (err) {
+          logger.error(`[Feeds] Scraping service error for feed ${id}:`, err)
+          await db
+            .update(feeds)
+            .set({ errorAt: new Date(), errorMessage: "Scraping service unavailable" })
+            .where(eq(feeds.id, id))
+          return sendError(c, "Scraper service unavailable", 500, 500)
+        }
       }
 
       // Fetch latest content
