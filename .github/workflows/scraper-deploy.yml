@@ -87,7 +87,8 @@ jobs:
           # Hardcode port 22; if VPS uses a different port, edit this value directly
           port: 22
           script: |
-            IMAGE=ghcr.io/${{ github.repository_owner }}/flash-scraper:latest
+            OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            IMAGE=ghcr.io/${OWNER}/flash-scraper:latest
             # Pull first; only stop/remove/restart if pull succeeds
             if docker pull $IMAGE; then
               docker stop scraper || true
