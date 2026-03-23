@@ -2,7 +2,7 @@
  * Subscriptions Routes
  * Returns user subscriptions with feed data in the format expected by the client SDK.
  */
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { Hono } from "hono"
 
 import type { User } from "../auth/index.js"
@@ -111,6 +111,29 @@ subscriptionsRouter.post("/", requireAuth, async (c) => {
     feed = await db.query.feeds.findFirst({ where: eq(feeds.id, feedId) })
   } else if (url) {
     feed = await db.query.feeds.findFirst({ where: eq(feeds.url, url) })
+
+    // Auto-create X timeline feeds on first subscribe
+    if (!feed && url.startsWith("x_timeline://")) {
+      const handle = url.replace("x_timeline://", "").replace(/^@/, "")
+      if (!handle) {
+        return c.json({ code: 400, message: "Invalid X timeline handle" }, 400)
+      }
+
+      const [newFeed] = await db
+        .insert(feeds)
+        .values({
+          id: generateSnowflakeId(),
+          url,
+          title: title ?? `@${handle} on X`,
+          adapterType: "x_timeline",
+          adapterConfig: { handle },
+          ownerUserId: user.id,
+        })
+        .returning()
+
+      feed = newFeed
+      logger.info(`[Subscriptions] Auto-created X timeline feed for @${handle}`)
+    }
   }
 
   if (!feed) {
@@ -135,6 +158,14 @@ subscriptionsRouter.post("/", requireAuth, async (c) => {
     isPrivate: isPrivate ?? false,
   })
 
+  // Increment feed subscription count
+  await db
+    .update(feeds)
+    .set({
+      subscriptionCount: sql`COALESCE(${feeds.subscriptionCount}, 0) + 1`,
+    })
+    .where(eq(feeds.id, feed.id))
+
   return c.json({ code: 0, feed, list: null, unread: {} })
 })
 
@@ -155,6 +186,14 @@ subscriptionsRouter.delete("/", requireAuth, async (c) => {
     await db
       .delete(subscriptions)
       .where(and(eq(subscriptions.userId, user.id), eq(subscriptions.feedId, feedId)))
+
+    // Decrement feed subscription count
+    await db
+      .update(feeds)
+      .set({
+        subscriptionCount: sql`GREATEST(COALESCE(${feeds.subscriptionCount}, 0) - 1, 0)`,
+      })
+      .where(eq(feeds.id, feedId))
   }
 
   return c.json({ code: 0, data: null })
