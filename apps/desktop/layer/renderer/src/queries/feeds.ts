@@ -97,6 +97,10 @@ export function useSubscribeFeedMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user", "subscriptions"] })
+      // Sync sidebar Zustand store (if SubscriptionColumn is mounted).
+      // TanStack Query uses prefix matching by default (exact: false),
+      // so this matches all ["subscription", view] keys.
+      queryClient.invalidateQueries({ queryKey: ["subscription"] })
     },
   })
 }
@@ -119,6 +123,7 @@ export function useUnsubscribeFeedMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user", "subscriptions"] })
+      queryClient.invalidateQueries({ queryKey: ["subscription"] })
     },
   })
 }
