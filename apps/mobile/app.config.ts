@@ -23,9 +23,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
     extra: {
       eas: {
-        projectId: "a6335b14-fb84-45aa-ba80-6f6ab8926920",
+        projectId: "082604b5-7e76-4517-92fd-467e149d5a50",
       },
     },
+
     owner: "shanehendricks",
     // disable expo updates for now, https://github.com/expo/expo/issues/29630
     // updates: {
