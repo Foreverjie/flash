@@ -6,6 +6,7 @@ import { memo, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { useModalStack } from "~/components/ui/modal/stacked/hooks"
 import type { FeedItem } from "~/queries/feeds"
 import {
   usePublicFeedsQuery,
@@ -13,6 +14,8 @@ import {
   useUnsubscribeFeedMutation,
   useUserSubscriptionsQuery,
 } from "~/queries/feeds"
+
+import { FeedPostsModal } from "./feed-posts-modal"
 
 export function FeedList() {
   const { t } = useTranslation()
@@ -105,20 +108,36 @@ const FeedCard = memo(
       }
     }, [feed.id, isAuthenticated, isSubscribed, subscribeMutation, unsubscribeMutation, t])
 
-    const handleOpenSite = useCallback(() => {
-      const url = feed.siteUrl || feed.url
-      if (url) {
-        window.open(url, "_blank", "noopener,noreferrer")
-      }
-    }, [feed.siteUrl, feed.url])
+    const { present } = useModalStack()
+
+    const handleOpenPosts = useCallback(() => {
+      present({
+        title: feed.title || "Feed Posts",
+        content: () => <FeedPostsModal feed={feed} />,
+        clickOutsideToDismiss: true,
+        modalClassName: "relative mx-auto mt-[10vh] max-h-[80vh] max-w-2xl overflow-hidden",
+      })
+    }, [present, feed])
+
+    const handleOpenSite = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation()
+        const url = feed.siteUrl || feed.url
+        if (url) {
+          window.open(url, "_blank", "noopener,noreferrer")
+        }
+      },
+      [feed.siteUrl, feed.url],
+    )
 
     return (
       <div
         className={cn(
-          "group relative flex items-start gap-4 rounded-xl p-4",
+          "group relative flex cursor-pointer items-start gap-4 rounded-xl p-4",
           "bg-fill-quaternary transition-colors duration-150",
           "hover:bg-fill-tertiary",
         )}
+        onClick={handleOpenPosts}
       >
         {/* Feed icon */}
         <div className="shrink-0">
@@ -137,7 +156,7 @@ const FeedCard = memo(
         </div>
 
         {/* Feed info */}
-        <div className="min-w-0 flex-1 cursor-pointer" onClick={handleOpenSite}>
+        <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-semibold text-text">{feed.title || feed.url}</h3>
           {feed.description && (
             <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-tertiary">
@@ -150,13 +169,26 @@ const FeedCard = memo(
           </div>
         </div>
 
-        {/* Subscribe button */}
-        <div className="shrink-0">
+        {/* Actions */}
+        <div className="flex shrink-0 items-center gap-2">
+          {(feed.siteUrl || feed.url) && (
+            <button
+              type="button"
+              className="flex size-8 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-fill-tertiary hover:text-text-secondary"
+              onClick={handleOpenSite}
+              title={t("explore.open_site", { defaultValue: "Open site" })}
+            >
+              <i className="i-mgc-external-link-cute-re text-sm" />
+            </button>
+          )}
           <Button
             variant={isSubscribed ? "outline" : "primary"}
             buttonClassName="text-xs"
             disabled={isPending}
-            onClick={handleToggleSubscribe}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleToggleSubscribe()
+            }}
           >
             {isPending ? (
               <i className="i-mgc-loading-3-cute-re animate-spin" />
