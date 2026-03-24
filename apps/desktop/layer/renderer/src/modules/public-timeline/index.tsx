@@ -52,15 +52,21 @@ export function PublicTimelineLayout() {
   const { t } = useTranslation()
   const { present } = useModalStack()
 
+  const [loginSheetOpen, setLoginSheetOpen] = useState(false)
+
   const handleOpenLogin = useCallback(() => {
-    present({
-      CustomModalComponent: PlainModal,
-      title: "Login",
-      id: "login",
-      content: () => <LoginModalContent runtime={window.electron ? "app" : "browser"} />,
-      clickOutsideToDismiss: true,
-    })
-  }, [present])
+    if (mobile) {
+      setLoginSheetOpen(true)
+    } else {
+      present({
+        CustomModalComponent: PlainModal,
+        title: "Login",
+        id: "login",
+        content: () => <LoginModalContent runtime={window.electron ? "app" : "browser"} />,
+        clickOutsideToDismiss: true,
+      })
+    }
+  }, [mobile, present])
 
   return (
     <>
@@ -162,6 +168,15 @@ export function PublicTimelineLayout() {
             <PostDetailPanel postId={activePostId} onClose={handleCloseDetail} />
           </div>
         </>
+      )}
+
+      {mobile && (
+        <PresentSheet
+          open={loginSheetOpen}
+          onOpenChange={setLoginSheetOpen}
+          title="Login"
+          content={<LoginModalContent runtime="browser" canClose />}
+        />
       )}
     </>
   )
