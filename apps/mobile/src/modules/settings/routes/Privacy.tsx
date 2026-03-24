@@ -21,13 +21,13 @@ export const PrivacyScreen = () => {
         <GroupedInsetListNavigationLink
           label={t("privacy.terms")}
           onPress={() => {
-            Linking.openURL("https://folo.is/terms-of-service")
+            Linking.openURL("https://scflash.win/terms-of-service")
           }}
         />
         <GroupedInsetListNavigationLink
           label={t("privacy.privacy")}
           onPress={() => {
-            Linking.openURL("https://folo.is/privacy-policy")
+            Linking.openURL("https://scflash.win/privacy-policy")
           }}
         />
       </GroupedInsetListCard>

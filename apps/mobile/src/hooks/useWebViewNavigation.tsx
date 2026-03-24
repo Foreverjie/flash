@@ -6,7 +6,7 @@ import type { WebViewNavigation } from "react-native-webview"
 
 import { openLink } from "../lib/native"
 
-const allowHosts = new Set(["app.follow.is", "app.folo.is"])
+const allowHosts = new Set(["app.scflash.win", "scflash.win"])
 export function useWebViewNavigation({ webViewRef }: { webViewRef: RefObject<WebView> }) {
   const onNavigationStateChange = useCallback(
     (newNavState: WebViewNavigation) => {

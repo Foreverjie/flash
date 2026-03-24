@@ -26,7 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         projectId: "a6335b14-fb84-45aa-ba80-6f6ab8926920",
       },
     },
-    owner: "follow",
+    owner: "shanehendricks",
     // disable expo updates for now, https://github.com/expo/expo/issues/29630
     // updates: {
     //   url: "https://folo-custom-expo-updates.vercel.app/api/manifest",
@@ -38,17 +38,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     // },
     runtimeVersion: isDev ? "0.0.0-dev" : PKG.version,
 
-    name: "Folo",
-    slug: "follow",
+    name: "Flash",
+    slug: "flash",
     version: PKG.version,
     orientation: "portrait" as const,
     icon: iconPath,
-    scheme: ["follow", "folo"],
+    scheme: ["flash", "scflash"],
     userInterfaceStyle: "automatic" as const,
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "is.follow",
+      bundleIdentifier: "win.scflash.app",
       usesAppleSignIn: true,
       infoPlist: {
         LSApplicationCategoryType: "public.app-category.news",
@@ -63,7 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       googleServicesFile: "./build/GoogleService-Info.plist",
     },
     android: {
-      package: "is.follow",
+      package: "win.scflash.app",
       // Suppress warning about EDGE_TO_EDGE_PLUGIN
       // Learn more: https://expo.dev/blog/edge-to-edge-display-now-streamlined-for-android
       edgeToEdgeEnabled: true,
@@ -137,14 +137,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       require("./plugins/with-android-manifest-plugin.js"),
       "expo-secure-store",
       "@react-native-firebase/app",
-      [
-        "@sentry/react-native/expo",
-        {
-          url: "https://sentry.io/",
-          project: "react-native",
-          organization: "follow-rg",
-        },
-      ],
       [
         "expo-image-picker",
         {

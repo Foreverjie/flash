@@ -93,11 +93,11 @@ function ProfileScreenImpl(props: { userId: string }) {
   const textLabelColor = useColor("label")
   const openShareUrl = useCallback(() => {
     if (!user?.id) return
-    const shareUrl = `https://app.folo.is/share/users/${user.id}`
+    const shareUrl = `https://app.scflash.win/share/users/${user.id}`
     Share.share({
       message: shareUrl,
       url: shareUrl,
-      title: `Folo | ${user.name}'s Profile`,
+      title: `Flash | ${user.name}'s Profile`,
     })
   }, [user?.id, user?.name])
 

@@ -55,7 +55,7 @@ export function Login() {
               }}
             >
               <Text className="text-3xl font-semibold">{`${isRegister ? t("signin.sign_up_to") : t("signin.sign_in_to")} `}</Text>
-              <Text className="text-3xl font-bold">Folo</Text>
+              <Text className="text-3xl font-bold">Flash</Text>
             </Text>
             {isEmail ? (
               isRegister ? (
@@ -121,14 +121,14 @@ const TermsText = () => {
       </Text>
       <View className="flex-row items-center">
         <Pressable
-          onPress={() => Linking.openURL("https://folo.is/terms-of-service")}
+          onPress={() => Linking.openURL("https://scflash.win/terms-of-service")}
           className="text-secondary-label"
         >
           <Text className="font-semibold">Terms of Service</Text>
         </Pressable>
         <Text className="text-secondary-label">&nbsp;&&nbsp;</Text>
         <Pressable
-          onPress={() => Linking.openURL("https://folo.is/privacy-policy")}
+          onPress={() => Linking.openURL("https://scflash.win/privacy-policy")}
           className="text-secondary-label"
         >
           <Text className="font-semibold">Privacy Policy</Text>
