@@ -5,8 +5,8 @@ on:
 
 # Do not use secrets or variables to allow for public access
 env:
-  VITE_WEB_URL: https://app.folo.is
-  VITE_API_URL: https://api.follow.is
+  VITE_WEB_URL: https://app.scflash.win
+  VITE_API_URL: https://api.scflash.win
 
 name: ✨ CI Format, Typecheck and Lint
 concurrency:
