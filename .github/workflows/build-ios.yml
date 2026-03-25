@@ -22,6 +22,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  ios-compile-check:
+    name: iOS Compile Check (simulator)
+    runs-on: macos-latest
+
+    steps:
+      - name: 📦 Checkout code
+        uses: actions/checkout@v5
+
+      - name: 🔧 Setup Xcode
+        uses: ./.github/actions/setup-xcode
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🏗 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Prebuild iOS
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform ios --clean
+
+      - name: 🔨 Build iOS (simulator, no signing)
+        run: |
+          xcodebuild build \
+            -workspace apps/mobile/ios/Flash.xcworkspace \
+            -scheme Flash \
+            -sdk iphonesimulator \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO
+
   check-runner:
     runs-on: ubuntu-latest
     outputs:
