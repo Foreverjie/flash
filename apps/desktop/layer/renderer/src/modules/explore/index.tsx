@@ -66,7 +66,6 @@ export function Explore() {
 
   return (
     <div className="mx-auto mt-4 w-full max-w-[800px] space-y-6 pb-12">
-      {/* Hero */}
       <div className="relative overflow-hidden rounded-3xl border border-material-medium bg-material-ultra-thick p-6 shadow-[0_30px_80px_rgba(15,15,15,0.35)]">
         <div
           className="pointer-events-none absolute inset-0 opacity-70"
@@ -115,7 +114,6 @@ export function Explore() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex items-center gap-2 rounded-xl border border-fill-tertiary bg-material-ultra-thin p-1">
         <button
           type="button"
@@ -148,12 +146,10 @@ export function Explore() {
         </button>
       </div>
 
-      {/* Tab Content */}
       {activeTab === "feeds" ? (
         <FeedList />
       ) : (
         <>
-          {/* Posts count */}
           <div className="flex items-center justify-between text-xs text-text-secondary">
             <span>
               {data
@@ -170,7 +166,6 @@ export function Explore() {
             </button>
           </div>
 
-          {/* Posts List */}
           <div className="space-y-3">
             {isLoading
               ? Array.from({ length: 8 }).map((_, i) => (
@@ -179,7 +174,6 @@ export function Explore() {
               : data?.data.map((post: PostItem) => <PostCard key={post.id} post={post} />)}
           </div>
 
-          {/* Pagination */}
           {data && (
             <div className="flex items-center justify-center gap-4 pt-4">
               <ActionButton
@@ -204,7 +198,6 @@ export function Explore() {
             </div>
           )}
 
-          {/* Empty state */}
           {!isLoading && data?.data.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
               <i className="i-mgc-inbox-cute-re text-4xl" />

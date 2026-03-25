@@ -119,15 +119,24 @@ export function PostDetailContent({
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden",
+        "relative flex h-full min-h-0 flex-col overflow-hidden",
         isModal ? "bg-theme-background" : "border-l border-border/80 bg-fill-quinary/40",
       )}
     >
+      {isModal && (
+        <div
+          className="pointer-events-none absolute inset-0 opacity-80"
+          style={{
+            background:
+              "radial-gradient(circle at top left, rgba(255,92,0,0.1), transparent 26%), radial-gradient(circle at top right, rgba(14,165,233,0.08), transparent 24%), linear-gradient(180deg, rgba(255,255,255,0.02), transparent 18%)",
+          }}
+        />
+      )}
       <div
         className={cn(
           "sticky top-0 z-10 border-b px-5 py-3",
           isModal
-            ? "bg-theme-background/95 border-border backdrop-blur-xl"
+            ? "border-border bg-theme-background backdrop-blur-xl"
             : "border-border/80 bg-fill-quinary/85 backdrop-blur-xl",
         )}
       >
@@ -216,7 +225,7 @@ export function PostDetailContent({
       </div>
 
       <ScrollArea.ScrollArea
-        rootClassName="min-h-0 flex-1"
+        rootClassName="relative min-h-0 flex-1"
         viewportClassName={cn("h-full px-5", isModal ? "pb-safe-offset-4" : "pb-6")}
       >
         <article className="mx-auto max-w-[72ch] pb-12 pt-5">
