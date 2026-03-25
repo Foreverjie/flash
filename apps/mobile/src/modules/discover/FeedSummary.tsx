@@ -107,11 +107,7 @@ export const FeedSummary = ({
         </View>
       </View>
       {!simple && !!feed.description && (
-        <Text
-          className="mt-3 pl-[39] pr-2 text-sm text-text"
-          ellipsizeMode="tail"
-          numberOfLines={2}
-        >
+        <Text className="mt-3 pl-10 pr-2 text-sm text-text" ellipsizeMode="tail" numberOfLines={2}>
           {feed.description}
         </Text>
       )}

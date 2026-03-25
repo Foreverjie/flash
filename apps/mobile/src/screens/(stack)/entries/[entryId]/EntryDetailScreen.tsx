@@ -20,6 +20,7 @@ import { SafeNavigationScrollView } from "@/src/components/layouts/views/SafeNav
 import { EntryContentWebView } from "@/src/components/native/webview/EntryContentWebView"
 import { RelativeDateTime } from "@/src/components/ui/datetime/RelativeDateTime"
 import { FeedIcon } from "@/src/components/ui/icon/feed-icon"
+import { PlatformActivityIndicator } from "@/src/components/ui/loading/PlatformActivityIndicator"
 import { ItemPressableStyle } from "@/src/components/ui/pressable/enum"
 import { ItemPressable } from "@/src/components/ui/pressable/ItemPressable"
 import { Text } from "@/src/components/ui/typography/Text"
@@ -41,7 +42,7 @@ export const EntryDetailScreen: NavigationControllerView<{
   view: FeedViewType
   isInbox?: boolean
 }> = ({ entryId, entryIds, view: viewType, isInbox }) => {
-  usePrefetchEntryDetail(entryId, isInbox)
+  const { isPending } = usePrefetchEntryDetail(entryId, isInbox)
   const entry = useEntry(entryId, (state) => ({
     title: state.title,
     url: state.url,
@@ -99,36 +100,45 @@ export const EntryDetailScreen: NavigationControllerView<{
         <BottomTabBarHeightContext value={insets.bottom}>
           <GestureWrapper {...gestureWrapperProps}>
             <SafeNavigationScrollView
+              className="bg-system-background"
               Header={<EntryNavigationHeader entryId={entryId} />}
               ScrollViewBottom={<EntryPullUpToNext {...pullUpViewProps} />}
               automaticallyAdjustContentInsets={false}
-              contentContainerClassName="flex min-h-full pb-16"
+              contentContainerClassName="flex-1 pb-safe"
               {...scrollViewEventHandlers}
             >
-              <ItemPressable
-                itemStyle={ItemPressableStyle.UnStyled}
-                onPress={() => entry?.url && openLink(entry.url)}
-                className="rounded-xl py-4"
-              >
-                {viewType === FeedViewType.SocialMedia ? (
-                  <EntrySocialTitle entryId={entryId} />
-                ) : (
-                  <>
-                    <EntryTitle title={entry?.title || ""} entryId={entryId} />
-                    <EntryInfo entryId={entryId} />
-                  </>
-                )}
-              </ItemPressable>
-              <EntryAISummary entryId={entryId} />
-              {entry && (
-                <View className="mt-3">
-                  <EntryContentWebViewWithContext entryId={entryId} />
+              {isPending && !entry ? (
+                <View className="flex-1 items-center justify-center pt-20">
+                  <PlatformActivityIndicator />
                 </View>
-              )}
-              {viewType === FeedViewType.SocialMedia && (
-                <View className="mt-2">
-                  <EntryInfoSocial entryId={entryId} />
-                </View>
+              ) : (
+                <>
+                  <ItemPressable
+                    itemStyle={ItemPressableStyle.UnStyled}
+                    onPress={() => entry?.url && openLink(entry.url)}
+                    className="rounded-xl py-4"
+                  >
+                    {viewType === FeedViewType.SocialMedia ? (
+                      <EntrySocialTitle entryId={entryId} />
+                    ) : (
+                      <>
+                        <EntryTitle title={entry?.title || ""} entryId={entryId} />
+                        <EntryInfo entryId={entryId} />
+                      </>
+                    )}
+                  </ItemPressable>
+                  <EntryAISummary entryId={entryId} />
+                  {entry && (
+                    <View className="mt-3">
+                      <EntryContentWebViewWithContext entryId={entryId} />
+                    </View>
+                  )}
+                  {viewType === FeedViewType.SocialMedia && (
+                    <View className="mt-2">
+                      <EntryInfoSocial entryId={entryId} />
+                    </View>
+                  )}
+                </>
               )}
             </SafeNavigationScrollView>
           </GestureWrapper>
@@ -233,7 +243,7 @@ const EntryInfoSocial = ({ entryId }: { entryId: string }) => {
   return (
     <View className="mt-3 px-4">
       <Text className="text-secondary-label">
-        {entry.publishedAt.toLocaleString("en-US", {
+        {entry.publishedAt.toLocaleString(undefined, {
           dateStyle: "medium",
           timeStyle: "short",
         })}
