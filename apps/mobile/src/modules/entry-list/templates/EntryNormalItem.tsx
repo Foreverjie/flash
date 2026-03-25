@@ -211,8 +211,7 @@ const ThumbnailImage = ({ entryId }: { entryId: string }) => {
         artist: feed?.title,
         artwork: image,
       })
-    } catch (error) {
-      console.error("Error playing audio:", error)
+    } catch {
       toast.error("Failed to play audio")
     }
   }, [audio, audioState, entry?.title, feed?.title, image, video, videoPlayer])

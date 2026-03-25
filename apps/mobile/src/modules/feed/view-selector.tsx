@@ -34,7 +34,7 @@ export const FeedViewSelector = ({ value, onChange, className, readOnly }: Props
                 width={18}
               />
               <Text
-                className={"mt-1 whitespace-nowrap text-[8px] font-medium"}
+                className={"mt-1 whitespace-nowrap text-[10px] font-medium"}
                 style={{
                   color: isSelected ? view.activeColor : secondaryLabelColor,
                 }}

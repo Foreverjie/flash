@@ -43,7 +43,7 @@ export const Trending = ({
       <View className={cn("flex-row items-center justify-between pb-1 pt-4", itemClassName)}>
         <View className="flex-row items-center gap-2">
           <TrendingUpCuteReIcon width={24} height={24} color={label} />
-          <Text className="pb-2 text-2xl font-bold leading-[1.1] text-label">Trending</Text>
+          <Text className="text-2xl font-bold leading-[1.1] text-label">Trending</Text>
         </View>
         <ItemPressable
           className="rounded-lg p-1"
@@ -76,12 +76,12 @@ export const Trending = ({
                     "mr-4 flex size-6 items-center justify-center rounded-full",
                     index < 3
                       ? cn(
-                          "bg-accent text-white",
+                          "text-white",
                           index === 0 && "bg-accent",
                           index === 1 && "bg-accent/90",
                           index === 2 && "bg-accent/80",
                         )
-                      : "bg-gray-5/60 dark:bg-white/60",
+                      : "bg-secondary-system-fill",
                   )}
                 >
                   <Text className={cn("text-xs font-medium text-text", index < 3 && "text-white")}>
@@ -91,7 +91,7 @@ export const Trending = ({
               }
             >
               <View className="flex flex-row items-center gap-1 opacity-60">
-                <User3CuteReIcon width={13} height={13} color={label} />
+                <User3CuteReIcon width={14} height={14} color={label} />
                 <Text className="text-sm text-text">
                   {formatNumber(item.analytics.subscriptionCount || 0)}
                 </Text>

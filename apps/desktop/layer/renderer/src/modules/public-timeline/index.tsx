@@ -138,11 +138,17 @@ export function PublicTimelineLayout() {
           }}
           content={
             activePostId ? (
-              <PostDetailContent postId={activePostId} onClose={handleCloseDetail} />
+              <PostDetailContent
+                postId={activePostId}
+                onClose={handleCloseDetail}
+                variant="modal"
+              />
             ) : null
           }
           title=""
           hideHeader
+          modalClassName="border-t border-border bg-theme-background pt-3"
+          contentClassName="min-h-0 px-0 pb-safe-offset-4"
         />
       ) : (
         <>

@@ -259,7 +259,7 @@ export const RecommendationTab: TabComponent<{
   if (keys.length === 0) {
     return (
       <View className="flex-1 items-center justify-center">
-        <Text className="text-secondary-label">This is a barren wasteland of knowledge.</Text>
+        <Text className="text-secondary-label">No recommendations available yet.</Text>
       </View>
     )
   }

@@ -73,7 +73,6 @@ export const SearchContent = () => {
 const SearchType2RenderContent: Record<SearchType, React.FC> = {
   [SearchType.Feed]: SearchFeed,
   [SearchType.List]: SearchList,
-  // [SearchType.User]: SearchUser,
 }
 const PlaceholderLazyView = () => {
   const windowWidth = Dimensions.get("window").width

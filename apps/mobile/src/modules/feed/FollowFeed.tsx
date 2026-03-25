@@ -171,9 +171,9 @@ function FollowImpl(props: { feedId: string; defaultView?: FeedViewType }) {
       {/* Group 1 */}
       <GroupedInsetListCard>
         <FeedSummary className="px-5 py-4" feed={feed}>
-          <View className="ml-11 mt-2 flex-row items-center gap-3 opacity-60">
+          <View className="ml-10 mt-2 flex-row items-center gap-3 opacity-60">
             <View className="flex-row items-center gap-1">
-              <User3CuteReIcon color={textLabelColor} width={12} height={12} />
+              <User3CuteReIcon color={textLabelColor} width={14} height={14} />
               <Text className="text-sm text-text">
                 {typeof feed.subscriptionCount === "number" ? (
                   formatNumber(feed.subscriptionCount || 0)
@@ -187,7 +187,7 @@ function FollowImpl(props: { feedId: string; defaultView?: FeedViewType }) {
             </View>
             {feed.updatesPerWeek ? (
               <View className="flex-row items-center gap-1">
-                <SafetyCertificateCuteReIcon color={textLabelColor} width={12} height={12} />
+                <SafetyCertificateCuteReIcon color={textLabelColor} width={14} height={14} />
                 <Text className="text-sm text-text">
                   {tCommon("feed.entry_week", {
                     count: feed.updatesPerWeek,
@@ -196,7 +196,7 @@ function FollowImpl(props: { feedId: string; defaultView?: FeedViewType }) {
               </View>
             ) : feed.latestEntryPublishedAt ? (
               <View className="flex-row items-center gap-1">
-                <SafeAlertCuteReIcon color={textLabelColor} width={12} height={12} />
+                <SafeAlertCuteReIcon color={textLabelColor} width={14} height={14} />
                 <Text className="text-sm text-text">
                   {tCommon("feed.updated_at")}
                   <RelativeDateTime date={feed.latestEntryPublishedAt} />
