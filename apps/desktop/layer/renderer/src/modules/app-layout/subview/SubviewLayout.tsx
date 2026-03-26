@@ -18,6 +18,7 @@ import { Focusable } from "~/components/common/Focusable"
 import { GlassButton } from "~/components/ui/button/GlassButton"
 import { HeaderActionButton, HeaderActionGroup } from "~/components/ui/button/HeaderActionButton"
 import { HotkeyScope } from "~/constants"
+import { MobileGlobalDrawerTrigger } from "~/modules/app-layout/MobileGlobalDrawer"
 
 import { useSubViewRightView, useSubViewTitleValue } from "./hooks"
 
@@ -197,7 +198,10 @@ function SubviewLayoutInner() {
 
           {/* Right: Button group block (rounded, glass) */}
 
-          <SubViewHeaderRightView isHeaderElevated={isHeaderElevated} />
+          <div className="ml-auto flex items-center gap-2">
+            <SubViewHeaderRightView isHeaderElevated={isHeaderElevated} />
+            <MobileGlobalDrawerTrigger compact tone="elevated" />
+          </div>
         </m.div>
       </div>
 

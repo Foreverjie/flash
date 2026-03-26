@@ -157,7 +157,6 @@ function EntryColumnContent() {
         isRefreshing={isRefreshing}
         hasUpdate={state.hasUpdate}
       />
-
       <EntryColumnWrapper onScroll={handleCombinedScroll} key={`${routeFeedId}-${view}`}>
         {entriesIds.length === 0 ? (
           state.isLoading ? (

@@ -4,6 +4,7 @@ import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { cn } from "@follow/utils/utils"
 import { useCallback, useRef } from "react"
 
+import { MobileGlobalDrawerTrigger } from "~/modules/app-layout/MobileGlobalDrawer"
 import type { PostItem } from "~/queries/posts"
 import { usePostsQuery } from "~/queries/posts"
 
@@ -46,10 +47,11 @@ export function PublicEntryList({
           <span className="truncate text-lg font-bold">{selectedFeedTitle || "All Posts"}</span>
           {data && <span className="ml-1 shrink-0 text-xs text-text-tertiary">{data.total}</span>}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <ActionButton tooltip="Refresh" onClick={handleRefresh} disabled={isFetching}>
             <i className={cn("i-mgc-refresh-2-cute-re", isFetching && "animate-spin")} />
           </ActionButton>
+          <MobileGlobalDrawerTrigger compact tone="header" />
         </div>
       </div>
 
