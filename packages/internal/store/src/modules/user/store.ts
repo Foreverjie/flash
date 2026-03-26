@@ -64,7 +64,14 @@ class UserSyncService {
   })
 
   async whoami() {
-    const res = await api().auth.getSession()
+    let res: Awaited<ReturnType<ReturnType<typeof api>["auth"]["getSession"]>> | null
+    try {
+      res = await api().auth.getSession()
+    } catch {
+      // Better Auth returns null JSON for unauthenticated sessions,
+      // which the SDK fails to parse. Treat as no session.
+      return null
+    }
 
     if (res) {
       if (!res.user) return res

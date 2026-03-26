@@ -207,7 +207,11 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
     </>
   )
   if (isMobile) {
-    return <div className="bg-background px-4 pb-4 pt-12">{Inner}</div>
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center bg-background px-4 pb-8 pt-12">
+        <div className="w-full max-w-sm">{Inner}</div>
+      </div>
+    )
   }
 
   return (

@@ -20,7 +20,7 @@ export const env = createEnv({
     VITE_OPENPANEL_API_URL: z.string().url().optional(),
 
     VITE_POSTHOG_KEY: z.string().optional().default(DEFAULT_VALUES.PROD.POSTHOG_KEY),
-    VITE_POSTHOG_HOST: z.string().url().optional().default(DEFAULT_VALUES.PROD.POSTHOG_HOST),
+    VITE_POSTHOG_HOST: z.string().url().optional(),
 
     VITE_HCAPTCHA_SITE_KEY: z.string().default(DEFAULT_VALUES.PROD.HCAPTCHA_SITE_KEY),
   },

@@ -62,6 +62,7 @@ export function PublicTimelineLayout() {
         CustomModalComponent: PlainModal,
         title: "Login",
         id: "login",
+        overlay: true,
         content: () => <LoginModalContent runtime={window.electron ? "app" : "browser"} />,
         clickOutsideToDismiss: true,
       })
