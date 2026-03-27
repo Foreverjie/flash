@@ -1,5 +1,6 @@
 import { getReadonlyRoute } from "@follow/components/atoms/route.js"
 import { useGlobalFocusableHasScope } from "@follow/components/common/Focusable/hooks.js"
+import { useMobile } from "@follow/components/hooks/useMobile.js"
 import { RootPortal } from "@follow/components/ui/portal/index.js"
 import { LinearBlur } from "@follow/components/ui/progressive-blur/index.js"
 import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
@@ -52,6 +53,12 @@ import { useSubViewRightView, useSubViewTitleValue } from "./hooks"
  * // Provides full-screen modal-like experience
  */
 export function SubviewLayout() {
+  const isMobile = useMobile()
+
+  if (isMobile) {
+    return <Outlet />
+  }
+
   return (
     <Focusable className="contents" scope={HotkeyScope.SubLayer}>
       <SubviewLayoutInner />

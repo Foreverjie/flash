@@ -5,12 +5,17 @@ import { redirect } from "react-router"
 import { getUISettings } from "~/atoms/settings/ui"
 import { ROUTE_ENTRY_PENDING, ROUTE_FEED_PENDING, ROUTE_VIEW_ALL } from "~/constants"
 import { computeTimelineTabLists } from "~/hooks/biz/useTimelineList"
+import { HomeFeedScreen } from "~/modules/mobile-web/screens/HomeFeedScreen"
 
 export function Component() {
-  return null
+  return <HomeFeedScreen />
 }
 
 export const loader = () => {
+  if (typeof window !== "undefined" && window.innerWidth < 1024) {
+    return null
+  }
+
   const uiSettings = getUISettings()
   const subscriptionState = useSubscriptionStore.getState()
 
