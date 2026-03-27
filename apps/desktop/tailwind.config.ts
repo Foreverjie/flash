@@ -42,6 +42,8 @@ export default extendConfig({
         "safe-inset-top": "var(--fo-window-padding-top, 0)",
         "margin-macos-traffic-light-x": "var(--fo-macos-traffic-light-width, 0)",
         "margin-macos-traffic-light-y": "var(--fo-macos-traffic-light-height, 0)",
+        "safe-area-top": "env(safe-area-inset-top, 0px)",
+        "safe-area-bottom": "env(safe-area-inset-bottom, 0px)",
       },
 
       height: {
@@ -54,6 +56,10 @@ export default extendConfig({
       },
       colors: {
         sidebar: "hsl(var(--fo-sidebar) / <alpha-value>)",
+        "brand-accent": "var(--fo-brand-accent)",
+        "brand-accent-pressed": "var(--fo-brand-accent-pressed)",
+        "brand-accent-tint": "var(--fo-brand-accent-tint)",
+        "brand-accent-muted": "var(--fo-brand-accent-muted)",
       },
 
       keyframes: {
