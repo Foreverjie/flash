@@ -25,21 +25,26 @@ async def test_health_returns_ok():
 @pytest.mark.asyncio
 async def test_scrape_without_key_returns_401():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        resp = await client.post("/scrape", json={"feed_id": "123", "handle": "elonmusk"})
+        resp = await client.post(
+            "/scrape",
+            json={"feed_id": "123", "adapter_type": "x_timeline", "source": "elonmusk"},
+        )
     assert resp.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_scrape_returns_502_when_scraper_returns_no_posts():
     mock_posts = []  # empty — no new posts
+    fake_scraper = MagicMock()
+    fake_scraper.scrape = AsyncMock(return_value=mock_posts)
     with (
-        patch("scraper.main.scraper.scrape", new=AsyncMock(return_value=mock_posts)),
+        patch.dict("scraper.main.scrapers", {"x_timeline": fake_scraper}, clear=False),
         patch("scraper.main.node_client.ingest_posts", new=AsyncMock(return_value=0)),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
                 "/scrape",
-                json={"feed_id": "123", "handle": "elonmusk"},
+                json={"feed_id": "123", "adapter_type": "x_timeline", "source": "elonmusk"},
                 headers={"x-internal-key": settings.internal_api_key},
             )
     assert resp.status_code == 502
@@ -57,14 +62,16 @@ async def test_scrape_returns_inserted_count_from_ingest():
         published_at="2026-01-01T00:00:00Z",
         author="foo",
     )
+    fake_scraper = MagicMock()
+    fake_scraper.scrape = AsyncMock(return_value=[mock_post])
     with (
-        patch("scraper.main.scraper.scrape", new=AsyncMock(return_value=[mock_post])),
+        patch.dict("scraper.main.scrapers", {"x_timeline": fake_scraper}, clear=False),
         patch("scraper.main.node_client.ingest_posts", new=AsyncMock(return_value=1)),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
                 "/scrape",
-                json={"feed_id": "123", "handle": "foo"},
+                json={"feed_id": "123", "adapter_type": "x_timeline", "source": "foo"},
                 headers={"x-internal-key": settings.internal_api_key},
             )
     assert resp.json()["inserted"] == 1

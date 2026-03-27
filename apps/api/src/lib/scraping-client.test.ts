@@ -13,7 +13,7 @@ afterAll(() => server.close())
 describe("ScrapingClient", () => {
   const client = new ScrapingClient("http://scraper.test", "test-key")
 
-  it("calls POST /scrape with feedId and handle", async () => {
+  it("calls POST /scrape with feedId, adapterType, and source", async () => {
     let capturedBody: unknown
     server.use(
       http.post("http://scraper.test/scrape", async ({ request }) => {
@@ -22,9 +22,17 @@ describe("ScrapingClient", () => {
       }),
     )
 
-    const result = await client.scrape({ feedId: "123", handle: "elonmusk" })
+    const result = await client.scrape({
+      feedId: "123",
+      adapterType: "x_timeline",
+      source: "elonmusk",
+    })
     expect(result).toEqual({ inserted: 3 })
-    expect(capturedBody).toEqual({ feed_id: "123", handle: "elonmusk" })
+    expect(capturedBody).toEqual({
+      feed_id: "123",
+      adapter_type: "x_timeline",
+      source: "elonmusk",
+    })
   })
 
   it("sends X-Internal-Key header", async () => {
@@ -36,7 +44,7 @@ describe("ScrapingClient", () => {
       }),
     )
 
-    await client.scrape({ feedId: "1", handle: "foo" })
+    await client.scrape({ feedId: "1", adapterType: "x_timeline", source: "foo" })
     expect(capturedKey).toBe("test-key")
   })
 
@@ -47,6 +55,8 @@ describe("ScrapingClient", () => {
       ),
     )
 
-    await expect(client.scrape({ feedId: "1", handle: "foo" })).rejects.toThrow("503")
+    await expect(
+      client.scrape({ feedId: "1", adapterType: "x_timeline", source: "foo" }),
+    ).rejects.toThrow("503")
   })
 })

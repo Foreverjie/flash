@@ -80,6 +80,46 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
   })
 })
 
+describe("POST /feeds/:id/refresh — bilibili_up_video branch", () => {
+  beforeEach(async () => {
+    vi.resetModules()
+    process.env.SCRAPER_SERVICE_URL = "http://scraper.test"
+    process.env.INTERNAL_API_KEY = "test-key"
+  })
+
+  it("returns newPosts from scraping service for bilibili_up_video feed", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-bili-123",
+      url: "bilibili_up_video://12345",
+      adapterType: "bilibili_up_video",
+    })
+
+    let capturedBody: unknown
+    server.use(
+      http.post("http://scraper.test/scrape", async ({ request }) => {
+        capturedBody = await request.json()
+        return HttpResponse.json({ inserted: 2 })
+      }),
+    )
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/feed-bili-123/refresh", { method: "POST" })
+    const body = (await res.json()) as { data: { newPosts: number } }
+
+    expect(res.status).toBe(200)
+    expect(body.data.newPosts).toBe(2)
+    expect(capturedBody).toEqual({
+      feed_id: "feed-bili-123",
+      adapter_type: "bilibili_up_video",
+      source: "12345",
+    })
+  })
+})
+
 describe("POST /feeds — x_timeline creation", () => {
   beforeEach(async () => {
     vi.resetModules()
@@ -116,6 +156,38 @@ describe("POST /feeds — x_timeline creation", () => {
     expect(res.status).toBe(201)
     const body = (await res.json()) as { data: { feed: { adapterType: string }; isNew: boolean } }
     expect(body.data.feed.adapterType).toBe("x_timeline")
+    expect(body.data.isNew).toBe(true)
+  })
+
+  it("returns 201 with new feed when creating a bilibili_up_video feed by uid", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null)
+    const mockInsert = vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([
+          {
+            id: "new-bili-feed",
+            url: "bilibili_up_video://12345",
+            adapterType: "bilibili_up_video",
+          },
+        ]),
+      }),
+    })
+    ;(db as unknown as Record<string, unknown>).insert = mockInsert
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "bilibili_up_video", uid: "12345" }),
+    })
+
+    expect(res.status).toBe(201)
+    const body = (await res.json()) as { data: { feed: { adapterType: string }; isNew: boolean } }
+    expect(body.data.feed.adapterType).toBe("bilibili_up_video")
     expect(body.data.isNew).toBe(true)
   })
 })

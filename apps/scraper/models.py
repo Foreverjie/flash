@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, field_validator
 
 
@@ -23,4 +25,5 @@ class IngestRequest(BaseModel):
 
 class ScrapeRequest(BaseModel):
     feed_id: str
-    handle: str
+    adapter_type: Literal["x_timeline", "bilibili_up_video"]
+    source: str

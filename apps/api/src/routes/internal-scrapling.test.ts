@@ -2,6 +2,7 @@
 import { Hono } from "hono"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { db } from "../db/index.js"
 import internalScraplingRouter from "./internal-scrapling"
 
 // Helper: mount router without touching env (env is set via vi.stubEnv)
@@ -29,15 +30,21 @@ describe("GET /internal/scrapling/feeds", () => {
   })
 
   it("returns 200 with feed list when key is valid", async () => {
+    vi.spyOn(db.query.feeds, "findMany").mockResolvedValueOnce([
+      { id: "feed-1", url: "bilibili_up_video://12345", adapterType: "bilibili_up_video" } as never,
+    ])
+
     const app = makeApp()
     const res = await app.request("/internal/scrapling/feeds", {
       headers: { "x-internal-key": "test-key" },
     })
-    // DB may be empty in unit test — just check shape
     expect(res.status).toBe(200)
-    const body = (await res.json()) as { data: unknown }
-    expect(body).toHaveProperty("data")
-    expect(Array.isArray(body.data)).toBe(true)
+    const body = (await res.json()) as {
+      data: Array<{ feedId: string; adapterType: string; source: string }>
+    }
+    expect(body.data).toEqual([
+      { feedId: "feed-1", adapterType: "bilibili_up_video", source: "12345" },
+    ])
   })
 })
 

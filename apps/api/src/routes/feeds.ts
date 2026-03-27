@@ -43,6 +43,11 @@ const createFeedSchema = z.union([
       .transform((h) => h.replace(/^@/, "")), // strip leading @
     title: z.string().max(200).optional(),
   }),
+  z.object({
+    type: z.literal("bilibili_up_video"),
+    uid: z.string().regex(/^\d+$/, "Invalid Bilibili UID"),
+    title: z.string().max(200).optional(),
+  }),
 ])
 
 const updateFeedSchema = z.object({
@@ -60,6 +65,18 @@ const subscribeSchema = z.object({
 })
 
 const feedsRouter = new Hono<{ Variables: FeedsVariables }>()
+
+function getScrapingSource(feed: { adapterType: string | null; url: string }) {
+  if (feed.adapterType === "x_timeline") {
+    return feed.url.replace("x_timeline://", "")
+  }
+
+  if (feed.adapterType === "bilibili_up_video") {
+    return feed.url.replace("bilibili_up_video://", "")
+  }
+
+  return ""
+}
 
 /**
  * GET /feeds
@@ -138,8 +155,9 @@ feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (
     const user = c.get("user")
     const body = c.req.valid("json")
 
-    if (body.type === "x_timeline") {
-      const syntheticUrl = `x_timeline://${body.handle}`
+    if (body.type === "x_timeline" || body.type === "bilibili_up_video") {
+      const source = body.type === "x_timeline" ? body.handle : body.uid
+      const syntheticUrl = `${body.type}://${source}`
 
       const existing = await db.query.feeds.findFirst({
         where: eq(feeds.url, syntheticUrl),
@@ -155,8 +173,11 @@ feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (
         .values({
           id: feedId,
           url: syntheticUrl,
-          title: body.title ?? `@${body.handle} on X`,
-          adapterType: "x_timeline",
+          title:
+            body.title ??
+            (body.type === "x_timeline" ? `@${body.handle} on X` : `Bilibili UP ${body.uid}`),
+          adapterType: body.type,
+          adapterConfig: body.type === "x_timeline" ? { handle: body.handle } : { uid: body.uid },
         })
         .returning()
 
@@ -348,14 +369,18 @@ feedsRouter.post(
         return sendNotFound(c, "Feed")
       }
 
-      // Delegate to Python scraping service for x_timeline feeds
-      if (feed.adapterType === "x_timeline") {
-        const handle = feed.url.replace("x_timeline://", "")
-        if (!handle) {
-          return sendError(c, "Malformed x_timeline URL", 400, 400)
+      // Delegate to Python scraping service for scraper-backed feeds
+      if (feed.adapterType === "x_timeline" || feed.adapterType === "bilibili_up_video") {
+        const source = getScrapingSource(feed)
+        if (!source) {
+          return sendError(c, `Malformed ${feed.adapterType} URL`, 400, 400)
         }
         try {
-          const result = await scrapingClient.scrape({ feedId: feed.id, handle })
+          const result = await scrapingClient.scrape({
+            feedId: feed.id,
+            adapterType: feed.adapterType,
+            source,
+          })
           await db
             .update(feeds)
             .set({ lastFetchedAt: new Date(), errorAt: null, errorMessage: null })

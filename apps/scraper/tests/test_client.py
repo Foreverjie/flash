@@ -15,10 +15,13 @@ def client():
 @pytest.mark.asyncio
 async def test_get_scrapling_feeds_returns_list(client):
     respx.get("http://test-api/internal/scrapling/feeds").mock(
-        return_value=httpx.Response(200, json={"data": [{"feedId": "1", "handle": "foo"}]})
+        return_value=httpx.Response(
+            200,
+            json={"data": [{"feedId": "1", "adapterType": "x_timeline", "source": "foo"}]},
+        )
     )
     feeds = await client.get_scrapling_feeds()
-    assert feeds == [{"feedId": "1", "handle": "foo"}]
+    assert feeds == [{"feedId": "1", "adapterType": "x_timeline", "source": "foo"}]
 
 
 @respx.mock

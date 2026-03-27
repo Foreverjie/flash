@@ -1,6 +1,7 @@
 export interface ScrapeParams {
   feedId: string
-  handle: string
+  adapterType: "x_timeline" | "bilibili_up_video"
+  source: string
 }
 
 export interface ScrapeResult {
@@ -25,7 +26,11 @@ export class ScrapingClient {
           "content-type": "application/json",
           "x-internal-key": this.apiKey,
         },
-        body: JSON.stringify({ feed_id: params.feedId, handle: params.handle }),
+        body: JSON.stringify({
+          feed_id: params.feedId,
+          adapter_type: params.adapterType,
+          source: params.source,
+        }),
         signal: controller.signal,
       })
 

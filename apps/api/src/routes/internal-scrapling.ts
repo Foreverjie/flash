@@ -1,6 +1,6 @@
 // apps/api/src/routes/internal-scrapling.ts
 import { zValidator } from "@hono/zod-validator"
-import { and, eq, gt } from "drizzle-orm"
+import { and, eq, gt, sql } from "drizzle-orm"
 import { Hono } from "hono"
 import { z } from "zod"
 
@@ -34,19 +34,25 @@ const scrapedPostSchema = z.object({
 
 /**
  * GET /internal/scrapling/feeds
- * Returns x_timeline feeds with at least one subscriber.
+ * Returns scraper-backed feeds with at least one subscriber.
  * Used by the Python service to know which accounts to scrape.
  */
 router.get("/feeds", async (c) => {
   const activeFeeds = await db.query.feeds.findMany({
-    where: and(eq(feeds.adapterType, "x_timeline"), gt(feeds.subscriptionCount, 0)),
-    columns: { id: true, url: true },
+    where: and(
+      gt(feeds.subscriptionCount, 0),
+      sql`${feeds.adapterType} IN ('x_timeline', 'bilibili_up_video')`,
+    ),
+    columns: { id: true, url: true, adapterType: true },
   })
 
   const result = activeFeeds.map((f) => ({
     feedId: f.id,
-    // url is stored as "x_timeline://handle" — extract the handle
-    handle: f.url.replace("x_timeline://", ""),
+    adapterType: f.adapterType,
+    source:
+      f.adapterType === "x_timeline"
+        ? f.url.replace("x_timeline://", "")
+        : f.url.replace("bilibili_up_video://", ""),
   }))
 
   return c.json(structuredSuccess(result))
@@ -68,9 +74,12 @@ router.post(
   async (c) => {
     const { feedId, posts: incomingPosts } = c.req.valid("json")
 
-    // Verify feed exists and is x_timeline type
+    // Verify feed exists and is a supported scraper-backed type
     const feed = await db.query.feeds.findFirst({
-      where: and(eq(feeds.id, feedId), eq(feeds.adapterType, "x_timeline")),
+      where: and(
+        eq(feeds.id, feedId),
+        sql`${feeds.adapterType} IN ('x_timeline', 'bilibili_up_video')`,
+      ),
     })
 
     if (!feed) {

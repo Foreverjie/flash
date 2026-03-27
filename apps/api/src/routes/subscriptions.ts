@@ -112,11 +112,21 @@ subscriptionsRouter.post("/", requireAuth, async (c) => {
   } else if (url) {
     feed = await db.query.feeds.findFirst({ where: eq(feeds.url, url) })
 
-    // Auto-create X timeline feeds on first subscribe
-    if (!feed && url.startsWith("x_timeline://")) {
-      const handle = url.replace("x_timeline://", "").replace(/^@/, "")
-      if (!handle) {
-        return c.json({ code: 400, message: "Invalid X timeline handle" }, 400)
+    // Auto-create scraper-backed feeds on first subscribe
+    if (!feed && (url.startsWith("x_timeline://") || url.startsWith("bilibili_up_video://"))) {
+      const isXTimeline = url.startsWith("x_timeline://")
+      const source = isXTimeline
+        ? url.replace("x_timeline://", "").replace(/^@/, "")
+        : url.replace("bilibili_up_video://", "")
+
+      if (!source) {
+        return c.json(
+          {
+            code: 400,
+            message: isXTimeline ? "Invalid X timeline handle" : "Invalid Bilibili UID",
+          },
+          400,
+        )
       }
 
       const [newFeed] = await db
@@ -124,15 +134,17 @@ subscriptionsRouter.post("/", requireAuth, async (c) => {
         .values({
           id: generateSnowflakeId(),
           url,
-          title: title ?? `@${handle} on X`,
-          adapterType: "x_timeline",
-          adapterConfig: { handle },
+          title: title ?? (isXTimeline ? `@${source} on X` : `Bilibili UP ${source}`),
+          adapterType: isXTimeline ? "x_timeline" : "bilibili_up_video",
+          adapterConfig: isXTimeline ? { handle: source } : { uid: source },
           ownerUserId: user.id,
         })
         .returning()
 
       feed = newFeed
-      logger.info(`[Subscriptions] Auto-created X timeline feed for @${handle}`)
+      logger.info(
+        `[Subscriptions] Auto-created ${isXTimeline ? "X timeline" : "Bilibili UP video"} feed for ${source}`,
+      )
     }
   }
 
