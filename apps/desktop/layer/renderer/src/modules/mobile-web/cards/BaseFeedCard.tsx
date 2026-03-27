@@ -21,26 +21,21 @@ export function BaseFeedCard({
 }: BaseFeedCardProps) {
   return (
     <article
-      className="cursor-pointer bg-system-background px-4 py-3"
+      // eslint-disable-next-line tailwindcss/no-custom-classname
+      className="bg-system-background cursor-pointer px-4 py-3"
       onClick={onClick}
     >
       {/* Source row */}
       <div className="mb-1.5 flex items-center gap-2">
-        {feedIcon && (
-          <img src={feedIcon} alt="" className="size-5 rounded-full object-cover" />
-        )}
+        {feedIcon && <img src={feedIcon} alt="" className="size-5 rounded-full object-cover" />}
         <span className="text-[13px] font-semibold text-text-secondary">{feedTitle}</span>
         {publishedAt && (
-          <span className="ml-auto text-[13px] text-text-tertiary">
-            {publishedAt}
-          </span>
+          <span className="ml-auto text-[13px] text-text-tertiary">{publishedAt}</span>
         )}
       </div>
 
       {/* Title */}
-      <h3 className="mb-1.5 line-clamp-2 text-base font-bold text-text">
-        {entryTitle}
-      </h3>
+      <h3 className="mb-1.5 line-clamp-2 text-base font-bold text-text">{entryTitle}</h3>
 
       {/* Type-specific content area */}
       {children}

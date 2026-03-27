@@ -14,7 +14,7 @@ export function PodcastCardContent({ duration }: PodcastCardContentProps) {
     <div className="flex items-center gap-3">
       <button
         type="button"
-        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-accent text-white"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-white"
       >
         <i className="i-mgc-play-cute-fi ml-0.5 text-base" />
       </button>
