@@ -51,6 +51,7 @@ export const CornerPlayer = ({ className, ...rest }: ControlButtonProps) => {
   const entryId = useAudioPlayerAtomSelector((v) => v.entryId)
   const entry = useEntry(entryId, (state) => ({ feedId: state.feedId }))
   const feed = useFeedById(entry?.feedId)
+  const isMobile = useMobile()
 
   return (
     <AnimatePresence>
@@ -58,6 +59,17 @@ export const CornerPlayer = ({ className, ...rest }: ControlButtonProps) => {
         <m.div
           key="corner-player"
           className={cn("group relative z-10 !my-0 w-full pr-px", className)}
+          style={
+            isMobile
+              ? {
+                  position: "fixed",
+                  bottom: "calc(50px + env(safe-area-inset-bottom, 0px))",
+                  left: 0,
+                  right: 0,
+                  zIndex: 50,
+                }
+              : undefined
+          }
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}

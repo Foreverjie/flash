@@ -6,6 +6,7 @@ import { Outlet, useLocation } from "react-router"
 import { AppErrorBoundary } from "~/components/common/AppErrorBoundary"
 import { ErrorComponentType } from "~/components/errors/enum"
 import { EntriesProvider } from "~/modules/entry-column/context/EntriesContext"
+import { CornerPlayer } from "~/modules/player/corner-player"
 
 import { MobileHeader } from "./MobileHeader"
 import { MobileSubscriptionDrawer } from "./MobileSubscriptionDrawer"
@@ -50,6 +51,7 @@ export function MobileWebShell() {
         </EntriesProvider>
       </main>
       {isTabRoute && <MobileTabBar />}
+      <CornerPlayer hideControls />
       {user && <MobileSubscriptionDrawer />}
     </div>
   )
