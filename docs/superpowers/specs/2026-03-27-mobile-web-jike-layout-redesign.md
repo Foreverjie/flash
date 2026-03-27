@@ -26,7 +26,7 @@ A ground-up mobile web shell inspired by JIKE (即刻) — a Chinese social/cont
 | Bottom tab bar           | 4 tabs: Home, Discover, Notifications, Profile                   | Focused for a reader app; no social "create" button   |
 | Feed card system         | Type-aware cards (article, podcast, image, video)                | Flash aggregates diverse content types                |
 | Accent color             | Electric Indigo `#6366F1`                                        | Vibrant, modern, distinctive identity                 |
-| Subscription list access | Left-edge swipe drawer                                           | Natural gesture for reader apps; keeps feed tab clean |
+| Subscription list access | Tap-to-open drawer from Home header icon                         | Tap-only; left-edge swipe conflicts with browser back |
 | Color package location   | `packages/internal/constants`                                    | Shared between desktop web and Expo mobile            |
 | Tablet behavior          | Tablets (768-1023px) get the mobile shell                        | Explicit decision; revisit later if needed            |
 | Unauthenticated users    | `MobileWebShell` handles both states; Home shows public timeline | Single shell, conditional content                     |
@@ -44,14 +44,14 @@ A ground-up mobile web shell inspired by JIKE (即刻) — a Chinese social/cont
   - Notifications: `i-mgc-notification-cute-re` / `i-mgc-notification-cute-fi`
   - Profile: `i-mgc-user-3-cute-re` / `i-mgc-user-3-cute-fi`
 - Unselected: line icons, `text-text-tertiary`. Selected: filled icons, accent color (`#6366F1`)
-- Fixed to bottom with `pb-safe-offset` for notched devices
+- Fixed to bottom with `pb-safe-area-bottom` for notched devices
 - Subtle top border (`border-t border-separator`), `bg-system-background`
 - Height: 50px content + safe area inset
 - Notification tab shows unread badge (accent-colored dot)
 
-### Left-Edge Subscription Drawer
+### Subscription Drawer
 
-- Activated by tapping a list icon in Home tab header (left-edge swipe conflicts with browser back gesture on iOS Safari and Android Chrome — tap-only is safer)
+- Activated by tapping the list icon in Home tab header (tap-only — left-edge swipe conflicts with browser back gesture on iOS Safari and Android Chrome)
 - Overlay panel, ~80% screen width, dimmed backdrop
 - Reuses internals of existing `SubscriptionColumnContainer`
 - Shows feed categories (folders) and individual feeds
@@ -68,24 +68,57 @@ A ground-up mobile web shell inspired by JIKE (即刻) — a Chinese social/cont
 | Notifications | —                      | "Notifications"         | —             |
 | Profile       | —                      | "Profile"               | Settings gear |
 
-- All headers respect `pt-safe-inset-top` for status bar
+- All headers respect `pt-safe-area-top` for status bar
 
 ### Screen Transitions
 
-- Tab switches: instant, no animation, content state preserved per tab
-- Drill-in (entry detail, feed detail): slide from right with back gesture support
+- Tab switches: instant, no animation, content state preserved in-memory per tab
+- Drill-in (entry detail, feed detail): slide from right via CSS transition
 - Subscription drawer: slide from left with spring animation
-- Back button (top-left arrow) for drill-in views; no swipe-right back gesture (conflicts with browser native back)
+- Back: top-left arrow button in drill-in header (no swipe gestures — conflicts with browser native back on iOS/Android)
 
 ### Routing Strategy
 
-`MobileWebShell` manages its own **internal tab state** without changing the URL for tab switches. This avoids conflicts with the existing `react-router` file-based routing.
+Tabs are **real routes** so that refresh, browser Back, shareability, and deep linking all work natively. `MobileWebShell` owns an `<Outlet />` where child routes render.
 
-- **Tab state**: Managed via React state inside `MobileWebShell` (e.g., `activeTab: 'home' | 'discover' | 'notifications' | 'profile'`). Each tab's content is kept mounted but hidden (via CSS `display: none`) to preserve scroll position and state.
-- **Drill-in views**: Use the existing `react-router` navigation. When a user taps an entry card, `useNavigateEntry` pushes to the existing route (e.g., `/timeline/[timelineId]/[feedId]`). The `MobileWebShell` detects route changes and renders the entry detail view as a full-screen overlay above the tabs (tab bar hidden during drill-in).
-- **Back navigation**: A back arrow in the drill-in header calls `navigate(-1)`, returning to the tab view.
-- **Discover/Profile drill-ins**: Same pattern — drill-in routes render as overlays, tab bar hides.
-- **Deep linking**: Direct URL access (e.g., `/discover`) works by `MobileWebShell` reading the initial route and setting the appropriate active tab on mount.
+**Tab routes:**
+
+| Tab           | Route            | Notes                           |
+| ------------- | ---------------- | ------------------------------- |
+| Home          | `/`              | Default route, matches existing |
+| Discover      | `/discover`      | Matches existing desktop route  |
+| Notifications | `/notifications` | New route (mobile-only for now) |
+| Profile       | `/profile`       | New route (mobile-only for now) |
+
+**How it works:**
+
+1. `MobileWebShell` is the layout component rendered when `isMobile` is true. It renders a header, an `<Outlet />` for child content, and the bottom tab bar.
+2. Tab switches call `navigate('/discover')` etc. — real router navigations that push onto browser history. This means browser Back between tabs works as expected, URLs are shareable, and refresh lands on the correct tab.
+3. **In-memory state preservation**: Each tab screen component preserves its scroll position and local state via Jotai atoms (e.g., `homeFeedScrollPositionAtom`). When navigating back to a tab, the component restores its position from the atom on mount. This is cheaper and more reliable than keeping all 4 tabs mounted.
+4. **Drill-in views**: When a user taps an entry card, `useNavigateEntry` pushes to the existing route (e.g., `/timeline/view-0/feedId/entryId`). This route renders inside `MobileWebShell`'s `<Outlet />`, replacing the tab content. The tab bar hides when the route does not match a known tab route.
+5. **Back navigation from drill-in**: A back arrow in the drill-in header calls `navigate(-1)`. Because tabs are real history entries, this returns to the correct tab at the correct scroll position.
+6. **Deep linking**: Direct URL access works natively — `/discover` renders MobileWebShell with Discover active, `/timeline/view-0/feedId/entryId` renders the entry detail with tab bar hidden.
+
+**Route registration:**
+
+The `/notifications` and `/profile` routes are new. They are registered in the route config as children of the `MobileWebShell` layout route. On desktop, these routes are either not registered or redirect to their desktop equivalents (settings modal, etc.). The file-based route generator may need a `mobile/` directory or platform-conditional route loading.
+
+**Integration with `MainDestopLayout.tsx`:**
+
+```typescript
+// In the route config, MobileWebShell is a layout route for mobile:
+if (isMobile) {
+  return (
+    <MobileWebShell>
+      {/* <Outlet /> is inside MobileWebShell */}
+      {/* Child routes: /, /discover, /notifications, /profile, /timeline/* */}
+    </MobileWebShell>
+  )
+}
+// Desktop path unchanged — existing <Outlet /> continues to work
+```
+
+`MobileWebShell` reads `useLocation()` to determine which tab is active (mapping pathname to tab). The tab bar highlights accordingly. Routes that don't match any tab (e.g., `/timeline/*`, `/ai`) cause the tab bar to hide.
 
 ### Unauthenticated State
 
@@ -105,6 +138,22 @@ A ground-up mobile web shell inspired by JIKE (即刻) — a Chinese social/cont
 - Tab switches announce via `aria-live="polite"` region
 - Focus moves to tab panel content on tab switch
 - All interactive elements have visible focus indicators (accent ring)
+
+**Accessible names for icon-only elements** (all icon-only buttons require `aria-label`):
+
+| Element                | `aria-label`                                                          |
+| ---------------------- | --------------------------------------------------------------------- |
+| Home tab               | `"Home"`                                                              |
+| Discover tab           | `"Discover"`                                                          |
+| Notifications tab      | `"Notifications"`                                                     |
+| Profile tab            | `"Profile"`                                                           |
+| Subscription list icon | `"Open subscriptions"`                                                |
+| Search icon            | `"Search"`                                                            |
+| Settings gear          | `"Settings"`                                                          |
+| Bookmark action        | `"Bookmark"` / `"Remove bookmark"`                                    |
+| Share action           | `"Share"`                                                             |
+| Notification badge     | `aria-label="N unread notifications"` on the tab, dynamically updated |
+| Back arrow (drill-in)  | `"Go back"`                                                           |
 
 ---
 
@@ -126,14 +175,22 @@ A ground-up mobile web shell inspired by JIKE (即刻) — a Chinese social/cont
 
 ### Entry Type Detection
 
-Card type is determined by the entry's associated feed `view` property and content heuristics:
+Card type is determined **primarily by `FeedViewType`** (the feed's `view` property), with content heuristics as a secondary signal. The `FeedViewType` enum values from the codebase (`packages/internal/constants/src/enums.ts`):
 
-- **Article**: Default for feeds with `view: 0` (article view) or any feed without media enclosures
-- **Podcast/Audio**: Feeds with `view: 1` (social/audio view) or entries with audio `enclosure` (mime type `audio/*`)
-- **Image-heavy**: Entries with 2+ image attachments or feeds with `view: 2` (picture view)
-- **Video**: Entries with video `enclosure` (mime type `video/*`) or feeds with `view: 4` (video view)
+| `FeedViewType`  | Value | Card type                                       |
+| --------------- | ----- | ----------------------------------------------- |
+| `Articles`      | 0     | Article card                                    |
+| `SocialMedia`   | 1     | Article card (with image grid if media present) |
+| `Pictures`      | 2     | Image card                                      |
+| `Videos`        | 3     | Video card                                      |
+| `Audios`        | 4     | Podcast card                                    |
+| `Notifications` | 5     | Article card (compact, notification-style)      |
 
-Fallback: if type cannot be determined, render as Article card.
+**Precedence rules:**
+
+1. `FeedViewType` is the primary determinant — it controls which card component renders
+2. Within a card type, content heuristics refine the layout (e.g., an Article card from a `SocialMedia` feed shows an image grid if the entry has 2+ images; otherwise it renders as a standard article)
+3. Fallback: if `FeedViewType` is unknown or `All`, inspect entry content — presence of audio `enclosure` → Podcast, video `enclosure` → Video, 2+ images → Image, otherwise → Article
 
 ### Type-Aware Content Areas
 
@@ -289,7 +346,7 @@ Usage: `pt-safe-area-top` for headers, `pb-safe-area-bottom` for tab bar. The ex
 - **Header**: List icon (left, opens subscription drawer) + "Flash" + search icon (right)
 - **Body**: Vertical scroll of type-aware cards, 12px gap
 - Pull-to-refresh, infinite scroll
-- **Entry detail**: Tap card → slide-right to full content view. Back via swipe-right or arrow
+- **Entry detail**: Tap card → slide-right to full content view. Back via top-left arrow button (no swipe gestures)
 
 ### Discover
 
@@ -353,21 +410,41 @@ packages/internal/constants/src/
 
 ### Integration Point
 
+`MobileWebShell` is a **layout route component** that renders when `isMobile` is true. It contains a header, an `<Outlet />` for child route content, and the bottom tab bar.
+
 In `MainDestopLayout.tsx`:
 
 ```typescript
 if (isMobile) {
-  return <MobileWebShell />  // Entirely separate mobile layout
+  return (
+    <MobileWebShell>
+      {/* MobileWebShell renders:
+          - MobileHeader (varies by active tab/route)
+          - <Outlet /> (child routes render here: tab screens + drill-in views)
+          - MobileTabBar (hidden when route doesn't match a tab)
+      */}
+    </MobileWebShell>
+  )
 }
-// ... existing desktop layout unchanged
+// Desktop path unchanged — existing layout with sidebar + <Outlet />
 ```
+
+Child routes render inside `MobileWebShell`'s `<Outlet />`:
+
+- `/` → `HomeFeedScreen`
+- `/discover` → `DiscoverScreen`
+- `/notifications` → `NotificationsScreen`
+- `/profile` → `ProfileScreen`
+- `/timeline/*` → Existing entry detail views (tab bar auto-hides)
+- `/ai`, `/action`, `/rsshub` → Existing subviews (tab bar auto-hides)
 
 ### Reused Existing Components
 
 - `SubscriptionColumnContainer` internals — re-housed in `MobileSubscriptionDrawer`
-- Entry content renderer — same article/content view, wrapped in mobile nav
+- Entry content renderer — same article/content view, rendered via `<Outlet />`
 - `PresentSheet` — for secondary modals within mobile screens
 - `useMobile()` hook — detection switch point
+- `useNavigateEntry` — unchanged, pushes to `/timeline/*` routes which render inside the shell's `<Outlet />`
 
 ---
 
@@ -378,7 +455,7 @@ if (isMobile) {
 **`MainDestopLayout.tsx`** — Replace current conditional mobile rendering:
 
 - Remove `MobileGlobalDrawerProvider` wrapper for mobile path
-- When `isMobile`, render `<MobileWebShell />` instead of sidebar + outlet
+- When `isMobile`, render `<MobileWebShell />` as the layout component. It owns its own `<Outlet />` where child routes (tab screens + drill-in views) render.
 
 **Remove `MobileGlobalDrawerTrigger` from 3 files:**
 
