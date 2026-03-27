@@ -133,13 +133,14 @@ if (isMobile) {
 
 ### Accessibility
 
-- Tab bar uses `role="tablist"` with each tab as `role="tab"` and `aria-selected`
-- Active tab content uses `role="tabpanel"`
-- Tab switches announce via `aria-live="polite"` region
-- Focus moves to tab panel content on tab switch
+Since tabs are real route navigations (not in-page panels), the tab bar uses **`<nav>` with links**, not ARIA tab roles:
+
+- Tab bar is a `<nav aria-label="Main navigation">` containing `<a>` (or `<NavLink>`) elements
+- The active tab link gets `aria-current="page"`
+- No `role="tablist"`, `role="tab"`, or `role="tabpanel"` — those are for in-page tab widgets, not route navigation
 - All interactive elements have visible focus indicators (accent ring)
 
-**Accessible names for icon-only elements** (all icon-only buttons require `aria-label`):
+**Accessible names for icon-only elements** (all icon-only links/buttons require `aria-label`):
 
 | Element                | `aria-label`                                                          |
 | ---------------------- | --------------------------------------------------------------------- |
@@ -386,7 +387,7 @@ Usage: `pt-safe-area-top` for headers, `pb-safe-area-bottom` for tab bar. The ex
 apps/desktop/layer/renderer/src/modules/mobile-web/
 ├── MobileWebShell.tsx              # Root: tab bar + content + drawer
 ├── MobileTabBar.tsx                # Bottom 4-tab bar
-├── MobileSubscriptionDrawer.tsx    # Left-edge swipe panel
+├── MobileSubscriptionDrawer.tsx    # Tap-to-open subscription panel
 ├── MobileHeader.tsx                # Per-tab header variants
 ├── screens/
 │   ├── HomeFeedScreen.tsx          # Home tab
@@ -410,33 +411,53 @@ packages/internal/constants/src/
 
 ### Integration Point
 
-`MobileWebShell` is a **layout route component** that renders when `isMobile` is true. It contains a header, an `<Outlet />` for child route content, and the bottom tab bar.
+`MobileWebShell` is a **layout route component** wired through the route configuration, not rendered as a wrapper inside `MainDestopLayout`. The route tree is changed so that on mobile, `MobileWebShell` replaces `MainDestopLayout` as the layout for the same child routes.
 
-In `MainDestopLayout.tsx`:
+**Route tree change (conceptual):**
 
-```typescript
-if (isMobile) {
-  return (
-    <MobileWebShell>
-      {/* MobileWebShell renders:
-          - MobileHeader (varies by active tab/route)
-          - <Outlet /> (child routes render here: tab screens + drill-in views)
-          - MobileTabBar (hidden when route doesn't match a tab)
-      */}
-    </MobileWebShell>
-  )
-}
-// Desktop path unchanged — existing layout with sidebar + <Outlet />
+```
+// Current (desktop-only):
+<Route element={<MainDestopLayout />}>
+  <Route path="/" element={<TimelineHome />} />
+  <Route path="/discover" element={<DiscoverPage />} />
+  <Route path="/timeline/:timelineId/:feedId/:entryId" element={<EntryDetail />} />
+  <Route path="/ai" element={<AIChat />} />
+  ...
+</Route>
+
+// New (platform-conditional layout):
+<Route element={isMobile ? <MobileWebShell /> : <MainDestopLayout />}>
+  {/* All existing child routes remain — same paths, same components */}
+  <Route path="/" element={isMobile ? <HomeFeedScreen /> : <TimelineHome />} />
+  <Route path="/discover" element={isMobile ? <DiscoverScreen /> : <DiscoverPage />} />
+  <Route path="/timeline/:timelineId/:feedId/:entryId" element={<EntryDetail />} />
+  <Route path="/ai" element={<AIChat />} />
+  ...
+  {/* New mobile-only routes */}
+  <Route path="/notifications" element={<NotificationsScreen />} />
+  <Route path="/profile" element={<ProfileScreen />} />
+</Route>
 ```
 
-Child routes render inside `MobileWebShell`'s `<Outlet />`:
+The key point: `MobileWebShell` internally renders `<Outlet />` in its content area. Child routes are composed by the router, not passed as JSX children. `MainDestopLayout` continues to work identically for desktop — it already owns an `<Outlet />` the same way.
 
-- `/` → `HomeFeedScreen`
-- `/discover` → `DiscoverScreen`
-- `/notifications` → `NotificationsScreen`
-- `/profile` → `ProfileScreen`
-- `/timeline/*` → Existing entry detail views (tab bar auto-hides)
-- `/ai`, `/action`, `/rsshub` → Existing subviews (tab bar auto-hides)
+**How `MobileWebShell` determines tab bar visibility:**
+
+```typescript
+// Inside MobileWebShell:
+const location = useLocation()
+const TAB_ROUTES = ["/", "/discover", "/notifications", "/profile"]
+const isTabRoute = TAB_ROUTES.includes(location.pathname)
+// Tab bar visible only on tab routes; hidden on /timeline/*, /ai, etc.
+```
+
+**Route-to-tab mapping:**
+
+- `/` → Home tab active
+- `/discover` → Discover tab active
+- `/notifications` → Notifications tab active
+- `/profile` → Profile tab active
+- `/timeline/*`, `/ai`, `/action`, `/rsshub` → No tab active, tab bar hidden
 
 ### Reused Existing Components
 
@@ -452,10 +473,12 @@ Child routes render inside `MobileWebShell`'s `<Outlet />`:
 
 ### Must Change
 
-**`MainDestopLayout.tsx`** — Replace current conditional mobile rendering:
+**Route configuration** — Swap the layout route component based on `isMobile`:
 
-- Remove `MobileGlobalDrawerProvider` wrapper for mobile path
-- When `isMobile`, render `<MobileWebShell />` as the layout component. It owns its own `<Outlet />` where child routes (tab screens + drill-in views) render.
+- When `isMobile`, use `MobileWebShell` as the layout route instead of `MainDestopLayout`
+- Both layout components render `<Outlet />` for child routes — same children, different shell
+- `MainDestopLayout` is unchanged; it simply stops being used on mobile viewports
+- Remove `MobileGlobalDrawerProvider` wrapper (no longer needed anywhere)
 
 **Remove `MobileGlobalDrawerTrigger` from 3 files:**
 
@@ -479,7 +502,7 @@ Child routes render inside `MobileWebShell`'s `<Outlet />`:
 
 - `player/corner-player.tsx` — On mobile, add `bottom: calc(50px + env(safe-area-inset-bottom))` so the mini player floats above the tab bar. The tab bar does not resize to accommodate it; the player overlays on top of feed content.
 - `entry-column/layouts/*` — Card templates may need styling alignment with new card system
-- `hooks/biz/useNavigateEntry.ts` — Account for tab-based navigation context (drill-in overlay pattern)
+- `hooks/biz/useNavigateEntry.ts` — No changes needed; it already pushes to `/timeline/*` routes which render inside `MobileWebShell`'s `<Outlet />` as route replacements (not overlays)
 
 ### Unchanged
 
