@@ -1,7 +1,14 @@
 import { cn } from "@follow/utils/utils"
 import { NavLink } from "react-router"
 
-const tabs = [
+interface TabItem {
+  to: string
+  icon: string
+  label: string
+  showBadge?: boolean
+}
+
+const tabs: TabItem[] = [
   { to: "/", icon: "i-mgc-home-3-cute", label: "Home" },
   { to: "/discover", icon: "i-mgc-compass-cute", label: "Discover" },
   {
@@ -11,7 +18,7 @@ const tabs = [
     showBadge: true,
   },
   { to: "/profile", icon: "i-mgc-user-3-cute", label: "Profile" },
-] as const
+]
 
 export function MobileTabBar() {
   // TODO: Replace with actual unread count from notification store when available

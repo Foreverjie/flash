@@ -8,7 +8,7 @@ export function ImageCardContent({ images }: ImageCardContentProps) {
 
   if (displayImages.length === 1) {
     return (
-      <img src={displayImages[0].url} alt="" className="max-h-60 w-full rounded-xl object-cover" />
+      <img src={displayImages[0]!.url} alt="" className="max-h-60 w-full rounded-xl object-cover" />
     )
   }
 
