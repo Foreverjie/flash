@@ -20,7 +20,6 @@ import { useSubscriptionColumnShow } from "~/atoms/sidebar"
 import { ROUTE_ENTRY_PENDING } from "~/constants"
 import { useFollow } from "~/hooks/biz/useFollow"
 import { getRouteParams, useRouteParams } from "~/hooks/biz/useRouteParams"
-import { MobileGlobalDrawerTrigger } from "~/modules/app-layout/MobileGlobalDrawer"
 import { COMMAND_ID } from "~/modules/command/commands/id"
 import { useRunCommandFn } from "~/modules/command/hooks/use-command"
 import { useCommandShortcut } from "~/modules/command/hooks/use-command-binding"
@@ -173,7 +172,6 @@ export const EntryListHeader: FC<{
                 <MarkAllReadButton shortcut />
               </>
             )}
-            <MobileGlobalDrawerTrigger compact tone="header" />
           </div>
         )}
       </div>

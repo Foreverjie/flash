@@ -31,3 +31,22 @@ async def test_scrape_returns_empty_on_blocked():
     with patch.object(scraper, "_fetch_timeline", new=AsyncMock(return_value=[])):
         result = await scraper.scrape("someuser")
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_timeline_uses_fetcher_instance():
+    scraper = XTimelineScraper()
+
+    class FakePage:
+        text = ""
+
+        @staticmethod
+        def css(_selector):
+            return []
+
+    scraper._fetcher.async_fetch = AsyncMock(return_value=FakePage())
+
+    result = await scraper._fetch_timeline("elonmusk")
+
+    assert result == []
+    scraper._fetcher.async_fetch.assert_awaited_once()

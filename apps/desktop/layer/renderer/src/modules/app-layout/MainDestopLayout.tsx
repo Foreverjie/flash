@@ -23,7 +23,6 @@ import { CmdNTrigger } from "~/modules/panel/cmdn"
 import { PublicTimelineLayout } from "~/modules/public-timeline"
 import { AppNotificationContainer } from "~/modules/upgrade/lazy/index"
 
-import { MobileGlobalDrawerProvider } from "./MobileGlobalDrawer"
 import { NewUserGuide } from "./subscription-column/components/NewUserGuide"
 import { SubscriptionColumnContainer } from "./subscription-column/SubscriptionColumn"
 
@@ -151,43 +150,41 @@ export function MainDestopLayout() {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   return (
-    <MobileGlobalDrawerProvider>
-      <RootContainer ref={containerRef}>
-        {!PROD && <EnvironmentIndicator />}
+    <RootContainer ref={containerRef}>
+      {!PROD && <EnvironmentIndicator />}
 
-        <Suspense>
-          <AppNotificationContainer />
-        </Suspense>
+      <Suspense>
+        <AppNotificationContainer />
+      </Suspense>
 
-        {showPublicTimeline ? (
-          // Public mode: show feeds & posts from public API without auth
-          <PublicTimelineLayout />
-        ) : (
-          <>
-            <EntriesProvider>
-              {!isMobile && <SubscriptionColumnContainer />}
+      {showPublicTimeline ? (
+        // Public mode: show feeds & posts from public API without auth
+        <PublicTimelineLayout />
+      ) : (
+        <>
+          <EntriesProvider>
+            {!isMobile && <SubscriptionColumnContainer />}
 
-              <main
-                ref={setMainContainerElement}
-                className="flex min-w-0 flex-1 bg-theme-background pt-[calc(var(--fo-window-padding-top)_-10px)] !outline-none"
-                // NOTE: tabIndex for main element can get by `document.activeElement`
-                tabIndex={-1}
-              >
-                <AppErrorBoundary errorType={errorTypes}>
-                  <Outlet />
-                </AppErrorBoundary>
-              </main>
-            </EntriesProvider>
+            <main
+              ref={setMainContainerElement}
+              className="flex min-w-0 flex-1 bg-theme-background pt-[calc(var(--fo-window-padding-top)_-10px)] !outline-none"
+              // NOTE: tabIndex for main element can get by `document.activeElement`
+              tabIndex={-1}
+            >
+              <AppErrorBoundary errorType={errorTypes}>
+                <Outlet />
+              </AppErrorBoundary>
+            </main>
+          </EntriesProvider>
 
-            <NewUserGuide />
-          </>
-        )}
+          <NewUserGuide />
+        </>
+      )}
 
-        <SearchCmdK />
-        <CmdNTrigger />
-        {IN_ELECTRON && <CmdF />}
-      </RootContainer>
-    </MobileGlobalDrawerProvider>
+      <SearchCmdK />
+      <CmdNTrigger />
+      {IN_ELECTRON && <CmdF />}
+    </RootContainer>
   )
 }
 

@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
-from scrapling import StealthyFetcher
+from scrapling.fetchers import StealthyFetcher
 
 from scraper.models import ScrapedPost
 from scraper.scrapers.base import BaseScraper
@@ -12,21 +12,44 @@ X_TIMELINE_URL = "https://x.com/{handle}"
 
 
 class XTimelineScraper(BaseScraper):
+    def __init__(self) -> None:
+        self._fetcher = StealthyFetcher()
+
     async def scrape(self, handle: str) -> list[ScrapedPost]:
+        normalized_handle = handle.replace("@", "").strip()
         try:
-            return await self._fetch_timeline(handle)
+            return await self._fetch_timeline(normalized_handle)
         except Exception as exc:
-            logger.error("XTimelineScraper failed for @%s: %s", handle, exc)
+            logger.error("XTimelineScraper failed for @%s: %s", normalized_handle, exc)
             return []
 
     async def _fetch_timeline(self, handle: str) -> list[ScrapedPost]:
         url = X_TIMELINE_URL.format(handle=handle)
-        page = await StealthyFetcher.async_fetch(url, headless=True, network_idle=True)
+        page = await self._fetcher.async_fetch(
+            url,
+            headless=True,
+            network_idle=True,
+            wait_selector="main",
+            timeout=45_000,
+        )
 
         posts: list[ScrapedPost] = []
 
         # X renders tweets as articles with data-testid="tweet"
         tweet_articles = page.css('[data-testid="tweet"]')
+        if not tweet_articles:
+            page_text = page.text.lower()
+            if any(
+                marker in page_text
+                for marker in (
+                    "join x today",
+                    "log in to x",
+                    "sign in to x",
+                    "something went wrong",
+                    "rate limit exceeded",
+                )
+            ):
+                raise RuntimeError(f"X blocked timeline access for @{handle}")
 
         for article in tweet_articles:
             try:

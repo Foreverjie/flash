@@ -4,7 +4,6 @@ import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { cn } from "@follow/utils/utils"
 import { useCallback, useRef } from "react"
 
-import { MobileGlobalDrawerTrigger } from "~/modules/app-layout/MobileGlobalDrawer"
 import type { PostItem } from "~/queries/posts"
 import { usePostsQuery } from "~/queries/posts"
 
@@ -51,7 +50,6 @@ export function PublicEntryList({
           <ActionButton tooltip="Refresh" onClick={handleRefresh} disabled={isFetching}>
             <i className={cn("i-mgc-refresh-2-cute-re", isFetching && "animate-spin")} />
           </ActionButton>
-          <MobileGlobalDrawerTrigger compact tone="header" />
         </div>
       </div>
 

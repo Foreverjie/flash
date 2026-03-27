@@ -30,7 +30,7 @@ async def test_scrape_without_key_returns_401():
 
 
 @pytest.mark.asyncio
-async def test_scrape_triggers_scraper_and_returns_inserted():
+async def test_scrape_returns_502_when_scraper_returns_no_posts():
     mock_posts = []  # empty — no new posts
     with (
         patch("scraper.main.scraper.scrape", new=AsyncMock(return_value=mock_posts)),
@@ -42,8 +42,8 @@ async def test_scrape_triggers_scraper_and_returns_inserted():
                 json={"feed_id": "123", "handle": "elonmusk"},
                 headers={"x-internal-key": settings.internal_api_key},
             )
-    assert resp.status_code == 200
-    assert resp.json()["inserted"] == 0
+    assert resp.status_code == 502
+    assert "No posts returned from scraper" in resp.json()["detail"]
 
 
 @pytest.mark.asyncio

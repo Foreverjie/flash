@@ -48,8 +48,10 @@ async def scrape(req: ScrapeRequest, x_internal_key: str = Header(None)):
         inserted = 0
         if posts:
             inserted = await node_client.ingest_posts(feed_id=req.feed_id, posts=posts)
+        elif req.handle:
+            raise RuntimeError("No posts returned from scraper")
         logger.info("Scraped @%s: %d new posts inserted", req.handle, inserted)
         return {"inserted": inserted}
     except Exception as exc:
         logger.error("Scrape request failed for @%s: %s", req.handle, exc)
-        return {"inserted": 0}
+        raise HTTPException(status_code=502, detail=f"Scrape failed for @{req.handle}: {exc}") from exc
