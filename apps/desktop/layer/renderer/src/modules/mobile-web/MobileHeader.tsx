@@ -1,3 +1,4 @@
+import { useWhoami } from "@follow/store/user/hooks"
 import { useSetAtom } from "jotai"
 import { useLocation, useNavigate } from "react-router"
 
@@ -9,6 +10,8 @@ export function MobileHeader() {
   const location = useLocation()
   const navigate = useNavigate()
   const setDrawerOpen = useSetAtom(mobileDrawerOpenAtom)
+
+  const user = useWhoami()
 
   const { pathname } = location
 
@@ -34,11 +37,17 @@ export function MobileHeader() {
       <header className="flex h-11 shrink-0 items-center justify-between px-4 pt-safe-area-top">
         <button
           type="button"
-          aria-label="Open subscriptions"
-          className="flex size-9 items-center justify-center rounded-full text-text-secondary"
+          aria-label="Open account menu"
+          className="flex size-9 items-center justify-center rounded-full"
           onClick={() => setDrawerOpen(true)}
         >
-          <i className="i-mgc-menu-cute-re text-xl" />
+          {user?.image ? (
+            <img src={user.image} alt="" className="size-7 rounded-full object-cover" />
+          ) : (
+            <div className="flex size-7 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-white">
+              {user?.name?.charAt(0)?.toUpperCase() || "?"}
+            </div>
+          )}
         </button>
         <span className="text-base font-semibold text-text">Flash</span>
         <button
