@@ -38,7 +38,7 @@ export function MobileWebShell() {
 
   return (
     <div
-      className="bg-secondary-system-background relative flex h-screen flex-col overflow-hidden"
+      className="relative flex h-screen flex-col overflow-hidden bg-background"
       style={colorVars}
     >
       <MobileHeader />

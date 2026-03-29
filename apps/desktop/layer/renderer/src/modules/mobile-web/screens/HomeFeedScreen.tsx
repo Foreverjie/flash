@@ -23,6 +23,8 @@ import { ImageCardContent } from "../cards/ImageCard"
 import { PodcastCardContent } from "../cards/PodcastCard"
 import { VideoCardContent } from "../cards/VideoCard"
 
+const ALL_VIEW_DEFS = getViewList({ includeAll: true })
+
 export function HomeFeedScreen() {
   const user = useWhoami()
 
@@ -66,7 +68,7 @@ function ViewFilterBar({ hidden }: { hidden: boolean }) {
     >
       <div className="scrollbar-hide flex items-center gap-1.5 overflow-x-auto px-4 py-2">
         {viewsWithSub.map((viewType) => {
-          const viewDef = getViewList({ includeAll: true }).find((v) => v.view === viewType)
+          const viewDef = ALL_VIEW_DEFS.find((v) => v.view === viewType)
           if (!viewDef) return null
           return (
             <ViewChip
