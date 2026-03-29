@@ -5,11 +5,10 @@ import { Outlet, useLocation } from "react-router"
 
 import { AppErrorBoundary } from "~/components/common/AppErrorBoundary"
 import { ErrorComponentType } from "~/components/errors/enum"
-import { EntriesProvider } from "~/modules/entry-column/context/EntriesContext"
 import { CornerPlayer } from "~/modules/player/corner-player"
 
+import { MobileAccountDrawer } from "./MobileAccountDrawer"
 import { MobileHeader } from "./MobileHeader"
-import { MobileSubscriptionDrawer } from "./MobileSubscriptionDrawer"
 import { MobileTabBar } from "./MobileTabBar"
 
 const TAB_ROUTES = new Set(["/", "/discover", "/notifications", "/profile"])
@@ -44,15 +43,13 @@ export function MobileWebShell() {
     >
       <MobileHeader />
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <EntriesProvider>
-          <AppErrorBoundary errorType={errorTypes}>
-            <Outlet />
-          </AppErrorBoundary>
-        </EntriesProvider>
+        <AppErrorBoundary errorType={errorTypes}>
+          <Outlet />
+        </AppErrorBoundary>
       </main>
       {isTabRoute && <MobileTabBar />}
       <CornerPlayer hideControls />
-      {user && <MobileSubscriptionDrawer />}
+      {user && <MobileAccountDrawer />}
     </div>
   )
 }
