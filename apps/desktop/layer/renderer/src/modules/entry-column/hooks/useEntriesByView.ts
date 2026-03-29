@@ -27,8 +27,12 @@ import { entries } from "~/queries/entries"
 
 import { useIsPreviewFeed } from "./useIsPreviewFeed"
 
-const useRemoteEntries = (): UseEntriesReturn => {
-  const { feedId, view, inboxId, listId } = useRouteParams()
+const useRemoteEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
+  const routeParams = useRouteParams()
+  const { feedId } = routeParams
+  const view = viewOverride ?? routeParams.view
+  const { inboxId } = routeParams
+  const { listId } = routeParams
   const isPreview = useIsPreviewFeed()
 
   const unreadOnly = useGeneralSettingKey("unreadOnly")
@@ -128,8 +132,13 @@ function getEntryIdsFromMultiplePlace(...entryIds: Array<string[] | undefined | 
   return entryIds.find((ids) => ids?.length) ?? []
 }
 
-const useLocalEntries = (): UseEntriesReturn => {
-  const { feedId, view, inboxId, listId, isCollection } = useRouteParams()
+const useLocalEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
+  const routeParams = useRouteParams()
+  const { feedId } = routeParams
+  const view = viewOverride ?? routeParams.view
+  const { inboxId } = routeParams
+  const { listId } = routeParams
+  const { isCollection } = routeParams
   const unreadOnly = useGeneralSettingKey("unreadOnly")
   const hidePrivateSubscriptionsInTimeline = useGeneralSettingKey(
     "hidePrivateSubscriptionsInTimeline",
@@ -238,11 +247,19 @@ const useLocalEntries = (): UseEntriesReturn => {
   }
 }
 
-export const useEntriesByView = ({ onReset }: { onReset?: () => void }) => {
-  const { view, listId } = useRouteParams()
+export const useEntriesByView = ({
+  onReset,
+  viewOverride,
+}: {
+  onReset?: () => void
+  viewOverride?: FeedViewType
+}) => {
+  const routeParams = useRouteParams()
+  const view = viewOverride ?? routeParams.view
+  const { listId } = routeParams
 
-  const remoteQuery = useRemoteEntries()
-  const localQuery = useLocalEntries()
+  const remoteQuery = useRemoteEntries(viewOverride)
+  const localQuery = useLocalEntries(viewOverride)
 
   useFetchEntryContentByStream(remoteQuery.entriesIds)
 

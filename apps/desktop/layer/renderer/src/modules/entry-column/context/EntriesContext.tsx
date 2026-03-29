@@ -33,14 +33,18 @@ type EntriesActionsContextValue = {
 const EntriesStateContext = createContext<EntriesStateContextValue | undefined>(undefined)
 const EntriesActionsContext = createContext<EntriesActionsContextValue | undefined>(undefined)
 
-export const EntriesProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+export const EntriesProvider: React.FC<
+  React.PropsWithChildren<{ viewOverride?: FeedViewType }>
+> = ({ children, viewOverride }) => {
   const onResetRef = useRef<(() => void) | null>(null)
-  const { view } = useRouteParams()
+  const { view: routeView } = useRouteParams()
+  const view = viewOverride ?? routeView
 
   const entries = useEntriesByView({
     onReset: () => {
       onResetRef.current?.()
     },
+    viewOverride,
   })
 
   const idToIndex = useMemo(() => {
