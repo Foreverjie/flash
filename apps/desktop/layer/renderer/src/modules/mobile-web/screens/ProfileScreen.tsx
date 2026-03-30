@@ -17,7 +17,7 @@ export function ProfileScreen() {
         <p className="mb-2 text-text-tertiary">Sign in to access your profile</p>
         <button
           type="button"
-          className="rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-white"
+          className="rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-white transition-opacity active:opacity-80"
           onClick={() => {
             present({
               CustomModalComponent: PlainModal,
@@ -50,16 +50,16 @@ export function ProfileScreen() {
       </div>
 
       {/* Menu items */}
-      <div className="bg-system-background mx-4 overflow-hidden rounded-2xl">
+      <div className="mx-4 overflow-hidden rounded-2xl bg-fill-tertiary">
         <ProfileMenuItem icon="i-mgc-settings-7-cute-re" label="Settings" />
         <ProfileMenuItem icon="i-mgc-download-cute-re" label="Import / Export OPML" />
         <ProfileMenuItem icon="i-mgc-information-cute-re" label="About" />
       </div>
 
-      <div className="bg-system-background mx-4 mt-4 overflow-hidden rounded-2xl">
+      <div className="mx-4 mt-4 overflow-hidden rounded-2xl bg-fill-tertiary">
         <button
           type="button"
-          className="flex w-full items-center justify-center gap-2 px-4 py-3 text-sm text-red"
+          className="flex w-full items-center justify-center gap-2 px-4 py-3 text-sm text-red transition-colors active:bg-fill-secondary"
           onClick={() => signOut()}
         >
           <i className="i-mgc-exit-cute-re" />
@@ -74,7 +74,7 @@ function ProfileMenuItem({ icon, label }: { icon: string; label: string }) {
   return (
     <button
       type="button"
-      className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left text-sm text-text last:border-b-0"
+      className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left text-sm text-text transition-colors last:border-b-0 active:bg-fill-secondary"
     >
       <i className={`${icon} text-lg text-text-secondary`} />
       {label}

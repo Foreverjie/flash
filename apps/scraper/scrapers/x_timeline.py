@@ -91,7 +91,7 @@ class XTimelineScraper(BaseScraper):
         for img in article.css('[data-testid="tweetPhoto"] img'):
             src = img.attrib.get("src", "")
             if src:
-                media.append({"url": src, "type": "image"})
+                media.append({"url": src, "type": "photo"})
 
         return ScrapedPost(
             guid=tweet_url,

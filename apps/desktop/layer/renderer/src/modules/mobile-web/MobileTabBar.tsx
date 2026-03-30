@@ -3,21 +3,38 @@ import { NavLink } from "react-router"
 
 interface TabItem {
   to: string
-  icon: string
+  activeIcon: string
+  inactiveIcon: string
   label: string
   showBadge?: boolean
 }
 
 const tabs: TabItem[] = [
-  { to: "/", icon: "i-mgc-home-3-cute", label: "Home" },
-  { to: "/discover", icon: "i-mgc-compass-cute", label: "Discover" },
+  {
+    to: "/",
+    activeIcon: "i-mgc-home-3-cute-fi",
+    inactiveIcon: "i-mgc-home-3-cute-re",
+    label: "Home",
+  },
+  {
+    to: "/discover",
+    activeIcon: "i-mgc-compass-cute-fi",
+    inactiveIcon: "i-mgc-compass-cute-re",
+    label: "Discover",
+  },
   {
     to: "/notifications",
-    icon: "i-mgc-notification-cute",
+    activeIcon: "i-mgc-notification-cute-fi",
+    inactiveIcon: "i-mgc-notification-cute-re",
     label: "Notifications",
     showBadge: true,
   },
-  { to: "/profile", icon: "i-mgc-user-3-cute", label: "Profile" },
+  {
+    to: "/profile",
+    activeIcon: "i-mgc-user-3-cute-fi",
+    inactiveIcon: "i-mgc-user-3-cute-re",
+    label: "Profile",
+  },
 ]
 
 export function MobileTabBar() {
@@ -27,7 +44,7 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Main navigation"
-      className="bg-system-background flex h-[50px] shrink-0 items-center border-t border-border pb-safe-area-bottom"
+      className="flex h-[50px] shrink-0 items-center border-t border-border bg-background pb-safe-area-bottom"
     >
       {tabs.map((tab) => (
         <NavLink
@@ -48,7 +65,7 @@ export function MobileTabBar() {
         >
           {({ isActive }) => (
             <>
-              <i className={cn(tab.icon + (isActive ? "-fi" : "-re"), "text-2xl")} />
+              <i className={cn(isActive ? tab.activeIcon : tab.inactiveIcon, "text-2xl")} />
               {tab.showBadge && unreadCount > 0 && (
                 <span className="absolute right-1/4 top-1 size-2 rounded-full bg-brand-accent" />
               )}

@@ -20,11 +20,7 @@ export function BaseFeedCard({
   onClick,
 }: BaseFeedCardProps) {
   return (
-    <article
-      // eslint-disable-next-line tailwindcss/no-custom-classname
-      className="bg-system-background cursor-pointer px-4 py-3"
-      onClick={onClick}
-    >
+    <article className="cursor-pointer bg-background px-4 py-3" onClick={onClick}>
       {/* Source row */}
       <div className="mb-1.5 flex items-center gap-2">
         {feedIcon && <img src={feedIcon} alt="" className="size-5 rounded-full object-cover" />}
@@ -42,10 +38,18 @@ export function BaseFeedCard({
 
       {/* Action bar */}
       <div className="mt-2 flex items-center gap-6">
-        <button type="button" aria-label="Bookmark" className="text-text-tertiary">
+        <button
+          type="button"
+          aria-label="Bookmark"
+          className="rounded-full p-1.5 text-text-tertiary transition-colors active:bg-fill-secondary active:text-text-secondary"
+        >
           <i className="i-mgc-star-cute-re text-xl" />
         </button>
-        <button type="button" aria-label="Share" className="text-text-tertiary">
+        <button
+          type="button"
+          aria-label="Share"
+          className="rounded-full p-1.5 text-text-tertiary transition-colors active:bg-fill-secondary active:text-text-secondary"
+        >
           <i className="i-mgc-share-forward-cute-re text-xl" />
         </button>
       </div>

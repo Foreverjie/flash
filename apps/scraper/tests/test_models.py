@@ -33,3 +33,4 @@ def test_scraped_post_media_defaults_to_empty_list():
         author="foo",
     )
     assert post.media == []
+    assert post.attachments == []
