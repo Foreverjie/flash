@@ -9,11 +9,7 @@ import { useAtom } from "jotai"
 import { memo, useEffect, useRef, useState } from "react"
 
 import { RelativeTime } from "~/components/ui/datetime"
-import {
-  EntriesProvider,
-  useEntriesActions,
-  useEntriesState,
-} from "~/modules/entry-column/context/EntriesContext"
+import { useEntriesActions, useEntriesState } from "~/modules/entry-column/context/EntriesContext"
 import { FeedIcon } from "~/modules/feed/feed-icon"
 
 import { mobileActiveViewAtom } from "../atoms"
@@ -32,17 +28,7 @@ export function HomeFeedScreen() {
     return <PublicHomeFeed />
   }
 
-  return <AuthenticatedHomeFeedWrapper />
-}
-
-function AuthenticatedHomeFeedWrapper() {
-  const [activeView] = useAtom(mobileActiveViewAtom)
-
-  return (
-    <EntriesProvider viewOverride={activeView}>
-      <AuthenticatedHomeFeed />
-    </EntriesProvider>
-  )
+  return <AuthenticatedHomeFeed />
 }
 
 function PublicHomeFeed() {

@@ -1,12 +1,15 @@
 import { brandColors } from "@follow/constants"
 import { useIsDark } from "@follow/hooks"
 import { usePrefetchSessionUser, useWhoami } from "@follow/store/user/hooks"
+import { useAtomValue } from "jotai"
 import { Outlet, useLocation } from "react-router"
 
 import { AppErrorBoundary } from "~/components/common/AppErrorBoundary"
 import { ErrorComponentType } from "~/components/errors/enum"
+import { EntriesProvider } from "~/modules/entry-column/context/EntriesContext"
 import { CornerPlayer } from "~/modules/player/corner-player"
 
+import { mobileActiveViewAtom } from "./atoms"
 import { MobileAccountDrawer } from "./MobileAccountDrawer"
 import { MobileHeader } from "./MobileHeader"
 import { MobileTabBar } from "./MobileTabBar"
@@ -23,6 +26,7 @@ export function MobileWebShell() {
   const isTabRoute = TAB_ROUTES.has(location.pathname)
   const isDark = useIsDark()
   const user = useWhoami()
+  const activeView = useAtomValue(mobileActiveViewAtom)
   usePrefetchSessionUser()
 
   const colorVars = {
@@ -43,9 +47,11 @@ export function MobileWebShell() {
     >
       <MobileHeader />
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <AppErrorBoundary errorType={errorTypes}>
-          <Outlet />
-        </AppErrorBoundary>
+        <EntriesProvider viewOverride={activeView}>
+          <AppErrorBoundary errorType={errorTypes}>
+            <Outlet />
+          </AppErrorBoundary>
+        </EntriesProvider>
       </main>
       {isTabRoute && <MobileTabBar />}
       <CornerPlayer hideControls />
