@@ -12,6 +12,21 @@ logger = logging.getLogger(__name__)
 BILIBILI_UP_API_URL = "https://api.bilibili.com/x/space/arc/search"
 
 
+def _parse_bilibili_duration(length: str) -> int | None:
+    """Parse Bilibili duration string (e.g. "12:34" or "1:02:34") to seconds."""
+    if not length:
+        return None
+    parts = length.split(":")
+    try:
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        if len(parts) == 3:
+            return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+    except (ValueError, IndexError):
+        return None
+    return None
+
+
 class BilibiliUpVideoScraper(BaseScraper):
     async def scrape(self, source: str) -> list[ScrapedPost]:
         uid = source.strip()
@@ -65,15 +80,31 @@ class BilibiliUpVideoScraper(BaseScraper):
                 tz=timezone.utc,
             ).isoformat()
 
+            video_url = f"https://www.bilibili.com/video/{bvid}"
+            duration = _parse_bilibili_duration(video.get("length") or "")
+
+            media: list[dict] = []
+            if cover:
+                media.append({"url": cover, "type": "photo"})
+
+            attachments: list[dict] = []
+            if duration is not None:
+                attachments.append({
+                    "url": video_url,
+                    "mime_type": "video/mp4",
+                    "duration_in_seconds": duration,
+                })
+
             posts.append(
                 ScrapedPost(
                     guid=bvid,
                     title=title or bvid,
-                    url=f"https://www.bilibili.com/video/{bvid}",
+                    url=video_url,
                     content=description or title or bvid,
                     published_at=published_at,
                     author=video.get("author") or uid,
-                    media=[{"url": cover, "type": "image"}] if cover else [],
+                    media=media,
+                    attachments=attachments,
                 )
             )
 

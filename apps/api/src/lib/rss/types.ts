@@ -41,7 +41,7 @@ export interface ParsedFeed {
  */
 export interface MediaItem {
   url: string
-  type: "image" | "video" | "audio"
+  type: "photo" | "video" | "audio"
   width?: number
   height?: number
   duration?: number
@@ -54,8 +54,9 @@ export interface MediaItem {
 export interface Attachment {
   url: string
   title?: string
-  mimeType?: string
-  size?: number
+  mime_type?: string
+  duration_in_seconds?: number | string
+  size_in_bytes?: number
 }
 
 /**
