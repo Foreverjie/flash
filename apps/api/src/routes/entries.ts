@@ -26,7 +26,7 @@ function toEntryWithFeed(
 ) {
   return {
     read,
-    view: 1, // FeedViewType.Articles
+    view: feed?.adapterType === "bilibili_up_video" ? 3 : 1, // Videos(3) for bilibili, Articles(1) otherwise
     from: [],
     feeds: {
       type: "feed" as const,

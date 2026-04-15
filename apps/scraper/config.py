@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     internal_api_key: str = "dev-secret"
     scrape_interval_minutes: int = 15
     scrape_timeout_seconds: int = 30
+    bilibili_cookie: str = ""
 
     class Config:
         env_file = ".env"
