@@ -1,6 +1,7 @@
 import { brandColors } from "@follow/constants"
 import { useIsDark } from "@follow/hooks"
 import { usePrefetchSessionUser, useWhoami } from "@follow/store/user/hooks"
+import { useAtomValue } from "jotai"
 import { Outlet, useLocation } from "react-router"
 
 import { AppErrorBoundary } from "~/components/common/AppErrorBoundary"
@@ -8,8 +9,9 @@ import { ErrorComponentType } from "~/components/errors/enum"
 import { EntriesProvider } from "~/modules/entry-column/context/EntriesContext"
 import { CornerPlayer } from "~/modules/player/corner-player"
 
+import { mobileActiveViewAtom } from "./atoms"
+import { MobileAccountDrawer } from "./MobileAccountDrawer"
 import { MobileHeader } from "./MobileHeader"
-import { MobileSubscriptionDrawer } from "./MobileSubscriptionDrawer"
 import { MobileTabBar } from "./MobileTabBar"
 
 const TAB_ROUTES = new Set(["/", "/discover", "/notifications", "/profile"])
@@ -24,6 +26,7 @@ export function MobileWebShell() {
   const isTabRoute = TAB_ROUTES.has(location.pathname)
   const isDark = useIsDark()
   const user = useWhoami()
+  const activeView = useAtomValue(mobileActiveViewAtom)
   usePrefetchSessionUser()
 
   const colorVars = {
@@ -39,12 +42,12 @@ export function MobileWebShell() {
 
   return (
     <div
-      className="bg-secondary-system-background relative flex h-screen flex-col overflow-hidden"
+      className="relative flex h-screen flex-col overflow-hidden bg-background"
       style={colorVars}
     >
       <MobileHeader />
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <EntriesProvider>
+        <EntriesProvider viewOverride={activeView}>
           <AppErrorBoundary errorType={errorTypes}>
             <Outlet />
           </AppErrorBoundary>
@@ -52,7 +55,7 @@ export function MobileWebShell() {
       </main>
       {isTabRoute && <MobileTabBar />}
       <CornerPlayer hideControls />
-      {user && <MobileSubscriptionDrawer />}
+      {user && <MobileAccountDrawer />}
     </div>
   )
 }

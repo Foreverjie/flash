@@ -241,7 +241,7 @@ export const posts = pgTable(
     media: jsonb("media").$type<
       Array<{
         url: string
-        type: "image" | "video" | "audio"
+        type: "photo" | "video" | "audio"
         width?: number
         height?: number
         duration?: number
@@ -252,8 +252,9 @@ export const posts = pgTable(
       Array<{
         url: string
         title?: string
-        mimeType?: string
-        size?: number
+        mime_type?: string
+        duration_in_seconds?: number | string
+        size_in_bytes?: number
       }>
     >(),
     categories: jsonb("categories").$type<string[]>(),

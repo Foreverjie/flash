@@ -28,7 +28,18 @@ const scrapedPostSchema = z.object({
   published_at: z.string().datetime({ offset: true }),
   author: z.string(),
   media: z
-    .array(z.object({ url: z.string(), type: z.enum(["image", "video", "audio"]) }))
+    .array(z.object({ url: z.string(), type: z.enum(["photo", "video", "audio"]) }))
+    .default([]),
+  attachments: z
+    .array(
+      z.object({
+        url: z.string(),
+        mime_type: z.string().optional(),
+        duration_in_seconds: z.number().optional(),
+        size_in_bytes: z.number().optional(),
+        title: z.string().optional(),
+      }),
+    )
     .default([]),
 })
 
@@ -100,6 +111,7 @@ router.post(
           author: item.author,
           publishedAt: new Date(item.published_at),
           media: item.media,
+          attachments: item.attachments.length > 0 ? item.attachments : undefined,
           scrapeStatus: "scraped", // already full content — skip readability queue
         })
         .onConflictDoNothing() // (feedId, guid) unique — silent dedup

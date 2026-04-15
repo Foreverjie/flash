@@ -4,13 +4,14 @@ from pydantic import BaseModel, field_validator
 
 
 class ScrapedPost(BaseModel):
-    guid: str                    # tweet URL — stable unique identifier
-    title: str                   # first ≤100 chars of tweet text
-    url: str                     # tweet URL
-    content: str                 # full tweet text
+    guid: str                    # stable unique identifier
+    title: str                   # first ≤100 chars of text
+    url: str                     # source URL
+    content: str                 # full text content
     published_at: str            # ISO 8601
-    author: str                  # @handle (without @)
-    media: list[dict] = []       # [{"url": str, "type": "image"|"video"}]
+    author: str                  # creator handle
+    media: list[dict] = []       # [{"url": str, "type": "photo"|"video"}]
+    attachments: list[dict] = [] # [{"url": str, "mime_type": str, "duration_in_seconds": int}]
 
     @field_validator("title")
     @classmethod

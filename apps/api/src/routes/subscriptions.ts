@@ -69,7 +69,7 @@ subscriptionsRouter.get("/", requireAuth, async (c) => {
   const data = userSubscriptions.map((sub) => ({
     userId: sub.userId,
     feedId: sub.feedId,
-    view: 1, // FeedViewType.Articles
+    view: sub.feed.adapterType === "bilibili_up_video" ? 3 : 1, // Videos(3) for bilibili, Articles(1) otherwise
     category: sub.category ?? "",
     isPrivate: sub.isPrivate ?? false,
     hideFromTimeline: null,

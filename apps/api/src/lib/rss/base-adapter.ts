@@ -178,7 +178,7 @@ export abstract class BaseAdapter {
         if (t.$ && t.$.url) {
           media.push({
             url: t.$.url,
-            type: "image",
+            type: "photo",
             width: t.$.width ? Number.parseInt(t.$.width, 10) : undefined,
             height: t.$.height ? Number.parseInt(t.$.height, 10) : undefined,
           })
@@ -202,8 +202,8 @@ export abstract class BaseAdapter {
         if (enc.url) {
           attachments.push({
             url: enc.url,
-            mimeType: enc.type,
-            size: enc.length > 0 ? Number.parseInt(enc.length, 10) : undefined,
+            mime_type: enc.type,
+            size_in_bytes: enc.length > 0 ? Number.parseInt(enc.length, 10) : undefined,
           })
         }
       }
@@ -272,11 +272,11 @@ export abstract class BaseAdapter {
    * Determine media type from MIME type or medium attribute
    */
   protected getMediaType(type?: string): MediaItem["type"] {
-    if (!type) return "image"
+    if (!type) return "photo"
     const t = type.toLowerCase()
     if (t.includes("video")) return "video"
     if (t.includes("audio")) return "audio"
-    return "image"
+    return "photo"
   }
 
   /**
