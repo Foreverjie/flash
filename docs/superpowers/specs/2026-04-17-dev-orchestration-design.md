@@ -59,12 +59,12 @@ Preflight runs to completion (collecting all failures, not short-circuiting on t
 
 ### 1. Toolchain
 
-| Check          | Requirement                                                    | Source of truth      |
-| -------------- | -------------------------------------------------------------- | -------------------- |
-| Node version   | satisfies `engines.node` from root `package.json`, else `>=20` | `process.version`    |
-| pnpm version   | exact match of `packageManager` field (`pnpm@10.17.0`)         | `pnpm --version`     |
-| Python version | `>=3.11` _(scraper only)_                                      | `python3 --version`  |
-| Scraper deps   | `python3 -c "import uvicorn"` returns 0 _(scraper only)_       | subprocess exit code |
+| Check          | Requirement                                                                                             | Source of truth      |
+| -------------- | ------------------------------------------------------------------------------------------------------- | -------------------- |
+| Node version   | satisfies `engines.node` from root `package.json`, else `^20.19.0 \|\| >=22.12.0` (Vite 7.1.11's floor) | `process.version`    |
+| pnpm version   | exact match of `packageManager` field (`pnpm@10.17.0`)                                                  | `pnpm --version`     |
+| Python version | `>=3.11` _(scraper only)_                                                                               | `python3 --version`  |
+| Scraper deps   | `python3 -c "import uvicorn"` returns 0 _(scraper only)_                                                | subprocess exit code |
 
 Scraper-only checks are skipped when `--scraper` / `--only` does not include scraper.
 
@@ -230,7 +230,9 @@ End-to-end orchestrator tests are skipped — spawning real dev servers is flaky
 ## Rollout
 
 1. Land `scripts/dev.ts` + modules + tests on a feature branch.
-2. Update root `package.json` with the new `dev` script.
+2. Update root `package.json`:
+   - Add `"dev": "tsx scripts/dev.ts"` to `scripts`.
+   - Add `"engines": { "node": "^20.19.0 || >=22.12.0" }` — matches Vite 7.1.11's floor, which is currently the strictest Node requirement across the selected apps. This becomes the single source of truth the preflight Node check reads.
 3. Add a short `## Unified dev server` section to `CLAUDE.md` commands block documenting `pnpm dev`, `--scraper`, `--fix`, `--only`.
 4. Open PR. No migration needed — existing per-app `pnpm --filter=... dev` commands keep working.
 
