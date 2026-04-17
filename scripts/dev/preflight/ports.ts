@@ -6,15 +6,21 @@ const exec = promisify(execFile)
 
 export type ProbeResult = { free: true } | { free: false; pid?: number; command?: string }
 
+/**
+ * Probe whether a TCP port is free on 127.0.0.1.
+ *
+ * Note: there is a small TOCTOU window between this probe closing its
+ * temporary listener and the caller's dev server binding. On a loaded
+ * machine, another process can claim the port in that gap. This is
+ * inherent to the probe-then-bind pattern and accepted for preflight.
+ */
 export async function probePort(port: number): Promise<ProbeResult> {
   const bindResult = await new Promise<"free" | "occupied">((resolve) => {
     const server = net.createServer()
-    server.once("error", (err) => {
-      if ((err as NodeJS.ErrnoException).code === "EADDRINUSE") {
-        resolve("occupied")
-      } else {
-        resolve("occupied")
-      }
+    server.once("error", () => {
+      // Any bind failure (EADDRINUSE, EACCES, etc.) means the port is not usable
+      // for our dev server — treat as occupied so preflight fails loudly.
+      resolve("occupied")
     })
     server.once("listening", () => {
       server.close(() => resolve("free"))
