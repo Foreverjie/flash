@@ -31,7 +31,13 @@ All under `packages/internal/`: `components`, `atoms`, `hooks`, `store`, `utils`
 ```bash
 pnpm install                          # Install all deps
 
-# Development
+# Unified dev (recommended)
+pnpm dev                              # api + ssr + desktop (web)
+pnpm dev --scraper                    # + Python scraper
+pnpm dev --fix                        # auto-resolve preflight (.env, stale ports)
+pnpm dev --only api,ssr               # exact subset (mutually exclusive with --scraper)
+
+# Development (per-app — still works)
 cd apps/desktop && pnpm run dev:web   # Desktop renderer in browser (recommended)
 cd apps/desktop && pnpm run dev:electron  # Full Electron
 cd apps/mobile && pnpm run dev        # Expo dev server
