@@ -155,10 +155,11 @@ export default defineConfig(
     },
   },
   {
-    files: ["scripts/dev/**/*"],
+    files: ["scripts/dev/**/*", "scripts/dev.ts"],
     rules: {
       "no-console": 0,
       "unicorn/prefer-single-call": 0,
+      "unicorn/no-process-exit": 0,
     },
   },
 )
