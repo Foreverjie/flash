@@ -116,7 +116,7 @@ One line per check, grouped by section header. Example:
 
 ```
 Toolchain
-  ✓ node 20.11.0 satisfies >=20
+  ✓ node 20.19.3 satisfies ^20.19.0 || >=22.12.0
   ✓ pnpm 10.17.0 matches packageManager
 .env parity
   ✗ apps/api/.env missing RESEND_API_KEY (present in .env.example)
