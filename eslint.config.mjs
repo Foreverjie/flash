@@ -154,4 +154,11 @@ export default defineConfig(
       "react-native/no-inline-styles": "warn",
     },
   },
+  {
+    files: ["scripts/dev/**/*"],
+    rules: {
+      "no-console": 0,
+      "unicorn/prefer-single-call": 0,
+    },
+  },
 )
