@@ -23,6 +23,7 @@ export function spawnApp(spec: AppSpec, prefixWidth: number): RunningApp {
   const prefix = colorize(`[${spec.name}]`.padEnd(prefixWidth + 2))
   const errPrefix = colorize.underline(`[${spec.name}]`.padEnd(prefixWidth + 2))
 
+  // Non-null assertions safe: stdio[1]/[2] are both "pipe" above.
   streamLines(child.stdout!, (line) => process.stdout.write(`${prefix} ${line}\n`))
   streamLines(child.stderr!, (line) => process.stderr.write(`${errPrefix} ${line}\n`))
 

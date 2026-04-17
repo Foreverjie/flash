@@ -16,21 +16,26 @@ export class ShutdownCoordinator {
     process.once("SIGTERM", () => this.initiate("SIGTERM"))
 
     for (const app of this.apps) {
-      app.exited.then((code) => {
-        if (this.shuttingDown) return
-        // A child exited unexpectedly → fail-fast
-        console.error(
-          chalk.red(
-            `\n[dev] ${app.spec.name} exited with code ${code ?? "null"} — shutting down\n`,
-          ),
-        )
-        if (code !== null && code !== 0 && this.firstFailureCode === null) {
-          this.firstFailureCode = code
-        } else if (code === null && this.firstFailureCode === null) {
-          this.firstFailureCode = 1
-        }
-        this.initiate("child-exit")
-      })
+      app.exited
+        .then((code) => {
+          if (this.shuttingDown) return
+          // A child exited unexpectedly → fail-fast
+          console.error(
+            chalk.red(
+              `\n[dev] ${app.spec.name} exited with code ${code ?? "null"} — shutting down\n`,
+            ),
+          )
+          if (code !== null && code !== 0 && this.firstFailureCode === null) {
+            this.firstFailureCode = code
+          } else if (code === null && this.firstFailureCode === null) {
+            this.firstFailureCode = 1
+          }
+          this.initiate("child-exit")
+        })
+        .catch(() => {
+          /* exited promise never rejects today, but keep the node process
+             from crashing on an unhandled rejection if that ever changes */
+        })
     }
   }
 
