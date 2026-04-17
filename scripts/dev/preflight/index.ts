@@ -5,6 +5,7 @@ import type { AppName } from "../apps"
 import { APPS } from "../apps"
 import { checkEnvParity, fixEnvFile } from "./env"
 import { killOccupant, probePort } from "./ports"
+import type { CheckResult } from "./toolchain"
 import {
   checkNode,
   checkPnpm,
@@ -15,8 +16,6 @@ import {
 } from "./toolchain"
 
 const NODE_FALLBACK = "^20.19.0 || >=22.12.0"
-
-type Row = { ok: boolean; label: string; detail: string; fix?: string }
 
 export async function runPreflight(selected: AppName[], autoFix: boolean): Promise<boolean> {
   console.log(chalk.bold("\nPreflight\n"))
@@ -45,7 +44,7 @@ export async function runPreflight(selected: AppName[], autoFix: boolean): Promi
   return failed === 0
 }
 
-function printSection(title: string, rows: Row[]): void {
+function printSection(title: string, rows: CheckResult[]): void {
   console.log(chalk.bold(title))
   for (const r of rows) {
     const mark = r.ok ? chalk.green("✓") : chalk.red("✗")
@@ -55,21 +54,41 @@ function printSection(title: string, rows: Row[]): void {
   console.log("")
 }
 
-async function runToolchain(selected: AppName[]): Promise<Row[]> {
-  const rows: Row[] = []
-  const nodeRange = await readRootEngines(NODE_FALLBACK)
-  rows.push(await checkNode(nodeRange))
-  const pnpmVersion = await readPnpmVersion()
-  rows.push(await checkPnpm(pnpmVersion))
+async function runToolchain(selected: AppName[]): Promise<CheckResult[]> {
+  const rows: CheckResult[] = []
+
+  try {
+    const nodeRange = await readRootEngines(NODE_FALLBACK)
+    rows.push(await checkNode(nodeRange))
+  } catch (err) {
+    rows.push({
+      ok: false,
+      label: "node",
+      detail: `could not read engines.node from root package.json: ${(err as Error).message}`,
+    })
+  }
+
+  try {
+    const pnpmVersion = await readPnpmVersion()
+    rows.push(await checkPnpm(pnpmVersion))
+  } catch (err) {
+    rows.push({
+      ok: false,
+      label: "pnpm",
+      detail: `could not read packageManager from root package.json: ${(err as Error).message}`,
+    })
+  }
+
   if (selected.includes("scraper")) {
     rows.push(await checkPython("3.11"))
     rows.push(await checkScraperDeps())
   }
+
   return rows
 }
 
-async function runEnv(selected: AppName[], autoFix: boolean): Promise<Row[]> {
-  const rows: Row[] = []
+async function runEnv(selected: AppName[], autoFix: boolean): Promise<CheckResult[]> {
+  const rows: CheckResult[] = []
   for (const name of selected) {
     const app = APPS[name]
     if (!app.envExample) {
@@ -125,8 +144,8 @@ async function runEnv(selected: AppName[], autoFix: boolean): Promise<Row[]> {
   return rows
 }
 
-async function runPorts(selected: AppName[], autoFix: boolean): Promise<Row[]> {
-  const rows: Row[] = []
+async function runPorts(selected: AppName[], autoFix: boolean): Promise<CheckResult[]> {
+  const rows: CheckResult[] = []
   for (const name of selected) {
     const app = APPS[name]
     const probe = await probePort(app.port)
