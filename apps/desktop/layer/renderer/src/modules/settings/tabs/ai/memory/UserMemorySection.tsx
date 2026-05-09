@@ -1,4 +1,5 @@
 import { Button } from "@follow/components/ui/button/index.js"
+import { EmptyStage as FlashEmptyStage } from "@follow/components/ui/empty/index.js"
 import type { AIMemoryRecord } from "@follow-app/client-sdk"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -129,12 +130,13 @@ const SkeletonList = () => (
 const EmptyState = () => {
   const { t } = useTranslation("ai")
   return (
-    <div className="py-8 text-center">
-      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-fill-secondary">
-        <i className="i-mgc-brain-cute-re size-6 text-text" />
-      </div>
-      <h4 className="mb-1 text-sm font-medium text-text">{t("memories.list.empty.title")}</h4>
-      <p className="text-xs text-text-secondary">{t("memories.list.empty.description")}</p>
+    <div className="py-8">
+      <FlashEmptyStage
+        glyph={<i className="i-mgc-brain-cute-re" />}
+        title={t("memories.list.empty.title")}
+        body={t("memories.list.empty.description")}
+        size="sm"
+      />
     </div>
   )
 }

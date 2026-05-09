@@ -1,4 +1,4 @@
-import { Folo } from "@follow/components/icons/folo.js"
+import { Logo } from "@follow/components/icons/logo.jsx"
 import { ScrollArea } from "@follow/components/ui/scroll-area/ScrollArea.js"
 import { clsx } from "@follow/utils"
 import { AnimatePresence, m } from "motion/react"
@@ -36,7 +36,6 @@ export const WelcomeScreen = ({ centerInputOnEmpty }: WelcomeScreenProps) => {
           }
         />
 
-        {/* Dynamic Content Area */}
         <div
           className={clsx(
             "relative flex items-start justify-center",
@@ -60,19 +59,21 @@ const DefaultWelcomeHeader = ({ description }: { description: string }) => (
   <m.div
     initial={{ opacity: 0, y: -20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="space-y-6 text-center"
+    className="flex flex-col items-center gap-4 text-center"
+    data-testid="welcome-screen-header"
   >
-    <div data-testid="welcome-screen-header">
-      <div className="center">
-        <AISpline />
-      </div>
-      <div className="flex flex-col gap-2">
-        <h1 className="flex items-center justify-center gap-2 text-2xl font-semibold text-text">
-          <Folo className="size-11" /> AI
-        </h1>
-
-        <p className="text-balance text-sm text-text-secondary">{description}</p>
-      </div>
+    <div className="center">
+      <AISpline />
     </div>
+    <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
+      Flash · AI
+    </div>
+    <h1 className="m-0 flex items-center justify-center gap-2 text-[28px] font-semibold tracking-[-0.02em] text-text">
+      <Logo className="size-9 rounded-xl" />
+      Ask Flash
+    </h1>
+    <p className="m-0 max-w-md text-balance text-sm leading-normal text-text-secondary">
+      {description}
+    </p>
   </m.div>
 )

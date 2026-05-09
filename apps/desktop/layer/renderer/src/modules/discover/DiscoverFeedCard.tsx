@@ -70,11 +70,19 @@ export function FeedCardActions<T extends TrendingFeedItem | DiscoveryItem>({
           })
         }}
         buttonClassName={cn(
-          "relative overflow-hidden rounded-lg font-medium transition-all duration-300",
-          isSubscribed ? "border-zinc-200/80 px-3 text-zinc-400 dark:border-zinc-700/80" : "",
+          "relative overflow-hidden rounded-md px-3 text-xs font-semibold transition-all duration-200",
+          isSubscribed ? "gap-1 border-0" : "",
           isSubscribed ? followedButtonClassName : followButtonClassName,
         )}
+        style={
+          isSubscribed
+            ? { background: "var(--fo-accent)", color: "var(--fo-accent-fg)" }
+            : undefined
+        }
       >
+        {isSubscribed && (
+          <i className="i-mgc-check-cute-fi size-3" style={{ color: "var(--fo-accent-fg)" }} />
+        )}
         {isSubscribed ? t("feed.actions.followed") : t("feed.actions.follow")}
       </Button>
     </div>

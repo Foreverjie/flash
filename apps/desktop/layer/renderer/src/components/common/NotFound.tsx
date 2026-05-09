@@ -1,5 +1,6 @@
 import { Logo } from "@follow/components/icons/logo.jsx"
 import { Button } from "@follow/components/ui/button/index.js"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { ELECTRON_BUILD } from "@follow/shared/constants"
 import { captureException } from "@sentry/react"
 import { useEffect } from "react"
@@ -25,14 +26,13 @@ class AccessNotFoundError extends Error {
     return `${this.name}: ${this.message} at ${this.path}`
   }
 }
+
 export const NotFound = () => {
   const location = useLocation()
   useSyncTheme()
 
   useEffect(() => {
-    if (!ELECTRON_BUILD) {
-      return
-    }
+    if (!ELECTRON_BUILD) return
     captureException(
       new AccessNotFoundError(
         "Electron app got to a 404 page, this should not happen",
@@ -45,6 +45,7 @@ export const NotFound = () => {
   useEffect(() => {
     removeAppSkeleton()
   }, [])
+
   const navigate = useNavigate()
 
   if (location.pathname.endsWith("/index.html")) {
@@ -52,24 +53,27 @@ export const NotFound = () => {
   }
 
   return (
-    <div className="prose center m-auto size-full flex-col dark:prose-invert">
-      <main className="flex grow flex-col items-center justify-center">
-        <div className="center mb-8 flex">
-          <Logo className="size-20" />
-        </div>
-        <p className="font-semibold">
-          You have come to a desert of knowledge where there is nothing.
-        </p>
-        <p>
-          Current path: <code>{location.pathname}</code>
-        </p>
-
-        <p>
-          <Button onClick={() => navigate("/")}>Back to Home</Button>
-        </p>
+    <div className="flex size-full flex-col bg-background">
+      <main className="flex flex-1 items-center justify-center px-6">
+        <EmptyStage
+          eyebrow="Lost"
+          glyph={<Logo className="size-14 rounded-2xl" />}
+          title="A desert of knowledge"
+          body={
+            <>
+              There's nothing at <code className="font-mono text-[12px]">{location.pathname}</code>.
+              Head back and pick a different path.
+            </>
+          }
+          action={
+            <Button variant="primary" onClick={() => navigate("/")}>
+              Back to home
+            </Button>
+          }
+          size="lg"
+        />
       </main>
-
-      <PoweredByFooter className="center -mt-12 flex gap-2 py-8" />
+      <PoweredByFooter className="center flex gap-2 py-8" />
     </div>
   )
 }

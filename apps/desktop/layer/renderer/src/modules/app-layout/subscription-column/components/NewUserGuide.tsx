@@ -1,5 +1,6 @@
 import { useWhoami } from "@follow/store/user/hooks"
 import { lazy, Suspense } from "react"
+import { useSearchParams } from "react-router"
 
 import { useAuthQuery } from "~/hooks/common/useBizQuery"
 import { settings } from "~/queries/settings"
@@ -11,10 +12,13 @@ const LazyNewUserGuideModal = lazy(() =>
 export function NewUserGuide() {
   const user = useWhoami()
   const { data: remoteSettings, isLoading } = useAuthQuery(settings.get(), {})
+  const [searchParams] = useSearchParams()
+  // ?onboarding=force lets you preview the flow on an existing account.
+  const forceShow = searchParams.get("onboarding") === "force"
   const isNewUser =
     !isLoading && remoteSettings && Object.keys(remoteSettings.updated ?? {}).length === 0
 
-  return user && isNewUser ? (
+  return user && (isNewUser || forceShow) ? (
     <Suspense>
       <LazyNewUserGuideModal />
     </Suspense>

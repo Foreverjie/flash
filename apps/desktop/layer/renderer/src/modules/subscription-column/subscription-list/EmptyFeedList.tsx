@@ -1,3 +1,4 @@
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { stopPropagation } from "@follow/utils/dom"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
@@ -18,7 +19,6 @@ export const EmptyFeedList = memo(({ onClick }: { onClick?: (e: React.MouseEvent
     onClick?.(e)
 
     if (!isOnDiscoverPage) {
-      // Show simplified discover modal when already on discover page
       present({
         title: t("words.discover"),
         content: ({ dismiss }) => <SimpleDiscoverModal dismiss={dismiss} />,
@@ -28,25 +28,22 @@ export const EmptyFeedList = memo(({ onClick }: { onClick?: (e: React.MouseEvent
   }
 
   return (
-    <div className="mt-12 flex flex-1 items-center font-normal text-zinc-500">
+    <div className="mt-12 flex flex-1 cursor-menu items-center px-4" onClick={handleClick}>
       {isOnDiscoverPage ? (
-        <div
-          className="flex flex-1 cursor-menu flex-col items-center justify-center gap-2"
-          onClick={handleClick}
-        >
-          <i className="i-mgc-arrow-right-up-cute-re text-3xl" />
-          <span className="text-balance text-center text-sm">
-            {t("sidebar.already_on_discover_page")}
-          </span>
-        </div>
+        <EmptyStage
+          eyebrow="Browse"
+          glyph={<i className="i-mgc-arrow-right-up-cute-re" />}
+          title={t("sidebar.already_on_discover_page")}
+          size="sm"
+        />
       ) : (
-        <div
-          className="flex flex-1 cursor-menu flex-col items-center justify-center gap-2"
-          onClick={handleClick}
-        >
-          <i className="i-mgc-add-cute-re text-3xl" />
-          <span className="text-base">{t("sidebar.add_more_feeds")}</span>
-        </div>
+        <EmptyStage
+          eyebrow="No sources yet"
+          glyph={<i className="i-mgc-add-cute-re" />}
+          title={t("sidebar.add_more_feeds")}
+          body="Open Discover to find your first feed."
+          size="sm"
+        />
       )}
     </div>
   )

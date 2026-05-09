@@ -1,3 +1,4 @@
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { WEB_BUILD } from "@follow/shared/constants"
 import type { FC } from "react"
 import { useTranslation } from "react-i18next"
@@ -19,13 +20,17 @@ export const EntryNoContent: FC<{
     return null
   }
   return (
-    <div className="center">
-      <div className="space-y-2 text-balance text-center text-sm text-zinc-400">
-        {(WEB_BUILD || status === ReadabilityStatus.FAILURE) && (
-          <span>{t("entry_content.no_content")}</span>
-        )}
-        {!showSourceContent && url && <ReadabilityAutoToggleEffect url={url} id={id} />}
-      </div>
+    <div className="center w-full px-6">
+      {(WEB_BUILD || status === ReadabilityStatus.FAILURE) && (
+        <EmptyStage
+          eyebrow="No readable content"
+          glyph={<i className="i-mgc-document-cute-re" />}
+          title={t("entry_content.no_content")}
+          body="Try opening the source in a browser, or switch on Readability to extract the article."
+          size="md"
+        />
+      )}
+      {!showSourceContent && url && <ReadabilityAutoToggleEffect url={url} id={id} />}
     </div>
   )
 }

@@ -24,8 +24,8 @@ export default withUIKit(
             "color-scheme": "light",
 
             primary: "#007AFF", //#0A84FF
-            accent: "#FF5C00",
-            "accent-content": "#fff",
+            accent: "#FACC15",
+            "accent-content": "#1a1207",
             neutral: "#212427",
 
             "base-100": "#fff",
@@ -44,8 +44,8 @@ export default withUIKit(
             "color-scheme": "dark",
 
             primary: "#0A84FF",
-            accent: "#FF5C00",
-            "accent-content": "#fff",
+            accent: "#FACC15",
+            "accent-content": "#1a1207",
             neutral: "#2a2a2a",
             "base-100": "#121212",
             "base-content": "#FAFAF9",

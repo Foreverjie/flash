@@ -1,3 +1,4 @@
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import {
   Table,
   TableBody,
@@ -19,11 +20,12 @@ export const InboxTable = () => {
   const inboxes = useInboxList()
   if (inboxes.length === 0)
     return (
-      <div className="center mb-4 flex flex-col gap-2 text-sm text-text-secondary">
-        <i className="i-mingcute-empty-box-line text-3xl" />
-        <span className="center max-w-sm text-balance text-center text-sm text-text-secondary">
-          {t("discover.inbox.no_inbox")}
-        </span>
+      <div className="mb-4 px-6 py-4">
+        <EmptyStage
+          glyph={<i className="i-mingcute-empty-box-line" />}
+          title={t("discover.inbox.no_inbox")}
+          size="sm"
+        />
       </div>
     )
   return (

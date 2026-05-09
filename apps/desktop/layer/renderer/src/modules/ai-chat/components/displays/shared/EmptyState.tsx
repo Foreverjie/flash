@@ -1,3 +1,4 @@
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { cn } from "@follow/utils/utils"
 
 export interface EmptyStateProps {
@@ -7,8 +8,11 @@ export interface EmptyStateProps {
 }
 
 export const EmptyState = ({ message, icon, className }: EmptyStateProps) => (
-  <div className={cn("text-center text-sm text-text-secondary", className)}>
-    {icon && <span className="text-lg">{icon}</span>}
-    {message}
+  <div className={cn("flex w-full justify-center px-4 py-6", className)}>
+    <EmptyStage
+      glyph={icon ? <span className="text-2xl">{icon}</span> : null}
+      title={message}
+      size="sm"
+    />
   </div>
 )

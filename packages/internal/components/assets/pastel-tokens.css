@@ -1,0 +1,108 @@
+/* =====================================================================
+   Flash Design System — Pastel OKLCH tokens
+   Additive layer alongside the existing HSL token system. Reference these
+   via var(--c-*) / var(--bg-*) for new UI surfaces; the HSL tokens still
+   power the legacy components.
+   ===================================================================== */
+:root {
+  /* Brand */
+  --fo-accent: #facc15;
+  --fo-accent-fg: #1a1207;
+  --fo-accent-hover: #fde047;
+  --fo-accent-press: #ca9a04;
+  --fo-accent-ink: #8a5d00;
+
+  /* 5-step neutral surface ladder (light) */
+  --bg-1: oklch(0.99 0.0049 230);
+  --bg-2: oklch(0.98 0.0049 230);
+  --bg-3: oklch(0.97 0.0049 230);
+  --bg-4: oklch(0.96 0.0049 230);
+  --bg-5: oklch(0.949 0.0049 230);
+
+  /* Foreground */
+  --fg-1: oklch(0.15 0.0049 230);
+  --fg-2: oklch(0.45 0.0049 230);
+  --fg-3: oklch(0.55 0.0049 230);
+  --fg-4: oklch(0.7 0.0049 230);
+  --fg-placeholder: oklch(0.8 0.0049 226);
+  --fg-disabled: oklch(0.9 0.0049 226);
+
+  /* Fills */
+  --fill-1: oklch(0.96 0.0049 228);
+  --fill-2: oklch(0.94 0.0049 228);
+  --fill-3: oklch(0.92 0.0049 228);
+  --fill-4: oklch(0.9 0.0049 228);
+
+  /* Materials (translucent + blur) */
+  --material-ultra-thick: oklch(0.96 0.0049 232 / 0.93);
+  --material-thick: oklch(0.96 0.0049 232 / 0.85);
+  --material-medium: oklch(0.96 0.0049 232 / 0.65);
+  --material-thin: oklch(0.96 0.0049 232 / 0.6);
+  --material-ultra-thin: oklch(0.96 0.0049 232 / 0.45);
+  --material-opaque: oklch(0.96 0.0049 232);
+
+  /* Pastel rainbow */
+  --c-blue: oklch(0.65 0.18 237);
+  --c-pink: oklch(0.68 0.22 350);
+  --c-purple: oklch(0.65 0.2 280);
+  --c-green: oklch(0.67 0.15 155);
+  --c-orange: oklch(0.68 0.15 60);
+  --c-yellow: oklch(0.9 0.19 100);
+  --c-sky: oklch(0.7 0.14 210);
+  --c-red: oklch(0.65 0.22 27);
+  --c-brown: oklch(0.62 0.12 45);
+  --c-teal: oklch(0.66 0.16 180);
+  --c-cyan: oklch(0.7 0.15 195);
+  --c-indigo: oklch(0.58 0.2 260);
+  --c-violet: oklch(0.62 0.22 300);
+  --c-lime: oklch(0.75 0.16 125);
+  --c-emerald: oklch(0.64 0.16 160);
+  --c-amber: oklch(0.75 0.13 85);
+  --c-rose: oklch(0.63 0.21 15);
+  --c-slate: oklch(0.55 0.015 240);
+  --c-zinc: oklch(0.58 0.01 240);
+
+  /* Accent tints (mixed with bg-1) */
+  --accent-10: color-mix(in srgb, var(--fo-accent) 10%, var(--bg-1));
+  --accent-20: color-mix(in srgb, var(--fo-accent) 20%, var(--bg-1));
+  --accent-30: color-mix(in srgb, var(--fo-accent) 30%, var(--bg-1));
+  --accent-40: color-mix(in srgb, var(--fo-accent) 40%, var(--bg-1));
+  --accent-60: color-mix(in srgb, var(--fo-accent) 60%, var(--bg-1));
+
+  /* Shadows */
+  --shadow-card: 0 12px 24px -18px rgba(0, 0, 0, 0.35);
+  --shadow-perfect:
+    0 0 0 1px hsl(214 80% 27% / 3%), 0 1px 1px -0.5px hsl(214 80% 20% / 3%),
+    0 3px 3px -1.5px hsl(214 80% 20% / 3%), 0 6px 6px -3px hsl(214 80% 20% / 3%),
+    0 12px 12px -6px hsl(214 80% 27% / 3%), 0 24px 24px -12px hsl(214 80% 27% / 3%);
+}
+
+[data-theme="dark"],
+.dark {
+  --fg-1: oklch(0.95 0.0049 230);
+  --fg-2: oklch(0.75 0.0049 230);
+  --fg-3: oklch(0.65 0.0049 230);
+  --fg-4: oklch(0.451 0.0049 230);
+  --fg-placeholder: oklch(0.6 0.0049 226);
+  --fg-disabled: oklch(0.55 0.0049 226);
+
+  --bg-1: oklch(0.22 0.0049 230);
+  --bg-2: oklch(0.26 0.0049 230);
+  --bg-3: oklch(0.3 0.0049 230);
+  --bg-4: oklch(0.34 0.0049 230);
+  --bg-5: oklch(0.38 0.0049 230);
+
+  --fill-1: oklch(0.3 0.0049 228);
+  --fill-2: oklch(0.35 0.0049 228);
+  --fill-3: oklch(0.4 0.0049 228);
+  --fill-4: oklch(0.45 0.0049 228);
+
+  --material-ultra-thick: oklch(0.2 0.0049 232 / 0.93);
+  --material-thick: oklch(0.2 0.0049 232 / 0.85);
+  --material-medium: oklch(0.2 0.0049 232 / 0.8);
+  --material-thin: oklch(0.2 0.0049 232 / 0.6);
+  --material-ultra-thin: oklch(0.2 0.0049 232 / 0.45);
+  --material-opaque: oklch(0.2 0.0049 232);
+
+  --shadow-card: 0 12px 24px -18px rgba(0, 0, 0, 0.6);
+}

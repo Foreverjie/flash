@@ -201,7 +201,7 @@ const AIAmbientSidebar: React.FC<{ onExpand: () => void }> = ({ onExpand }) => {
                       {/* Minimal indicator dot */}
                       <m.div
                         className="size-2 rounded-full"
-                        style={{ backgroundColor: "#FF5C00" }}
+                        style={{ backgroundColor: "#FACC15" }}
                         animate={{
                           opacity: [0.6, 1, 0.6],
                         }}

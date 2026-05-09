@@ -1,5 +1,5 @@
-import { EmptyIcon } from "@follow/components/icons/empty.js"
 import { Card } from "@follow/components/ui/card/index.jsx"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { Input } from "@follow/components/ui/input/Input.js"
 import { LoadingCircle } from "@follow/components/ui/loading/index.js"
 import { useScrollElementUpdate } from "@follow/components/ui/scroll-area/hooks.js"
@@ -157,18 +157,17 @@ export const Component = () => {
           </div>
         </div>
       ) : (
-        <div className="flex h-full -translate-y-12 flex-col items-center justify-center text-center">
-          <div className="mb-4 text-6xl">
-            <EmptyIcon />
-          </div>
-          <p className="text-title2 text-text">
-            {t("common.noContent", { defaultValue: "No content found in this category" })}
-          </p>
-          <p className="mt-2 text-body text-text-secondary">
-            {t("discover.tryAnotherCategory", {
-              defaultValue: "Try selecting another category or language",
+        <div className="flex h-full -translate-y-12 flex-col items-center justify-center px-6">
+          <EmptyStage
+            glyph={<i className="i-mgc-search-cute-re" />}
+            title={t("common.noContent", {
+              defaultValue: "No content found in this category",
             })}
-          </p>
+            body={t("discover.tryAnotherCategory", {
+              defaultValue: "Try selecting another category or language.",
+            })}
+            size="md"
+          />
         </div>
       )}
     </div>

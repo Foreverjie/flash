@@ -1,9 +1,7 @@
 import { Spring } from "@follow/components/constants/spring.js"
 import { useMobile } from "@follow/components/hooks/useMobile.js"
-import { Folo } from "@follow/components/icons/folo.js"
 import { Logo } from "@follow/components/icons/logo.js"
 import { MotionButtonBase } from "@follow/components/ui/button/index.js"
-import { Divider } from "@follow/components/ui/divider/Divider.js"
 import { useIsDark } from "@follow/hooks"
 import type { LoginRuntime } from "@follow/shared/auth"
 import { stopPropagation } from "@follow/utils/dom"
@@ -56,7 +54,7 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
       tos: "terms-of-service",
     }
 
-    window.open(`https://folo.is/${path[type]}`, "_blank")
+    window.open(`https://flash.app/${path[type]}`, "_blank")
   }
 
   const handleOpenToken = () => {
@@ -76,9 +74,9 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
   const Inner = (
     <>
       {isEmail && (
-        <div className="absolute left-8 top-6">
+        <div className="absolute left-7 top-5 z-10">
           <MotionButtonBase
-            className="flex cursor-button items-center gap-2 text-center font-medium duration-200 hover:text-accent"
+            className="flex cursor-button items-center gap-1.5 text-center text-[13px] font-medium duration-200 hover:text-accent"
             onClick={() => setIsEmail(false)}
           >
             <i className="i-mgc-left-cute-fi" />
@@ -87,15 +85,23 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
         </div>
       )}
 
-      <div className="-mt-9 mb-4 flex items-center justify-center">
-        <Logo className="size-16" />
+      {/* Eyebrow */}
+      <div className="mb-7 text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
+        Flash · Account
       </div>
-      <div className="mb-6 mt-4 flex items-center justify-center text-center">
-        <span className="text-3xl">
-          {isRegister ? t("signin.sign_up_to") : t("signin.sign_in_to")}
-        </span>
-        <Folo className="ml-2 size-14" />
+
+      <div className="mb-5 flex items-center justify-center">
+        <Logo className="size-[68px] rounded-[18px]" />
       </div>
+
+      <h1 className="m-0 mb-1.5 text-center text-[28px] font-semibold tracking-[-0.02em] text-text">
+        {isRegister ? t("signin.sign_up_to") : t("signin.sign_in_to")} Flash
+      </h1>
+      <p className="mb-7 text-center text-sm leading-normal text-text-secondary">
+        {isRegister
+          ? "Sync feeds across web, desktop, and mobile."
+          : "Welcome back. Pick up where you left off."}
+      </p>
 
       <AnimatePresence mode="wait" initial={false}>
         {isEmail ? (
@@ -120,15 +126,14 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
             exit={{ opacity: 0, x: 20 }}
             transition={Spring.presets.snappy}
           >
-            <div className="mb-3 flex flex-col items-center justify-center gap-4">
+            <div className="flex flex-col gap-2.5">
               {isLoading
-                ? // Skeleton loaders to prevent CLS
-                  Array.from({ length: 4 })
+                ? Array.from({ length: 4 })
                     .fill(0)
                     .map((_, index) => (
                       <div
                         key={index}
-                        className="relative h-12 w-full animate-pulse rounded-xl border border-material-medium bg-material-ultra-thick"
+                        className="relative h-11 w-full animate-pulse rounded-[10px] border border-border bg-fill-tertiary"
                       />
                     ))
                 : providers.map(([key, provider]) => (
@@ -141,11 +146,11 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
                           loginHandler(key, "app")
                         }
                       }}
-                      className="center relative w-full gap-2 rounded-xl border py-3 pl-5 font-semibold duration-200 hover:bg-material-medium"
+                      className="relative flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-transparent text-[13px] font-semibold duration-200 hover:bg-material-medium"
                     >
                       <img
                         className={cn(
-                          "absolute left-9 h-5",
+                          "absolute left-4 h-5",
                           !provider.iconDark64 &&
                             "dark:brightness-[0.85] dark:hue-rotate-180 dark:invert",
                         )}
@@ -153,34 +158,22 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
                       />
                       <span>{t("login.continueWith", { provider: provider.name })}</span>
                       {lastMethod === key && (
-                        <div className="absolute -right-2 -top-2 rounded-xl bg-accent px-2 py-0.5 text-sm text-white">
+                        <span
+                          className="absolute -right-2 -top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            background: "var(--fo-accent)",
+                            color: "var(--fo-accent-fg)",
+                          }}
+                        >
                           {t("login.lastUsed")}
-                        </div>
+                        </span>
                       )}
                     </MotionButtonBase>
                   ))}
 
               {isRegister && serverConfigs?.REFERRAL_ENABLED && (
-                <ReferralForm className="mb-4 w-full" />
+                <ReferralForm className="mt-2 w-full" />
               )}
-              <div className="-mb-1.5 mt-1 text-center text-xs leading-4 text-text-secondary">
-                <a onClick={() => handleOpenToken()} className="hover:underline">
-                  {t("login.enter_token")}
-                </a>
-              </div>
-              <div className="text-center text-xs leading-4 text-text-secondary">
-                <span>{t("login.agree_to")}</span>{" "}
-                <a onClick={() => handleOpenLegal("tos")} className="text-accent hover:underline">
-                  {t("login.terms")}
-                </a>{" "}
-                &{" "}
-                <a
-                  onClick={() => handleOpenLegal("privacy")}
-                  className="text-accent hover:underline"
-                >
-                  {t("login.privacy")}
-                </a>
-              </div>
             </div>
           </m.div>
         )}
@@ -188,20 +181,48 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
 
       {!isEmail && (
         <>
-          <Divider className="mb-5 mt-4" />
+          <div className="mb-5 mt-6 flex items-center gap-3 text-[11px] uppercase tracking-widest text-text-tertiary">
+            <span className="h-px flex-1 bg-border" />
+            <span>or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
           <button
             type="button"
-            className="w-full pb-2 text-center font-medium"
+            className="w-full text-center text-[13px] font-medium text-text-secondary"
             onClick={() => setIsRegister(!isRegister)}
           >
             <Trans
               t={t}
               i18nKey={isRegister ? "login.have_account" : "login.no_account"}
               components={{
-                strong: <span className="text-accent" />,
+                strong: <span className="font-semibold text-accent" />,
               }}
             />
           </button>
+
+          <div className="border-border-secondary mt-6 flex items-center justify-between border-t pt-4 text-[11px]">
+            <a
+              onClick={() => handleOpenToken()}
+              className="cursor-pointer text-text-tertiary hover:text-text-secondary"
+            >
+              {t("login.enter_token")}
+            </a>
+            <span className="text-text-tertiary">
+              <a
+                onClick={() => handleOpenLegal("tos")}
+                className="cursor-pointer hover:text-accent"
+              >
+                {t("login.terms")}
+              </a>{" "}
+              ·{" "}
+              <a
+                onClick={() => handleOpenLegal("privacy")}
+                className="cursor-pointer hover:text-accent"
+              >
+                {t("login.privacy")}
+              </a>
+            </span>
+          </div>
         </>
       )}
     </>
@@ -225,7 +246,8 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
         <div
           onClick={stopPropagation}
           tabIndex={-1}
-          className="relative w-[26rem] rounded-xl border bg-background p-3 px-8 shadow-2xl shadow-stone-300 dark:border-neutral-700 dark:shadow-stone-800"
+          className="relative w-[28rem] rounded-2xl border border-border bg-background p-9 shadow-2xl shadow-stone-300 dark:shadow-stone-800"
+          style={{ boxShadow: "var(--shadow-perfect, 0 24px 60px rgba(0,0,0,0.18))" }}
         >
           {Inner}
         </div>

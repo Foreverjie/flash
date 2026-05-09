@@ -1,4 +1,5 @@
 import { Button } from "@follow/components/ui/button/index.js"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { Label } from "@follow/components/ui/label/index.jsx"
 import { Switch } from "@follow/components/ui/switch/index.jsx"
 import type { WithOptimistic } from "@follow/hooks"
@@ -389,16 +390,13 @@ export const MCPServicesSection = () => {
           </div>
 
           {mcpServices.length === 0 && !isLoading && (
-            <div className="py-8 text-center">
-              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-fill-secondary">
-                <i className="i-mgc-plugin-2-cute-re size-6 text-text" />
-              </div>
-              <h4 className="mb-1 text-sm font-medium text-text">
-                {t("integration.mcp.services.empty.title")}
-              </h4>
-              <p className="text-xs text-text-secondary">
-                {t("integration.mcp.services.empty.description")}
-              </p>
+            <div className="py-8">
+              <EmptyStage
+                glyph={<i className="i-mgc-plugin-2-cute-re" />}
+                title={t("integration.mcp.services.empty.title")}
+                body={t("integration.mcp.services.empty.description")}
+                size="sm"
+              />
             </div>
           )}
 

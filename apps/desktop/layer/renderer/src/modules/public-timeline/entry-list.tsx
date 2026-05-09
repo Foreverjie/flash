@@ -1,4 +1,5 @@
 import { ActionButton } from "@follow/components/ui/button/index.js"
+import { EmptyStage as FlashEmptyStage } from "@follow/components/ui/empty/index.js"
 import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
 import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { cn } from "@follow/utils/utils"
@@ -141,9 +142,13 @@ function SkeletonItem() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
-      <i className="i-mgc-inbox-cute-re text-4xl" />
-      <p className="mt-4 text-sm">No posts yet</p>
+    <div className="px-6 py-20">
+      <FlashEmptyStage
+        glyph={<i className="i-mgc-inbox-cute-re" />}
+        title="No posts yet"
+        body="When this timeline picks up its first entries, they'll show up here."
+        size="md"
+      />
     </div>
   )
 }

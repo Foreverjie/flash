@@ -38,6 +38,7 @@ export interface GeneralSettings {
 }
 
 export type AccentColor =
+  | "flash"
   | "orange"
   | "blue"
   | "green"

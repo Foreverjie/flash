@@ -41,7 +41,7 @@ export default withUIKit({
         mono: "monospace",
       },
       colors: {
-        accent: "#FF5C00",
+        accent: "#FACC15",
       },
     },
   },

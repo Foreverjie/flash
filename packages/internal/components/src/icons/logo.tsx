@@ -7,18 +7,16 @@ export const Logo = ({
   ref?: React.Ref<SVGSVGElement | null>
   accentColor?: string
 }) => {
-  const { accentColor } = props
+  const { accentColor, ...rest } = props
+  const stroke = accentColor || "#facc15"
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props} ref={ref}>
-      <title>Folo</title>
-      <path
-        fill={accentColor || "#ff5c00"}
-        d="M5.382 0h13.236A5.37 5.37 0 0 1 24 5.383v13.235A5.37 5.37 0 0 1 18.618 24H5.382A5.37 5.37 0 0 1 0 18.618V5.383A5.37 5.37 0 0 1 5.382.001Z"
-      />
-      <path
-        fill="#fff"
-        d="M13.269 17.31a1.813 1.813 0 1 0-3.626.002 1.813 1.813 0 0 0 3.626-.002m-.535-6.527H7.213a1.813 1.813 0 1 0 0 3.624h5.521a1.813 1.813 0 1 0 0-3.624m4.417-4.712H8.87a1.813 1.813 0 1 0 0 3.625h8.283a1.813 1.813 0 1 0 0-3.624z"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" {...rest} ref={ref}>
+      <title>Flash</title>
+      <rect width="64" height="64" rx="15" fill="#0a0a0a" />
+      <g fill="none" stroke={stroke} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="32" cy="33" r="18.5" />
+        <path d="M37 12 L22 35 h11 L26.5 53 L42 30 h-11 Z" />
+      </g>
     </svg>
   )
 }

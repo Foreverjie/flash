@@ -13,7 +13,7 @@ export const createDefaultUISettings = (): UISettings => ({
   toolbarOrder: DEFAULT_ACTION_ORDER,
   // Discover
   discoverLanguage: getDefaultLanguage().startsWith("zh") ? "all" : "eng",
-  accentColor: "orange",
+  accentColor: "flash",
 })
 
 const {

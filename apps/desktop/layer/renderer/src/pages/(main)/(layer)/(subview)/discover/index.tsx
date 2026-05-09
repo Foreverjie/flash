@@ -1,4 +1,3 @@
-import { Divider } from "@follow/components/ui/divider/Divider.js"
 import { useScrollElementUpdate } from "@follow/components/ui/scroll-area/hooks.js"
 import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@follow/components/ui/tabs/index.jsx"
@@ -21,35 +20,34 @@ const tabs: {
   name: I18nKeys
   value: string
 }[] = [
-  {
-    name: "words.search",
-    value: "search",
-  },
-  {
-    name: "words.rss",
-    value: "rss",
-  },
-  {
-    name: "words.rsshub",
-    value: "rsshub",
-  },
-  {
-    name: "words.inbox",
-    value: "inbox",
-  },
-  {
-    name: "words.user",
-    value: "user",
-  },
-  {
-    name: "words.transform",
-    value: "transform",
-  },
-  {
-    name: "words.import",
-    value: "import",
-  },
+  { name: "words.search", value: "search" },
+  { name: "words.rss", value: "rss" },
+  { name: "words.rsshub", value: "rsshub" },
+  { name: "words.inbox", value: "inbox" },
+  { name: "words.user", value: "user" },
+  { name: "words.transform", value: "transform" },
+  { name: "words.import", value: "import" },
 ]
+
+function SectionHeader({
+  eyebrow,
+  title,
+  body,
+}: {
+  eyebrow: string
+  title: string
+  body?: string
+}) {
+  return (
+    <div className="mx-auto mb-6 max-w-3xl text-center">
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
+        {eyebrow}
+      </div>
+      <h2 className="m-0 text-[28px] font-semibold tracking-[-0.02em] text-text">{title}</h2>
+      {body && <p className="m-0 mt-2 text-sm leading-normal text-text-secondary">{body}</p>}
+    </div>
+  )
+}
 
 export function Component() {
   const [search, setSearch] = useSearchParams()
@@ -59,10 +57,19 @@ export function Component() {
   const { onUpdateMaxScroll } = useScrollElementUpdate()
 
   return (
-    <div className="flex size-full flex-col px-6 py-8">
-      {/* Simple Header */}
-      <div className="mx-auto mb-8 max-w-6xl text-center">
-        <h1 className="mb-4 text-3xl font-bold text-text">{t("words.discover")}</h1>
+    <div className="flex size-full flex-col px-6 py-12">
+      {/* Stage-style header */}
+      <div className="mx-auto mb-10 w-full max-w-3xl text-center">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
+          Flash · Discover
+        </div>
+        <h1 className="m-0 text-balance text-[44px] font-semibold leading-[1.05] -tracking-wide text-text">
+          Find your next source
+        </h1>
+        <p className="m-0 mx-auto mt-3 max-w-xl text-[15px] leading-normal text-text-secondary">
+          Search, paste an RSS URL, or browse what's trending. Everything you follow lands in one
+          quiet timeline.
+        </p>
       </div>
 
       <div className="mx-auto w-full max-w-6xl">
@@ -80,10 +87,9 @@ export function Component() {
           }}
           className="w-full"
         >
-          {/* Tab Navigation */}
-          <div className="mb-8">
-            <ScrollArea.ScrollArea flex orientation="horizontal" rootClassName="w-full">
-              <TabsList className="relative flex w-full">
+          <div className="mb-8 flex justify-center">
+            <ScrollArea.ScrollArea flex orientation="horizontal" rootClassName="w-auto">
+              <TabsList className="relative inline-flex rounded-full border border-border bg-background p-1">
                 {tabs.map((tab) => (
                   <TabsTrigger
                     key={tab.name}
@@ -99,7 +105,6 @@ export function Component() {
             </ScrollArea.ScrollArea>
           </div>
 
-          {/* Tab Content */}
           <div className="space-y-8">
             {tabs.map((tab) => (
               <TabsContent key={tab.name} value={tab.value} className="mt-0">
@@ -113,23 +118,26 @@ export function Component() {
           </div>
         </Tabs>
 
-        {/* Additional Content Sections */}
-        <div className="mt-12 space-y-8">
-          <Divider />
-
-          <div>
-            <h2 className="mb-6 text-center text-xl font-semibold text-text">Trending</h2>
+        <div className="mt-16 space-y-14">
+          <section>
+            <SectionHeader
+              eyebrow="Step · Trending"
+              title="What people are reading right now"
+              body="A live signal of the feeds Flash users have followed this week."
+            />
             <Trending center />
-          </div>
+          </section>
 
-          <Divider />
-
-          <div>
-            <h2 className="mb-6 text-center text-xl font-semibold text-text">Recommendations</h2>
+          <section>
+            <SectionHeader
+              eyebrow="Step · For you"
+              title="Recommendations"
+              body="Hand-picked sources matched to topics you care about."
+            />
             <AppErrorBoundary errorType={ErrorComponentType.RSSHubDiscoverError}>
               <Recommendations />
             </AppErrorBoundary>
-          </div>
+          </section>
         </div>
       </div>
     </div>

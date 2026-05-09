@@ -110,6 +110,15 @@ npx expo prebuild --clean             # Regenerate native ios/ and android/ dire
 - Icons: MingCute with `i-mgc-` prefix (e.g., `i-mgc-copy-cute-re`)
 - Motion: prefer CSS transitions; use Framer Motion `m.*` (from `motion/react` with LazyMotion) only when needed. Spring presets from `@follow/components/constants/spring.js`
 
+#### Design language rule
+
+Flash uses **two design vocabularies side-by-side**. Pick the right one for the surface:
+
+- **HIG / glassmorphic** → information-dense chrome and content surfaces. Sidebar, entry list, reader pane, settings forms, modals with form content, command palette, anywhere users do their actual work. Compact type scale (`title-1`/`headline`/`body`), 1px borders, materials/blur, hairline separators.
+- **Stage** → blank-canvas moments. Onboarding, login/signup, empty states, error pages, splashes, marketing/discover hero, AI welcome screens. Centered layouts, generous type (28–56px headlines), eyebrow + glyph + title + body + CTA rhythm, OKLCH pastel rainbow for accent moments. Use the `EmptyStage` primitive (`@follow/components/ui/empty/index.js`) when the surface fits this pattern.
+
+The brand accent (`--fo-accent` / yellow `#FACC15`) and the lightning glyph (`Logo`, `icon.svg`) are shared across both. When in doubt: if the surface holds _content the user is consuming_, it's HIG; if the surface is a _transition or interruption_, it's Stage.
+
 ### UI system — Mobile
 
 - **NativewindCSS** for styling (no `StyleSheet.create` for new UI)

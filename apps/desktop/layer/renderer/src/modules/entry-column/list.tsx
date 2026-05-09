@@ -1,4 +1,4 @@
-import { EmptyIcon } from "@follow/components/icons/empty.jsx"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { useScrollViewElement } from "@follow/components/ui/scroll-area/hooks.js"
 import type { FeedViewType } from "@follow/constants"
 import { useTypeScriptHappyCallback } from "@follow/hooks"
@@ -27,20 +27,26 @@ export const EntryEmptyList = ({
   const { t } = useTranslation()
   return (
     <m.div
-      className="absolute -mt-6 flex size-full grow flex-col items-center justify-center gap-2 text-zinc-400"
+      className="absolute flex size-full grow flex-col items-center justify-center px-6"
       {...props}
       ref={ref}
     >
       {unreadOnly ? (
-        <>
-          <i className="i-mgc-celebrate-cute-re -mt-11 text-3xl" />
-          <span className="text-base">{t("entry_list.zero_unread")}</span>
-        </>
+        <EmptyStage
+          eyebrow="All caught up"
+          glyph={<i className="i-mgc-celebrate-cute-re" />}
+          title={t("entry_list.zero_unread")}
+          body="Nothing new in this view. Pop back later or switch off unread-only to revisit older entries."
+          size="md"
+        />
       ) : (
-        <div className="flex -translate-y-6 flex-col items-center justify-center gap-2">
-          <EmptyIcon className="size-[30px]" />
-          <span className="text-base">{t("words.zero_items")}</span>
-        </div>
+        <EmptyStage
+          eyebrow="Empty timeline"
+          glyph={<i className="i-mgc-inbox-cute-re" />}
+          title={t("words.zero_items")}
+          body="No entries to show here yet. Check back after your sources update."
+          size="md"
+        />
       )}
     </m.div>
   )

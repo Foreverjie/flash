@@ -1,5 +1,6 @@
 import { Button } from "@follow/components/ui/button/index.js"
 import { Divider } from "@follow/components/ui/divider/index.js"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { LoadingCircle } from "@follow/components/ui/loading/index.jsx"
 import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
 import {
@@ -159,8 +160,12 @@ export const SettingInvitations = () => {
           ) : invitations.isLoading ? (
             <LoadingCircle size="large" className="center absolute inset-0" />
           ) : (
-            <div className="mt-36 w-full text-center text-sm text-zinc-400">
-              <p>{t("invitation.noInvitations")}</p>
+            <div className="mt-24 w-full">
+              <EmptyStage
+                glyph={<i className="i-mgc-mail-open-cute-re" />}
+                title={t("invitation.noInvitations")}
+                size="sm"
+              />
             </div>
           )}
         </ScrollArea.ScrollArea>

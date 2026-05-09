@@ -1,4 +1,5 @@
 import { Button } from "@follow/components/ui/button/index.js"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import type { CustomIntegration } from "@follow/shared/settings/interface"
 import { nanoid } from "nanoid"
 import { memo, useCallback, useMemo } from "react"
@@ -211,18 +212,23 @@ const CustomIntegrationsSection = ({
       </div>
 
       {integrations.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-fill-secondary py-12">
-          <i className="i-mgc-webhook-cute-re mb-3 text-2xl text-text-tertiary" />
-          <p className="mb-2 text-sm font-medium text-text-tertiary">
-            {t("integration.custom_integrations.list.empty.title")}
-          </p>
-          <p className="mb-4 max-w-xs text-center text-xs text-text-quaternary">
-            {t("integration.custom_integrations.list.empty.description")}
-          </p>
-          <Button size="sm" onClick={onCreateIntegration} buttonClassName="flex items-center gap-2">
-            <i className="i-mgc-add-cute-re" />
-            {t("integration.custom_integrations.list.empty.button")}
-          </Button>
+        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-fill-secondary py-10">
+          <EmptyStage
+            glyph={<i className="i-mgc-webhook-cute-re" />}
+            title={t("integration.custom_integrations.list.empty.title")}
+            body={t("integration.custom_integrations.list.empty.description")}
+            action={
+              <Button
+                size="sm"
+                onClick={onCreateIntegration}
+                buttonClassName="flex items-center gap-2"
+              >
+                <i className="i-mgc-add-cute-re" />
+                {t("integration.custom_integrations.list.empty.button")}
+              </Button>
+            }
+            size="sm"
+          />
         </div>
       ) : (
         <div className="space-y-4">

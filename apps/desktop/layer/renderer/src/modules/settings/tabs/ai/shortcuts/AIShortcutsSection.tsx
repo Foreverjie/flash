@@ -1,4 +1,5 @@
 import { Button } from "@follow/components/ui/button/index.js"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -38,11 +39,12 @@ export const AIShortcutsSection = () => {
         </Button>
       </div>
       {shortcuts.length === 0 && (
-        <div className="py-8 text-center">
-          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-fill-secondary">
-            <i className="i-mgc-magic-2-cute-re size-6 text-text" />
-          </div>
-          <h4 className="mb-1 text-sm font-medium text-text">{t("shortcuts.empty.title")}</h4>
+        <div className="py-8">
+          <EmptyStage
+            glyph={<i className="i-mgc-magic-2-cute-re" />}
+            title={t("shortcuts.empty.title")}
+            size="sm"
+          />
         </div>
       )}
 

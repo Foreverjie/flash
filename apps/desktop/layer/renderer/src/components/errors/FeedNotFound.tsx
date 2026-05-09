@@ -1,5 +1,6 @@
 import { Logo } from "@follow/components/icons/logo.jsx"
 import { Button } from "@follow/components/ui/button/index.js"
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import type { FC } from "react"
 import { useNavigate } from "react-router"
 
@@ -15,16 +16,13 @@ const FeedNotFoundErrorFallback: FC<AppErrorFallbackProps> = ({ resetError, erro
   useResetErrorWhenRouteChange(resetError)
   const navigate = useNavigate()
   return (
-    <div className="flex w-full flex-col items-center justify-center rounded-md bg-theme-background p-2">
-      <div className="center m-auto flex max-w-prose flex-col gap-4 text-center">
-        <div className="center mb-8 flex">
-          <Logo className="size-20" />
-        </div>
-        <p className="font-semibold">
-          There is no feed with the given ID. Please check the URL and retry.
-        </p>
-
-        <div className="center mt-12 gap-4">
+    <div className="flex w-full flex-col items-center justify-center rounded-md bg-background p-6">
+      <EmptyStage
+        eyebrow="Feed not found"
+        glyph={<Logo className="size-14 rounded-2xl opacity-90" />}
+        title="No feed at that ID"
+        body="Check the URL and try again, or head back to your timeline."
+        action={
           <Button
             variant="outline"
             onClick={() => {
@@ -34,10 +32,11 @@ const FeedNotFoundErrorFallback: FC<AppErrorFallbackProps> = ({ resetError, erro
               }, 100)
             }}
           >
-            Back
+            Back to home
           </Button>
-        </div>
-      </div>
+        }
+        size="md"
+      />
     </div>
   )
 }
