@@ -10,7 +10,7 @@ export const PoweredByFooter: Component = ({ className }) => (
         {/* Left: copyright + legal */}
         <div className="flex flex-col items-center gap-3 sm:items-start">
           <p className="text-center text-xs text-text-tertiary md:text-left">
-            © {new Date().getFullYear()} <a href="https://app.folo.is">Folo</a>. All rights
+            © {new Date().getFullYear()} <a href="https://app.scflash.win">Flash</a>. All rights
             reserved.
           </p>
           <div className="flex items-center justify-center gap-4 md:justify-start">

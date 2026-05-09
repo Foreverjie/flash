@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react"
 import { useTranslation } from "react-i18next"
 import { Pressable, View } from "react-native"
+import Animated, { Easing, FadeInDown } from "react-native-reanimated"
 import { useColor } from "react-native-uikit-colors"
 
 import { GroupedInsetListNavigationLinkIcon } from "@/src/components/ui/grouped/GroupedList"
@@ -21,6 +22,9 @@ import { importOpml } from "../settings/utils"
 import { useReadingBehavior } from "./hooks/use-reading-behavior"
 import { OnboardingSectionScreenContainer } from "./shared"
 
+const EASE = Easing.bezier(0.25, 1, 0.5, 1)
+const enter = (delay: number) => FadeInDown.delay(delay).duration(360).easing(EASE)
+
 export const StepPreferences = () => {
   const { t } = useTranslation()
   const { behavior } = useReadingBehavior()
@@ -28,17 +32,23 @@ export const StepPreferences = () => {
   return (
     <OnboardingSectionScreenContainer>
       <View className="mb-10 flex items-center gap-4">
-        <ListCheck2CuteReIcon height={80} width={80} color={accentColor} />
-        <Text className="mt-2 text-center text-xl font-bold text-text">
+        <Animated.View entering={enter(60)}>
+          <ListCheck2CuteReIcon height={80} width={80} color={accentColor} />
+        </Animated.View>
+        <Animated.Text
+          entering={enter(140)}
+          className="mt-2 text-center text-xl font-bold text-text"
+        >
           {t("onboarding.preferences_title")}
-        </Text>
-        <Text className="text-center text-base text-label">
+        </Animated.Text>
+        <Animated.Text entering={enter(220)} className="text-center text-base text-label">
           {t("onboarding.preferences_description")}
-        </Text>
+        </Animated.Text>
       </View>
 
       <View className="mb-6 w-full flex-1 gap-4">
         <PreferenceCard
+          stagger={300}
           showRightArrow={false}
           icon={
             <GroupedInsetListNavigationLinkIcon backgroundColor="#FCA5A5">
@@ -63,6 +73,7 @@ export const StepPreferences = () => {
 
         {/* Import Card */}
         <PreferenceCard
+          stagger={380}
           title={t("onboarding.import_content")}
           icon={
             <GroupedInsetListNavigationLinkIcon backgroundColor="#CBAD6D">
@@ -79,6 +90,7 @@ export const StepPreferences = () => {
         </PreferenceCard>
 
         <PreferenceCard
+          stagger={460}
           title={t("onboarding.edit_profile")}
           icon={
             <GroupedInsetListNavigationLinkIcon backgroundColor="#34D399">
@@ -96,6 +108,7 @@ export const StepPreferences = () => {
 
         {/* Reading Preferences Card */}
         <PreferenceCard
+          stagger={540}
           title={t("onboarding.reading_preferences")}
           icon={
             <GroupedInsetListNavigationLinkIcon backgroundColor="#F59E0B">
@@ -131,17 +144,21 @@ type PreferenceCardProps = PropsWithChildren<{
   icon?: React.ReactNode
   showRightArrow?: boolean
   onPress?: () => void
+  stagger?: number
 }>
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 const PreferenceCard = ({
   title,
   children,
   onPress,
   icon,
   showRightArrow = true,
+  stagger = 0,
 }: PreferenceCardProps) => {
   const rightIconColor = useColor("tertiaryLabel")
   return (
-    <Pressable
+    <AnimatedPressable
+      entering={enter(stagger)}
       className="flex flex-row items-center gap-2 rounded-xl bg-secondary-system-grouped-background p-4"
       onPress={onPress}
     >
@@ -151,6 +168,6 @@ const PreferenceCard = ({
         {children}
       </View>
       {showRightArrow && <MingcuteRightLine height={18} width={18} color={rightIconColor} />}
-    </Pressable>
+    </AnimatedPressable>
   )
 }

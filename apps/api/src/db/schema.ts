@@ -318,6 +318,50 @@ export const subscriptions = pgTable(
 )
 
 /**
+ * Topics table - curated onboarding/discovery topics (e.g. Tech, AI, Design).
+ */
+export const topics = pgTable(
+  "topics",
+  {
+    id: varchar("id", { length: 255 }).primaryKey(),
+    slug: varchar("slug", { length: 64 }).notNull().unique(),
+    label: text("label").notNull(),
+    description: text("description"),
+    color: varchar("color", { length: 32 }),
+    sortOrder: integer("sort_order").default(0),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [index("topics_sort_order_idx").on(table.sortOrder)],
+)
+
+/**
+ * Feed-Topic join table - many-to-many between feeds and curated topics.
+ */
+export const feedTopics = pgTable(
+  "feed_topics",
+  {
+    feedId: varchar("feed_id", { length: 255 })
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
+    topicId: varchar("topic_id", { length: 255 })
+      .notNull()
+      .references(() => topics.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [
+    uniqueIndex("feed_topics_feed_topic_idx").on(table.feedId, table.topicId),
+    index("feed_topics_topic_id_idx").on(table.topicId),
+  ],
+)
+
+/**
  * Comments table - User comments on posts
  */
 export const comments = pgTable(
@@ -411,6 +455,22 @@ export const feedsRelations = relations(feeds, ({ one, many }) => ({
   }),
   posts: many(posts),
   subscriptions: many(subscriptions),
+  feedTopics: many(feedTopics),
+}))
+
+export const topicsRelations = relations(topics, ({ many }) => ({
+  feedTopics: many(feedTopics),
+}))
+
+export const feedTopicsRelations = relations(feedTopics, ({ one }) => ({
+  feed: one(feeds, {
+    fields: [feedTopics.feedId],
+    references: [feeds.id],
+  }),
+  topic: one(topics, {
+    fields: [feedTopics.topicId],
+    references: [topics.id],
+  }),
 }))
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -482,3 +542,7 @@ export type Verification = typeof verifications.$inferSelect
 export type NewVerification = typeof verifications.$inferInsert
 export type TwoFactor = typeof twoFactors.$inferSelect
 export type NewTwoFactor = typeof twoFactors.$inferInsert
+export type Topic = typeof topics.$inferSelect
+export type NewTopic = typeof topics.$inferInsert
+export type FeedTopic = typeof feedTopics.$inferSelect
+export type NewFeedTopic = typeof feedTopics.$inferInsert

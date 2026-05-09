@@ -1,5 +1,5 @@
 Object.assign(globalThis, {
-  APP_NAME: "Folo",
+  APP_NAME: "Flash",
   ELECTRON: false,
 })
 

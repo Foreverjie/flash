@@ -125,7 +125,7 @@ export const FeedShareActionButton = ({
         if (!feed) return
         const url = `${proxyEnv.WEB_URL}/share/feeds/${feedId}`
         Share.share({
-          message: `Check out ${feed.title} on Folo: ${url}`,
+          message: `Check out ${feed.title} on Flash: ${url}`,
           title: feed.title!,
           url,
         })

@@ -49,7 +49,7 @@ export const SettingInvitations = () => {
     <section className="mt-4">
       <div className="mb-4 space-y-2 text-sm">
         <Trans ns="settings" i18nKey="invitation.earlyAccess">
-          Folo is currently requires an invitation code to use.
+          Flash is currently requires an invitation code to use.
         </Trans>
         <p>
           <Trans

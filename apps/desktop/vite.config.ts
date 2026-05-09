@@ -175,7 +175,7 @@ export default ({ mode }) => {
 
           manifest: {
             theme_color: "#000000",
-            name: "Folo",
+            name: "Flash",
             display: "standalone",
             background_color: "#ffffff",
             icons: [
@@ -304,7 +304,7 @@ export default ({ mode }) => {
 function checkBrowserSupport() {
   if (!("findLastIndex" in Array.prototype) || !("structuredClone" in window)) {
     window.alert(
-      "Folo is not compatible with your browser because your browser version is too old. You can download and use the Folo app or continue using it with the latest browser.",
+      "Flash is not compatible with your browser because your browser version is too old. You can download and use the Flash app or continue using it with the latest browser.",
     )
 
     window.location.href = "https://folo.is/download"

@@ -244,7 +244,7 @@ export const UserHeaderBanner = ({
               {user.name}
             </Text>
           ) : (
-            <Text className="text-2xl font-bold text-text">Folo Account</Text>
+            <Text className="text-2xl font-bold text-text">Flash Account</Text>
           )}
 
           {!!role && serverConfigs?.REFERRAL_ENABLED && (

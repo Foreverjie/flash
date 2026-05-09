@@ -23,6 +23,7 @@
     "lint:fix": "eslint --fix .",
     "scrape-posts": "tsx src/scripts/scrape-posts.ts",
     "seed-feeds": "tsx src/scripts/seed-feeds.ts",
+    "seed-topics": "tsx src/scripts/seed-topics.ts",
     "start": "node dist/index.js",
     "sync-feeds": "tsx src/scripts/sync-feeds.ts",
     "test": "vitest run",

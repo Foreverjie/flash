@@ -30,7 +30,7 @@ export function SettingReferral() {
   const ruleLink = serverConfigs?.REFERRAL_RULE_LINK
   const { data: referralInfo } = useReferralInfo()
   const user = useWhoami()
-  const referralLink = `Here's the link to register for Folo, the reader I mentioned! Use it to enjoy a 45-day trial of Pro features:\n\n${env.VITE_WEB_URL}/register?referral=${user?.handle || user?.id}`
+  const referralLink = `Here's the link to register for Flash, the reader I mentioned! Use it to enjoy a 45-day trial of Pro features:\n\n${env.VITE_WEB_URL}/register?referral=${user?.handle || user?.id}`
   const presentUserProfile = usePresentUserProfileModal("drawer")
   return (
     <section className="mt-4">

@@ -5,5 +5,5 @@ const expoUserAgentPromise = Constants.getWebViewUserAgentAsync()
 
 export const getUserAgent = async () => {
   const expoUserAgent = await expoUserAgentPromise
-  return `${expoUserAgent ? `${expoUserAgent} ` : ""}Folo/${nativeApplicationVersion}.${nativeBuildVersion}`
+  return `${expoUserAgent ? `${expoUserAgent} ` : ""}Flash/${nativeApplicationVersion}.${nativeBuildVersion}`
 }

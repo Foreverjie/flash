@@ -569,7 +569,7 @@ const CustomizeSubscriptionTabs = () => {
 }
 
 const ACCENT_COLORS: AccentColor[] = [
-  "orange",
+  "flash",
   "blue",
   "green",
   "purple",

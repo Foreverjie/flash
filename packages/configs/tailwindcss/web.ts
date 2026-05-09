@@ -51,7 +51,7 @@ const twConfig = {
         background: "hsl(var(--background) / <alpha-value>)",
 
         accent: "hsl(var(--fo-a) / <alpha-value>)",
-        folo: "#FF5C00",
+        folo: "#FACC15",
 
         theme: {
           boxShadow: {

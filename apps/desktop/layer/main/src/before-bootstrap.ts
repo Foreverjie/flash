@@ -3,7 +3,7 @@ import path from "pathe"
 
 import { initializeSentry } from "./sentry"
 
-if (import.meta.env.DEV) app.setPath("userData", path.join(app.getPath("appData"), "Folo(dev)"))
+if (import.meta.env.DEV) app.setPath("userData", path.join(app.getPath("appData"), "Flash(dev)"))
 protocol.registerSchemesAsPrivileged([
   {
     scheme: "sentry-ipc",

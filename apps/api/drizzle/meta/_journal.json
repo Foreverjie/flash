@@ -8,6 +8,13 @@
       "when": 1769157930084,
       "tag": "0000_wet_colonel_america",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778311908113,
+      "tag": "0001_thick_black_queen",
+      "breakpoints": true
     }
   ]
 }

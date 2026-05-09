@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build:packages": "turbo run build --filter=\"./packages/**/*\"",
-    "build:web": "turbo run Folo#build:web",
+    "build:web": "turbo run Flash#build:web",
     "dedupe:locales": "eslint --fix locales/**",
     "depcheck": "npx depcheck --quiet",
     "dev": "tsx scripts/dev.ts",

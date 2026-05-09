@@ -34,7 +34,7 @@ const viewAll: ViewDefinition = {
   backgroundClassName: "bg-folo",
   translation: "title,description,content",
   view: FeedViewType.All,
-  activeColor: "#FF5C00",
+  activeColor: "#FACC15",
   switchable: false,
 }
 
@@ -52,7 +52,7 @@ const views: ViewDefinition[] = [
     backgroundClassName: "bg-lime-600",
     translation: "title,description",
     view: FeedViewType.Articles,
-    activeColor: "#FF5C00",
+    activeColor: "#FACC15",
     switchable: true,
   },
   {

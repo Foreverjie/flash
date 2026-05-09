@@ -46,13 +46,13 @@ const FEED_DISCOVERY_INFO = {
     showModal: true,
     labelSuffix: (
       <a
-        href={`${repository.url}/wiki/Folo-Flavored-Feed-Spec`}
+        href={`${repository.url}/wiki/Flash-Flavored-Feed-Spec`}
         target="_blank"
         rel="noreferrer"
         className="inline-flex w-auto items-center gap-1 rounded-full border border-accent px-2 py-px text-sm font-normal text-accent"
       >
         <i className="i-mgc-book-6-cute-re" />
-        <span>Folo Flavored Feed Spec</span>
+        <span>Flash Flavored Feed Spec</span>
       </a>
     ),
     schema: z.object({

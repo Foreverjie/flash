@@ -2,7 +2,7 @@
   "$schema": "https://turbo.build/schema.json",
   "envMode": "loose",
   "tasks": {
-    "Folo#build:web": {
+    "Flash#build:web": {
       "outputs": ["out/**"]
     },
     "//#format:check": {},

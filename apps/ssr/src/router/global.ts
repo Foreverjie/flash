@@ -154,12 +154,12 @@ async function injectMetaToTemplate(document: Document, req: FastifyRequest, res
         if (meta.title) {
           const $title = document.querySelector("title")
           if ($title) {
-            $title.textContent = `${xss(meta.title)} | Folo`
+            $title.textContent = `${xss(meta.title)} | Flash`
           } else {
             const $head = document.querySelector("head")
             if ($head) {
               const $title = document.createElement("title")
-              $title.textContent = `${xss(meta.title)} | Folo`
+              $title.textContent = `${xss(meta.title)} | Flash`
               $head.append($title)
             }
           }

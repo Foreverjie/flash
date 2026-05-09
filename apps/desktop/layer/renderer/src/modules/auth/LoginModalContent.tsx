@@ -19,9 +19,13 @@ import { LoginWithPassword, RegisterForm } from "./Form"
 import { ReferralForm } from "./ReferralForm"
 import { TokenModalContent } from "./TokenModal"
 
+const PROVIDER_SKELETON_KEYS = Array.from({ length: 4 }, (_, index) => `provider-skeleton-${index}`)
+
 interface LoginModalContentProps {
   runtime: LoginRuntime
   canClose?: boolean
+  initialState?: "register" | "login"
+  onBack?: () => void
 }
 
 export const LoginModalContent = (props: LoginModalContentProps) => {
@@ -30,7 +34,7 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
   const modal = useCurrentModal()
   const { present } = useModalStack()
 
-  const { canClose = true, runtime } = props
+  const { canClose = true, initialState, onBack, runtime } = props
 
   const { t } = useTranslation()
   const { data: authProviders, isLoading } = useAuthProviders()
@@ -40,7 +44,9 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
   const providers = Object.entries(authProviders || [])
 
   const initialLastMethod = authClient.getLastUsedLoginMethod()
-  const [isRegister, setIsRegister] = useState(!initialLastMethod)
+  const [isRegister, setIsRegister] = useState(
+    initialState ? initialState === "register" : !initialLastMethod,
+  )
   const [isEmail, setIsEmail] = useState(false)
   const [lastMethod] = useState(() => {
     let m = initialLastMethod
@@ -73,11 +79,17 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
 
   const Inner = (
     <>
-      {isEmail && (
+      {(isEmail || onBack) && (
         <div className="absolute left-7 top-5 z-10">
           <MotionButtonBase
             className="flex cursor-button items-center gap-1.5 text-center text-[13px] font-medium duration-200 hover:text-accent"
-            onClick={() => setIsEmail(false)}
+            onClick={() => {
+              if (isEmail) {
+                setIsEmail(false)
+                return
+              }
+              onBack?.()
+            }}
           >
             <i className="i-mgc-left-cute-fi" />
             {t("login.back")}
@@ -95,7 +107,8 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
       </div>
 
       <h1 className="m-0 mb-1.5 text-center text-[28px] font-semibold tracking-[-0.02em] text-text">
-        {isRegister ? t("signin.sign_up_to") : t("signin.sign_in_to")} Flash
+        <span>{isRegister ? t("signin.sign_up_to") : t("signin.sign_in_to")}</span>
+        <span> Flash</span>
       </h1>
       <p className="mb-7 text-center text-sm leading-normal text-text-secondary">
         {isRegister
@@ -128,14 +141,12 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
           >
             <div className="flex flex-col gap-2.5">
               {isLoading
-                ? Array.from({ length: 4 })
-                    .fill(0)
-                    .map((_, index) => (
-                      <div
-                        key={index}
-                        className="relative h-11 w-full animate-pulse rounded-[10px] border border-border bg-fill-tertiary"
-                      />
-                    ))
+                ? PROVIDER_SKELETON_KEYS.map((key) => (
+                    <div
+                      key={key}
+                      className="relative h-11 w-full animate-pulse rounded-[10px] border border-border bg-fill-tertiary"
+                    />
+                  ))
                 : providers.map(([key, provider]) => (
                     <MotionButtonBase
                       key={key}
@@ -200,7 +211,7 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
             />
           </button>
 
-          <div className="border-border-secondary mt-6 flex items-center justify-between border-t pt-4 text-[11px]">
+          <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-[11px]">
             <a
               onClick={() => handleOpenToken()}
               className="cursor-pointer text-text-tertiary hover:text-text-secondary"

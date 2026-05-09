@@ -11,9 +11,9 @@ export default defineConfig({
     "git add package.json",
   ],
   trailing: [
-    "plutil -replace CFBundleShortVersionString -string ${NEW_VERSION} ios/Folo/Info.plist",
-    "CURRENT_BUILD=$(plutil -extract CFBundleVersion raw ios/Folo/Info.plist) && plutil -replace CFBundleVersion -string $((CURRENT_BUILD + 1)) ios/Folo/Info.plist",
-    "git add ios/Folo/Info.plist",
+    "plutil -replace CFBundleShortVersionString -string ${NEW_VERSION} ios/Flash/Info.plist",
+    "CURRENT_BUILD=$(plutil -extract CFBundleVersion raw ios/Flash/Info.plist) && plutil -replace CFBundleVersion -string $((CURRENT_BUILD + 1)) ios/Flash/Info.plist",
+    "git add ios/Flash/Info.plist",
     "git checkout -b release/mobile/${NEW_VERSION}",
   ],
   finally: [

@@ -22,6 +22,7 @@ import internalScraplingRouter from "./routes/internal-scrapling.js"
 import postsRouter from "./routes/posts.js"
 import readsRouter from "./routes/reads.js"
 import subscriptionsRouter from "./routes/subscriptions.js"
+import topicsRouter from "./routes/topics.js"
 import usersRouter from "./routes/users.js"
 import { logger } from "./utils/logger.js"
 
@@ -135,6 +136,10 @@ app.route("/api/v1/posts", postsRouter)
 // Subscription routes
 app.route("/subscriptions", subscriptionsRouter)
 app.route("/api/v1/subscriptions", subscriptionsRouter)
+
+// Topics + onboarding routes
+app.route("/topics", topicsRouter)
+app.route("/api/v1/topics", topicsRouter)
 
 // Entry routes (authenticated timeline)
 app.route("/entries", entriesRouter)

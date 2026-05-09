@@ -58,9 +58,11 @@ const ACCENT_COLOR_MAP = {
     light: "#FACC15",
     dark: "#FACC15",
   },
+  // Legacy "orange" preset — kept as an alias for "flash" so existing users
+  // with this value persisted migrate to the new yellow brand color.
   orange: {
-    light: "#FF6B35",
-    dark: "#FF5C00",
+    light: "#FACC15",
+    dark: "#FACC15",
   },
   blue: {
     light: "#5CA9F2",

@@ -6,7 +6,7 @@ declare global {
     api?: { canWindowBlur: boolean }
     platform: NodeJS.Platform
   }
-  export const APP_NAME = "Folo"
+  export const APP_NAME = "Flash"
 }
 
 declare module "virtual:pwa-register/react" {
