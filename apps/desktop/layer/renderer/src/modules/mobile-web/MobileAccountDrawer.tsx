@@ -94,19 +94,19 @@ function DrawerContent({ onClose }: { onClose: () => void }) {
       {/* Nav links */}
       <div className="flex flex-col border-b border-border/50 py-1">
         <NavLink
+          icon="i-mgc-settings-7-cute-re"
+          label="Settings"
+          onClick={() => handleNavigate("/settings")}
+        />
+        <NavLink
           icon="i-mgc-star-cute-re"
           label="Bookmarks"
           onClick={() => handleNavigate("/bookmarks")}
         />
         <NavLink
-          icon="i-mgc-upload-cute-re"
+          icon="i-mgc-file-import-cute-re"
           label="Import OPML"
           onClick={() => handleNavigate("/discover")}
-        />
-        <NavLink
-          icon="i-mgc-settings-7-cute-re"
-          label="Settings"
-          onClick={() => handleNavigate("/settings")}
         />
       </div>
 

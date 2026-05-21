@@ -345,7 +345,7 @@ const ThumbnailRatio = () => {
           renderValue={(item) =>
             t(`appearance.thumbnail_ratio.${item.value as "square" | "original"}`)
           }
-          triggerClassName="w-48 lg:translate-y-2 -inset-8translate-y-1"
+          triggerClassName="w-48 lg:translate-y-2"
           size="sm"
         />
       </div>

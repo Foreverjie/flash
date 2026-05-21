@@ -1,3 +1,4 @@
+import { useMobile } from "@follow/components/hooks/useMobile.js"
 import { useScrollElementUpdate } from "@follow/components/ui/scroll-area/hooks.js"
 import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@follow/components/ui/tabs/index.jsx"
@@ -14,6 +15,7 @@ import { DiscoverInboxList } from "~/modules/discover/DiscoverInboxList"
 import { DiscoverTransform } from "~/modules/discover/DiscoverTransform"
 import { DiscoverUser } from "~/modules/discover/DiscoverUser"
 import { Recommendations } from "~/modules/discover/recommendations"
+import { MobileDiscoverScreen } from "~/modules/mobile-web/screens/MobileDiscoverScreen"
 import { Trending } from "~/modules/trending"
 
 const tabs: {
@@ -53,8 +55,13 @@ export function Component() {
   const [search, setSearch] = useSearchParams()
   const { t } = useTranslation()
   useSubViewTitle("words.discover")
+  const isMobile = useMobile()
 
   const { onUpdateMaxScroll } = useScrollElementUpdate()
+
+  if (isMobile) {
+    return <MobileDiscoverScreen />
+  }
 
   return (
     <div className="flex size-full flex-col px-6 py-12">

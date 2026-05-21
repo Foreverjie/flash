@@ -10,7 +10,7 @@ export function Component() {
   const navigate = useNavigate()
   return (
     <div className="fixed inset-0 z-50 bg-background">
-      <OnboardingFlow onClose={() => navigate("/")} />
+      <OnboardingFlow onClose={() => navigate("/timeline")} />
     </div>
   )
 }

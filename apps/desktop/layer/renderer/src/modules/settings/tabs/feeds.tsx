@@ -431,6 +431,7 @@ const FeedListItem = memo(
     const subscription = useSubscriptionByFeedId(id)
     const feed = useFeedById(id)
     const isCustomizeName = subscription?.title && feed?.title !== subscription?.title
+    const { t } = useTranslation("settings")
     const { t: tCommon } = useTranslation("common")
 
     if (!subscription) return null
@@ -498,7 +499,7 @@ const FeedListItem = memo(
                 </div>
               </TooltipTrigger>
               <TooltipPortal>
-                <TooltipContent>Subscription Count</TooltipContent>
+                <TooltipContent>{t("feeds.tooltips.subscription_count")}</TooltipContent>
               </TooltipPortal>
             </Tooltip>
           ) : (
@@ -519,7 +520,7 @@ const FeedListItem = memo(
                   </div>
                 </TooltipTrigger>
                 <TooltipPortal>
-                  <TooltipContent>Updates Per Week</TooltipContent>
+                  <TooltipContent>{t("feeds.tooltips.updates_per_week")}</TooltipContent>
                 </TooltipPortal>
               </Tooltip>
               {feed.latestEntryPublishedAt && (
@@ -530,7 +531,7 @@ const FeedListItem = memo(
                       <RelativeDay date={new Date(feed.latestEntryPublishedAt)} />
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent>Latest Entry Published</TooltipContent>
+                  <TooltipContent>{t("feeds.tooltips.latest_entry_published")}</TooltipContent>
                 </Tooltip>
               )}
             </div>

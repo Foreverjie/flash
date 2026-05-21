@@ -3,14 +3,12 @@ import { Logo } from "@follow/components/icons/logo.jsx"
 import { ActionButton } from "@follow/components/ui/button/index.js"
 import { stopPropagation } from "@follow/utils/dom"
 import { cn } from "@follow/utils/utils"
-import { m } from "motion/react"
 import type { FC, PropsWithChildren } from "react"
-import { memo, useEffect, useRef, useState } from "react"
+import { memo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router"
 import { toast } from "sonner"
 
-import { setTimelineColumnShow, useSubscriptionColumnShow } from "~/atoms/sidebar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +20,6 @@ import { useRouteParamsSelector } from "~/hooks/biz/useRouteParams"
 import { useI18n } from "~/hooks/common"
 import { useContextMenu } from "~/hooks/common/useContextMenu"
 import { copyToClipboard } from "~/lib/clipboard"
-import { ProfileButton } from "~/modules/user/ProfileButton"
 
 export const SubscriptionColumnHeader = memo(() => {
   const timelineId = useRouteParamsSelector((s) => s.timelineId)
@@ -63,47 +60,10 @@ export const SubscriptionColumnHeader = memo(() => {
             <i className="i-mgc-world-2-cute-re size-5 text-text-secondary" />
           </ActionButton>
         </Link>
-
-        <ProfileButton method="modal" animatedAvatar />
-        <LayoutActionButton />
       </div>
     </div>
   )
 })
-
-const LayoutActionButton = () => {
-  const feedColumnShow = useSubscriptionColumnShow()
-
-  const [animation, setAnimation] = useState({ width: !feedColumnShow ? "auto" : 0 })
-  useEffect(() => {
-    setAnimation({ width: !feedColumnShow ? "auto" : 0 })
-  }, [feedColumnShow])
-
-  const t = useI18n()
-
-  if (feedColumnShow) return null
-
-  return (
-    <m.div initial={animation} animate={animation} className="overflow-hidden">
-      <ActionButton
-        tooltip={t("app.toggle_sidebar")}
-        icon={
-          <i
-            className={cn(
-              !feedColumnShow
-                ? "i-mgc-layout-leftbar-open-cute-re"
-                : "i-mgc-layout-leftbar-close-cute-re",
-              "text-text-secondary",
-            )}
-          />
-        }
-        onClick={() => {
-          setTimelineColumnShow(!feedColumnShow)
-        }}
-      />
-    </m.div>
-  )
-}
 
 const LogoContextMenu: FC<PropsWithChildren> = ({ children }) => {
   const [open, setOpen] = useState(false)

@@ -24,6 +24,7 @@ import { useBackHome } from "~/hooks/biz/useNavigateEntry"
 import { useReduceMotion } from "~/hooks/biz/useReduceMotion"
 import { parseView, useRouteParamsSelector } from "~/hooks/biz/useRouteParams"
 import { useTimelineList } from "~/hooks/biz/useTimelineList"
+import { SubscriptionColumnDock } from "~/modules/app-layout/subscription-column/components/SubscriptionColumnDock"
 
 import { WindowUnderBlur } from "../../components/ui/background"
 import { COMMAND_ID } from "../command/commands/id"
@@ -145,7 +146,10 @@ export function SubscriptionColumn({
         <TabsRow />
       </div>
       <div
-        className={cn("relative mt-1 flex size-full", !shouldFreeUpSpace && "overflow-hidden")}
+        className={cn(
+          "relative mt-1 flex min-h-0 w-full flex-1",
+          !shouldFreeUpSpace && "overflow-hidden",
+        )}
         ref={carouselRef}
         onPointerDown={useTypeScriptHappyCallback((e) => {
           if (!(e.target instanceof HTMLElement) || !e.target.closest("[data-feed-id]")) {
@@ -170,6 +174,8 @@ export function SubscriptionColumn({
           ))}
         </SwipeWrapper>
       </div>
+
+      <SubscriptionColumnDock />
 
       {children}
     </WindowUnderBlur>

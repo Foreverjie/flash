@@ -33,18 +33,18 @@ export const EntryEmptyList = ({
     >
       {unreadOnly ? (
         <EmptyStage
-          eyebrow="All caught up"
+          eyebrow={t("entry_list.zero_unread_eyebrow")}
           glyph={<i className="i-mgc-celebrate-cute-re" />}
           title={t("entry_list.zero_unread")}
-          body="Nothing new in this view. Pop back later or switch off unread-only to revisit older entries."
+          body={t("entry_list.zero_unread_body")}
           size="md"
         />
       ) : (
         <EmptyStage
-          eyebrow="Empty timeline"
+          eyebrow={t("entry_list.empty_eyebrow")}
           glyph={<i className="i-mgc-inbox-cute-re" />}
           title={t("words.zero_items")}
-          body="No entries to show here yet. Check back after your sources update."
+          body={t("entry_list.empty_body")}
           size="md"
         />
       )}

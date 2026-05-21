@@ -76,5 +76,6 @@
   "settings.shortcuts.description": "Customize the application's shortcuts. Below is a list of some commands that can be customized.",
   "settings.shortcuts.press_to_record": "Press keys to record",
   "settings.shortcuts.reset": "Reset",
+  "settings.shortcuts.reset_defaults": "Reset Defaults",
   "settings.shortcuts.undo": "Undo"
 }

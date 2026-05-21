@@ -160,7 +160,7 @@ export const SettingGeneral = () => {
             description: t("general.mark_as_read.render.description"),
           }),
 
-          { type: "title", value: "TTS" },
+          { type: "title", value: t("general.tts") },
 
           IN_ELECTRON && VoiceSelector,
 

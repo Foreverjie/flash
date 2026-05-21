@@ -1,3 +1,4 @@
+import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import type { FeedViewType } from "@follow/constants"
 import { getViewList } from "@follow/constants"
 import { useEntry } from "@follow/store/entry/hooks"
@@ -6,8 +7,9 @@ import { useViewWithSubscription } from "@follow/store/subscription/hooks"
 import { useUnreadByView } from "@follow/store/unread/hooks"
 import { useWhoami } from "@follow/store/user/hooks"
 import { cn } from "@follow/utils/utils"
-import { useAtom } from "jotai"
-import { memo, useEffect, useRef, useState } from "react"
+import { useAtom, useSetAtom } from "jotai"
+import { memo, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { RelativeTime } from "~/components/ui/datetime"
 import { PlainModal } from "~/components/ui/modal/stacked/custom-modal"
@@ -16,7 +18,7 @@ import { LoginModalContent } from "~/modules/auth/LoginModalContent"
 import { useEntriesActions, useEntriesState } from "~/modules/entry-column/context/EntriesContext"
 import { FeedIcon } from "~/modules/feed/feed-icon"
 
-import { mobileActiveViewAtom } from "../atoms"
+import { mobileActiveViewAtom, mobileReaderEntryIdAtom } from "../atoms"
 import { ArticleCardContent } from "../cards/ArticleCard"
 import { getCardType } from "../cards/getCardType"
 import { ImageCardContent } from "../cards/ImageCard"
@@ -36,12 +38,13 @@ export function HomeFeedScreen() {
 }
 
 function PublicHomeFeed() {
+  const { t } = useTranslation()
   const { present } = useModalStack()
 
   const openLogin = () => {
     present({
       id: "login",
-      title: "Login",
+      title: t("words.login"),
       CustomModalComponent: PlainModal,
       content: () => <LoginModalContent runtime="browser" />,
       clickOutsideToDismiss: true,
@@ -49,18 +52,20 @@ function PublicHomeFeed() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-20">
-      <i className="i-mgc-rss-cute-fi mb-4 text-5xl text-brand-accent" />
-      <h2 className="mb-1.5 text-lg font-semibold text-text">Welcome to Flash</h2>
-      <p className="mb-6 text-center text-sm text-text-tertiary">
-        Sign in to follow your favorite feeds, podcasts, and videos.
-      </p>
+    <div className="flex flex-col items-center px-6 py-12">
+      <EmptyStage
+        eyebrow={t("mobile.home.welcome.title")}
+        glyph={<i className="i-mgc-rss-cute-fi" />}
+        title={t("mobile.home.welcome.title")}
+        body={t("mobile.home.welcome.body")}
+        size="md"
+      />
       <button
         type="button"
-        className="rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-white transition-opacity active:opacity-80"
+        className="mt-6 rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-white transition-opacity active:opacity-80"
         onClick={openLogin}
       >
-        Sign In
+        {t("words.login")}
       </button>
     </div>
   )
@@ -75,11 +80,11 @@ function ViewFilterBar({ hidden }: { hidden: boolean }) {
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 bg-background/80 backdrop-blur-lg transition-transform duration-200",
+        "sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur-lg transition-transform duration-200",
         hidden && "-translate-y-full",
       )}
     >
-      <div className="flex w-full items-center gap-1 px-3 py-2">
+      <div className="flex w-full items-stretch gap-1.5 px-3.5 py-2">
         {viewsWithSub.map((viewType) => {
           const viewDef = ALL_VIEW_DEFS.find((v) => v.view === viewType)
           if (!viewDef) return null
@@ -116,77 +121,53 @@ const ViewChip = memo(function ViewChip({
     <button
       type="button"
       onClick={onClick}
-      style={{ flex: isActive ? "1 1 0%" : "0 0 2.5rem" }}
       className={cn(
-        "relative flex items-center justify-center gap-1.5 rounded-full py-2 font-medium transition-[flex,background-color,color] duration-300 ease-out",
-        isActive ? "bg-fill-secondary text-text" : "text-text-tertiary",
+        "relative flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors duration-150",
+        isActive
+          ? "bg-brand-accent text-black"
+          : "bg-fill-tertiary text-text-secondary hover:text-text",
       )}
     >
-      <span
-        className={cn(
-          "shrink-0 text-lg transition-colors duration-300",
-          isActive && viewDef.className,
-        )}
-      >
-        {viewDef.icon}
-      </span>
-      <span
-        className={cn(
-          "overflow-hidden whitespace-nowrap text-sm capitalize transition-[max-width,opacity] duration-300 ease-out",
-          isActive ? "max-w-24 opacity-100" : "max-w-0 opacity-0",
-        )}
-      >
-        {label}
-      </span>
+      <span className="shrink-0 text-base leading-none">{viewDef.icon}</span>
+      <span className="truncate capitalize">{label}</span>
       {!isActive && unread > 0 && (
-        <span className="absolute right-1 top-0.5 size-1.5 rounded-full bg-brand-accent" />
+        <span className="absolute right-1.5 top-1 size-1.5 rounded-full bg-brand-accent" />
       )}
     </button>
   )
 })
 
-function useScrollDirection(ref: React.RefObject<HTMLElement | null>) {
-  const [hidden, setHidden] = useState(false)
-  const lastScrollTop = useRef(0)
-
-  useEffect(() => {
-    const el = ref.current?.parentElement
-    if (!el) return
-
-    const handleScroll = () => {
-      const { scrollTop } = el
-      const delta = scrollTop - lastScrollTop.current
-      if (Math.abs(delta) > 5) {
-        setHidden(delta > 0 && scrollTop > 44)
-      }
-      lastScrollTop.current = scrollTop
-    }
-
-    el.addEventListener("scroll", handleScroll, { passive: true })
-    return () => el.removeEventListener("scroll", handleScroll)
-  }, [ref])
-
-  return hidden
-}
-
 function AuthenticatedHomeFeed() {
+  const { t } = useTranslation()
   const state = useEntriesState()
   const actions = useEntriesActions()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const filterBarHidden = useScrollDirection(scrollRef)
+  const [filterBarHidden, setFilterBarHidden] = useState(false)
 
   const { entriesIds, isLoading, isFetchingNextPage, hasNextPage } = state
 
-  // Infinite scroll
   useEffect(() => {
     const el = scrollRef.current?.parentElement
     if (!el) return
 
+    let lastScrollTop = 0
+    let ticking = false
+
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el
-      if (scrollHeight - scrollTop - clientHeight < 500 && hasNextPage && !isFetchingNextPage) {
-        actions.fetchNextPage()
-      }
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        const { scrollTop, scrollHeight, clientHeight } = el
+        const delta = scrollTop - lastScrollTop
+        if (Math.abs(delta) > 5) {
+          setFilterBarHidden(delta > 0 && scrollTop > 44)
+        }
+        lastScrollTop = scrollTop
+        if (scrollHeight - scrollTop - clientHeight < 500 && hasNextPage && !isFetchingNextPage) {
+          actions.fetchNextPage()
+        }
+        ticking = false
+      })
     }
 
     el.addEventListener("scroll", handleScroll, { passive: true })
@@ -199,10 +180,14 @@ function AuthenticatedHomeFeed() {
       {isLoading && entriesIds.length === 0 ? (
         Array.from({ length: 6 }).map((_, i) => <EntryCardSkeleton key={i} />)
       ) : !isLoading && entriesIds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-text-tertiary">
-          <i className="i-mgc-inbox-cute-re mb-3 text-4xl" />
-          <p>No entries yet</p>
-          <p className="mt-1 text-sm">Subscribe to some feeds to get started</p>
+        <div className="px-6 py-12">
+          <EmptyStage
+            eyebrow={t("mobile.home.empty.title")}
+            glyph={<i className="i-mgc-inbox-cute-re" />}
+            title={t("mobile.home.empty.title")}
+            body={t("mobile.home.empty.body")}
+            size="md"
+          />
         </div>
       ) : (
         <>
@@ -215,7 +200,9 @@ function AuthenticatedHomeFeed() {
             </div>
           )}
           {!hasNextPage && entriesIds.length > 0 && (
-            <div className="py-6 text-center text-sm text-text-tertiary">No more entries</div>
+            <div className="py-6 text-center text-sm text-text-tertiary">
+              {t("mobile.home.end")}
+            </div>
           )}
         </>
       )}
@@ -223,8 +210,10 @@ function AuthenticatedHomeFeed() {
   )
 }
 
-function EntryCard({ entryId }: { entryId: string }) {
+const EntryCard = memo(function EntryCard({ entryId }: { entryId: string }) {
+  const { t } = useTranslation()
   const [activeView] = useAtom(mobileActiveViewAtom)
+  const setReaderEntryId = useSetAtom(mobileReaderEntryIdAtom)
   const entry = useEntry(entryId, (e) => ({
     title: e.title,
     description: e.description,
@@ -232,35 +221,62 @@ function EntryCard({ entryId }: { entryId: string }) {
     feedId: e.feedId,
     media: e.media,
     attachments: e.attachments,
+    url: e.url,
+    read: e.read,
   }))
 
   const feed = useFeedById(entry?.feedId)
 
-  if (!entry) return null
+  const derived = useMemo(() => {
+    if (!entry) return null
+    const cardType = getCardType(activeView, {
+      media: entry.media ?? undefined,
+      attachments: entry.attachments ?? undefined,
+    })
+    const thumbnailUrl = entry.media?.find((m) => m.type === "photo")?.url
+    const video = entry.media?.find((m) => m.type === "video")
+    const videoThumbnail = video?.preview_image_url || video?.url || thumbnailUrl
+    const images =
+      entry.media
+        ?.filter((m) => m.type === "photo")
+        .map((m) => ({ url: m.url, blurhash: m.blurhash })) ?? []
+    const durationRaw = entry.attachments?.find((a) => a.duration_in_seconds)?.duration_in_seconds
+    const duration =
+      typeof durationRaw === "string"
+        ? Number.parseFloat(durationRaw)
+        : typeof durationRaw === "number"
+          ? durationRaw
+          : undefined
+    return { cardType, thumbnailUrl, videoThumbnail, images, duration }
+  }, [entry, activeView])
 
-  const cardType = getCardType(activeView, {
-    media: entry.media ?? undefined,
-    attachments: entry.attachments ?? undefined,
-  })
+  if (!entry || !derived) return null
 
-  const thumbnailUrl = entry.media?.find((m) => m.type === "photo")?.url
-  const videoThumbnail =
-    entry.media?.find((m) => m.type === "video")?.preview_image_url ||
-    entry.media?.find((m) => m.type === "video")?.url ||
-    entry.media?.find((m) => m.type === "photo")?.url
-  const images =
-    entry.media
-      ?.filter((m) => m.type === "photo")
-      .map((m) => ({ url: m.url, blurhash: m.blurhash })) ?? []
-  const durationAttachment = entry.attachments?.find((attachment) => attachment.duration_in_seconds)
-  const duration = durationAttachment?.duration_in_seconds
-    ? typeof durationAttachment.duration_in_seconds === "string"
-      ? Number.parseFloat(durationAttachment.duration_in_seconds)
-      : durationAttachment.duration_in_seconds
-    : undefined
+  const handleOpen = () => {
+    setReaderEntryId(entryId)
+  }
+
+  const { cardType, thumbnailUrl, videoThumbnail, images, duration } = derived
+  const isRead = !!entry.read
 
   return (
-    <article className="cursor-pointer border-b border-border/50 bg-background px-4 py-3">
+    <article
+      role="link"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          handleOpen()
+        }
+      }}
+      className={cn(
+        "relative cursor-pointer border-b border-border/50 bg-background px-4 py-3 transition-colors active:bg-fill-secondary",
+      )}
+    >
+      {!isRead && (
+        <span aria-hidden className="absolute left-1 top-4 size-1.5 rounded-full bg-brand-accent" />
+      )}
       {/* Source row */}
       <div className="mb-1.5 flex items-center gap-2">
         {feed && (
@@ -275,8 +291,13 @@ function EntryCard({ entryId }: { entryId: string }) {
             noMargin
           />
         )}
-        <span className="min-w-0 truncate text-[13px] font-medium text-text-secondary">
-          {feed?.title ?? "Unknown"}
+        <span
+          className={cn(
+            "min-w-0 truncate text-[13px] font-medium",
+            isRead ? "text-text-tertiary" : "text-text-secondary",
+          )}
+        >
+          {feed?.title ?? t("mobile.home.unknown_source")}
         </span>
         {entry.publishedAt && (
           <span className="ml-auto shrink-0 text-[13px] text-text-tertiary">
@@ -287,7 +308,12 @@ function EntryCard({ entryId }: { entryId: string }) {
 
       {/* Title */}
       {entry.title && (
-        <h3 className="mb-1.5 line-clamp-2 text-[15px] font-bold leading-snug text-text">
+        <h3
+          className={cn(
+            "mb-1.5 line-clamp-2 text-[15px] font-bold leading-snug",
+            isRead ? "text-text-secondary" : "text-text",
+          )}
+        >
           {entry.title}
         </h3>
       )}
@@ -306,7 +332,7 @@ function EntryCard({ entryId }: { entryId: string }) {
       {cardType === "podcast" && <PodcastCardContent duration={duration} entryId={entryId} />}
     </article>
   )
-}
+})
 
 function EntryCardSkeleton() {
   return (

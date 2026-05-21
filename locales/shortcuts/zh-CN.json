@@ -72,5 +72,6 @@
   "settings.shortcuts.description": "自定义应用的快捷键。以下是一些可以自定义的命令列表。",
   "settings.shortcuts.press_to_record": "按下以记录",
   "settings.shortcuts.reset": "重置",
+  "settings.shortcuts.reset_defaults": "恢复默认",
   "settings.shortcuts.undo": "撤销"
 }

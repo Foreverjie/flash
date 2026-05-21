@@ -23,6 +23,7 @@ import { CmdNTrigger } from "~/modules/panel/cmdn"
 import { PublicTimelineLayout } from "~/modules/public-timeline"
 import { AppNotificationContainer } from "~/modules/upgrade/lazy/index"
 
+import { OnboardingCoach } from "../new-user-guide/OnboardingCoach"
 import { NewUserGuide } from "./subscription-column/components/NewUserGuide"
 import { SubscriptionColumnContainer } from "./subscription-column/SubscriptionColumn"
 
@@ -178,6 +179,7 @@ export function MainDestopLayout() {
           </EntriesProvider>
 
           <NewUserGuide />
+          <OnboardingCoach />
         </>
       )}
 

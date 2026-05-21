@@ -90,7 +90,7 @@ export const SettingAbout = () => {
       }
 
       present({
-        title: "Debug Actions",
+        title: t("about.debugActions"),
         content: EnvironmentDebugModalContent,
       })
     }
@@ -123,7 +123,7 @@ export const SettingAbout = () => {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           {appVersion && (
             <span className="inline-flex items-center rounded-full bg-fill-secondary px-3 py-1 text-xs font-medium text-text-secondary">
-              <span className="mr-1.5 text-text-tertiary">App</span>
+              <span className="mr-1.5 text-text-tertiary">{t("about.versionChip.app")}</span>
               {appVersion}
             </span>
           )}
@@ -133,7 +133,7 @@ export const SettingAbout = () => {
               onClick={handleRendererVersionClick}
               className="inline-flex items-center rounded-full bg-fill-secondary px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-fill-tertiary"
             >
-              <span className="mr-1.5 text-text-tertiary">Renderer</span>
+              <span className="mr-1.5 text-text-tertiary">{t("about.versionChip.renderer")}</span>
               {rendererVersion}
             </button>
           )}

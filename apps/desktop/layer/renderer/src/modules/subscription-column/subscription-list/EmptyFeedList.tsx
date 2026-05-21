@@ -31,17 +31,17 @@ export const EmptyFeedList = memo(({ onClick }: { onClick?: (e: React.MouseEvent
     <div className="mt-12 flex flex-1 cursor-menu items-center px-4" onClick={handleClick}>
       {isOnDiscoverPage ? (
         <EmptyStage
-          eyebrow="Browse"
+          eyebrow={t("sidebar.empty.on_discover_eyebrow")}
           glyph={<i className="i-mgc-arrow-right-up-cute-re" />}
           title={t("sidebar.already_on_discover_page")}
           size="sm"
         />
       ) : (
         <EmptyStage
-          eyebrow="No sources yet"
+          eyebrow={t("sidebar.empty.eyebrow")}
           glyph={<i className="i-mgc-add-cute-re" />}
           title={t("sidebar.add_more_feeds")}
-          body="Open Discover to find your first feed."
+          body={t("sidebar.empty.body")}
           size="sm"
         />
       )}

@@ -1,3 +1,4 @@
+import { useUnreadAll } from "@follow/store/unread/hooks"
 import { cn } from "@follow/utils/utils"
 import { NavLink } from "react-router"
 
@@ -5,57 +6,65 @@ interface TabItem {
   to: string
   icon: string
   label: string
-  showBadge?: boolean
+  badgeKey?: "unreadAll"
 }
 
 const tabs: TabItem[] = [
-  { to: "/", icon: "i-mgc-home-3-cute", label: "Home" },
-  { to: "/discover", icon: "i-mgc-compass-cute", label: "Discover" },
-  {
-    to: "/notifications",
-    icon: "i-mgc-notification-cute",
-    label: "Notifications",
-    showBadge: true,
-  },
+  { to: "/timeline", icon: "i-mgc-home-5-cute", label: "Home", badgeKey: "unreadAll" },
+  { to: "/discover", icon: "i-mgc-search-3-cute", label: "Discover" },
+  { to: "/notifications", icon: "i-mgc-inbox-cute", label: "Notifications" },
   { to: "/profile", icon: "i-mgc-user-3-cute", label: "Profile" },
 ]
 
+function formatBadgeCount(count: number): string {
+  if (count <= 0) return ""
+  if (count > 99) return "99+"
+  return String(count)
+}
+
 export function MobileTabBar() {
-  // TODO: Replace with actual unread count from notification store when available
-  const unreadCount = 0
+  const unreadAll = useUnreadAll()
 
   return (
     <nav
       aria-label="Main navigation"
-      className="bg-system-background flex h-[50px] shrink-0 items-center border-t border-border pb-safe-area-bottom"
+      className="flex h-[50px] shrink-0 items-center border-t border-border bg-background pb-safe-area-bottom"
     >
-      {tabs.map((tab) => (
-        <NavLink
-          key={tab.to}
-          to={tab.to}
-          end={tab.to === "/"}
-          aria-label={
-            tab.showBadge && unreadCount > 0
-              ? `${tab.label}, ${unreadCount} unread notifications`
-              : tab.label
-          }
-          className={({ isActive }) =>
-            cn(
-              "relative flex flex-1 flex-col items-center justify-center py-2 transition-colors",
-              isActive ? "text-brand-accent" : "text-text-tertiary",
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <i className={cn(tab.icon + (isActive ? "-fi" : "-re"), "text-2xl")} />
-              {tab.showBadge && unreadCount > 0 && (
-                <span className="absolute right-1/4 top-1 size-2 rounded-full bg-brand-accent" />
-              )}
-            </>
-          )}
-        </NavLink>
-      ))}
+      {tabs.map((tab) => {
+        const count = tab.badgeKey === "unreadAll" ? unreadAll : 0
+        const badge = formatBadgeCount(count)
+        return (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            end={tab.to === "/timeline"}
+            aria-label={badge ? `${tab.label}, ${count} unread` : tab.label}
+            className={({ isActive }) =>
+              cn(
+                "relative flex flex-1 flex-col items-center justify-center py-2 transition-colors",
+                isActive ? "text-brand-accent" : "text-text-tertiary",
+              )
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <i className={cn(tab.icon + (isActive ? "-fi" : "-re"), "text-2xl")} />
+                {badge && (
+                  <span
+                    className={cn(
+                      "absolute right-[28%] top-1 flex min-w-[16px] items-center justify-center rounded-full px-1",
+                      "h-4 text-[10px] font-semibold leading-none text-white",
+                      "bg-red",
+                    )}
+                  >
+                    {badge}
+                  </span>
+                )}
+              </>
+            )}
+          </NavLink>
+        )
+      })}
     </nav>
   )
 }

@@ -74,5 +74,6 @@
   "settings.shortcuts.description": "アプリケーションのショートカットをカスタマイズします。以下はカスタマイズ可能なコマンドのリストです。",
   "settings.shortcuts.press_to_record": "記録するにはキーを押してください",
   "settings.shortcuts.reset": "リセット",
+  "settings.shortcuts.reset_defaults": "デフォルトにリセット",
   "settings.shortcuts.undo": "元に戻す"
 }

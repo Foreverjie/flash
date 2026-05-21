@@ -76,5 +76,6 @@
   "settings.shortcuts.description": "自訂應用程式的快捷鍵。以下是一些可以自訂的指令清單。",
   "settings.shortcuts.press_to_record": "按下以記錄",
   "settings.shortcuts.reset": "重設",
+  "settings.shortcuts.reset_defaults": "重設為預設",
   "settings.shortcuts.undo": "復原"
 }

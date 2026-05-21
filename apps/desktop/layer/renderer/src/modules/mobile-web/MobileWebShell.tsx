@@ -1,5 +1,3 @@
-import { brandColors } from "@follow/constants"
-import { useIsDark } from "@follow/hooks"
 import { usePrefetchSessionUser, useWhoami } from "@follow/store/user/hooks"
 import { useAtomValue } from "jotai"
 import { Outlet, useLocation } from "react-router"
@@ -9,12 +7,15 @@ import { ErrorComponentType } from "~/components/errors/enum"
 import { EntriesProvider } from "~/modules/entry-column/context/EntriesContext"
 import { CornerPlayer } from "~/modules/player/corner-player"
 
+import { OnboardingCoach } from "../new-user-guide/OnboardingCoach"
 import { mobileActiveViewAtom } from "./atoms"
+import { useMobileBrandStyle } from "./mobile-brand-style"
 import { MobileAccountDrawer } from "./MobileAccountDrawer"
 import { MobileHeader } from "./MobileHeader"
 import { MobileTabBar } from "./MobileTabBar"
+import { MobileEntryReaderHost } from "./reader/MobileEntryReader"
+import { TAB_ROUTES } from "./routes"
 
-const TAB_ROUTES = new Set(["/", "/discover", "/notifications", "/profile"])
 const errorTypes = [
   ErrorComponentType.Page,
   ErrorComponentType.FeedFoundCanBeFollow,
@@ -24,21 +25,11 @@ const errorTypes = [
 export function MobileWebShell() {
   const location = useLocation()
   const isTabRoute = TAB_ROUTES.has(location.pathname)
-  const isDark = useIsDark()
   const user = useWhoami()
   const activeView = useAtomValue(mobileActiveViewAtom)
   usePrefetchSessionUser()
 
-  const colorVars = {
-    "--fo-brand-accent": isDark ? brandColors.accent.dark : brandColors.accent.light,
-    "--fo-brand-accent-pressed": isDark
-      ? brandColors.accentPressed.dark
-      : brandColors.accentPressed.light,
-    "--fo-brand-accent-tint": isDark ? brandColors.accentTint.dark : brandColors.accentTint.light,
-    "--fo-brand-accent-muted": isDark
-      ? brandColors.accentMuted.dark
-      : brandColors.accentMuted.light,
-  } as React.CSSProperties
+  const colorVars = useMobileBrandStyle()
 
   return (
     <div
@@ -56,6 +47,8 @@ export function MobileWebShell() {
       {isTabRoute && <MobileTabBar />}
       <CornerPlayer hideControls />
       {user && <MobileAccountDrawer />}
+      <MobileEntryReaderHost />
+      <OnboardingCoach />
     </div>
   )
 }

@@ -110,7 +110,7 @@ export const SettingInput: Component<{
     <div
       className={cn(
         "mb-1 flex",
-        vertical ? "mb-2 flex-col gap-3" : "flex-row items-center justify-between gap-12",
+        vertical ? "mb-2 flex-col gap-3" : "flex-row items-center justify-between gap-4 lg:gap-12",
         className,
       )}
     >
@@ -138,7 +138,7 @@ export const SettingTextArea: Component<{
     <div
       className={cn(
         "mb-1 flex",
-        vertical ? "mb-2 flex-col gap-3" : "flex-row items-center justify-between gap-12",
+        vertical ? "mb-2 flex-col gap-3" : "flex-row items-center justify-between gap-4 lg:gap-12",
         className,
       )}
     >

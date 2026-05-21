@@ -1,9 +1,10 @@
+import { useMobile } from "@follow/components/hooks/useMobile.js"
 import { EllipsisHorizontalTextWithTooltip } from "@follow/components/ui/typography/index.js"
 import { cn } from "@follow/utils/utils"
 import { Slot } from "@radix-ui/react-slot"
 import { use } from "react"
 import { useTranslation } from "react-i18next"
-import { useLoaderData } from "react-router"
+import { useLoaderData, useLocation } from "react-router"
 
 import { IsInSettingIndependentWindowContext } from "./context"
 import { getMemoizedSettings } from "./settings-glob"
@@ -47,6 +48,13 @@ export const SettingsTitle = ({
   const usedIcon = headerIcon || iconName
   const usedTitle = title || name
   const isInSettingIndependentWindow = use(IsInSettingIndependentWindowContext)
+  const isMobile = useMobile()
+  const { pathname } = useLocation()
+  // On mobile-web the MobileSettingsShell renders its own header showing
+  // the current category name; rendering this title inline would duplicate it.
+  if (isMobile && pathname.startsWith("/settings/")) {
+    return null
+  }
   if (!usedTitle) {
     return null
   }

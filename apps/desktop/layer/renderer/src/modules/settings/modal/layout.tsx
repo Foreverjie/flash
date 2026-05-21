@@ -116,7 +116,7 @@ export function SettingModalLayout(props: PropsWithChildren) {
               <div className="absolute inset-x-0 top-0 z-[1] h-8" onPointerDown={handleDrag} />
             )}
             <div className="flex h-0 flex-1" ref={elementRef}>
-              <div className="flex min-h-0 min-w-44 max-w-[20ch] flex-col rounded-l-xl border-r border-r-border bg-sidebar px-2 py-6 backdrop-blur-background">
+              <div className="flex min-h-0 min-w-44 max-w-[20ch] flex-col rounded-l-xl border-r border-border bg-material-thick px-2 py-6 backdrop-blur-background">
                 <div className="mb-4 flex h-8 items-center gap-2 px-2 font-bold">
                   <Logo className="mr-1 size-6" />
 
@@ -221,5 +221,6 @@ export const SidebarItems = memo((props: { onChange?: (tab: string) => void }) =
 
 export const SettingModalContentPortal: Component = ({ children }) => {
   const element = useAtomValue(use(SettingModalContentPortalableContext))
+  if (!element) return <>{children}</>
   return createPortal(children, element)
 }
