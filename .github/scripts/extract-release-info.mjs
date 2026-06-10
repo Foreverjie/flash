@@ -16,7 +16,7 @@ const RELEASE_PATTERNS = {
 
 const EXIT_CODES = {
   SUCCESS: 0,
-  NO_RELEASE_FOUND: 1,
+  NO_RELEASE_FOUND: 0, // normal outcome; downstream steps gate on env.tag_version
   GIT_ERROR: 2,
   ENV_ERROR: 3,
 }

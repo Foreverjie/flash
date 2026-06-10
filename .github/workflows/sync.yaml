@@ -28,6 +28,10 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           # Sync main to dev
+          if ! git rev-parse --verify origin/dev >/dev/null 2>&1; then
+            echo "No dev branch — nothing to sync"
+            exit 0
+          fi
           git checkout main
           SYNC_BRANCH_DEV=${{ env.SYNC_BRANCH_MAIN_DEV }}
           git checkout -B $SYNC_BRANCH_DEV
