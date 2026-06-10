@@ -27,7 +27,7 @@
     "seed-topics": "tsx src/scripts/seed-topics.ts",
     "start": "node dist/index.js",
     "sync-feeds": "tsx src/scripts/sync-feeds.ts",
-    "test": "vitest run",
+    "test": "node src/scripts/run-tests.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
