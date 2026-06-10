@@ -47,7 +47,7 @@ jobs:
         run: pnpm install
       - name: Build web and SSR server
         run: |
-          npm exec turbo run Folo#build:web @follow/ssr#build
+          npm exec turbo run Flash#build:web @follow/ssr#build
       - name: Format, Lint and Typecheck
         run: |
           export NODE_OPTIONS="--max_old_space_size=16384"
