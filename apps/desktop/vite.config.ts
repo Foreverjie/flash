@@ -156,6 +156,9 @@ export default ({ mode }) => {
             globPatterns: [
               "**/*.{js,json,css,html,txt,svg,png,ico,webp,woff,woff2,ttf,eot,otf,wasm}",
             ],
+            // Variable-font TTFs exceed workbox's 2 MiB precache limit; they
+            // are still served normally, just not precached by the SW.
+            globIgnores: ["fonts/GoogleSans*.ttf"],
 
             manifestTransforms: [
               (manifest) => {

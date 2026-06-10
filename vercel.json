@@ -346,8 +346,8 @@
       "permanent": true
     },
     {
-      "source": "/profile/:path*",
-      "destination": "/share/users/:path*",
+      "source": "/profile/:path+",
+      "destination": "/share/users/:path+",
       "permanent": true
     }
   ],
