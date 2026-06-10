@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs"
+
 import type { ConfigContext, ExpoConfig } from "expo/config"
 import { resolve } from "pathe"
 
-import PKG from "./package.json"
+// Read instead of import: EAS CLI's ESM config loader rejects bare JSON
+// imports ("needs an import attribute of type: json").
+const PKG = JSON.parse(readFileSync(resolve(__dirname, "./package.json"), "utf8")) as {
+  version: string
+}
 
 // const roundedIconPath = resolve(__dirname, "../../resources/icon.png")
 const iconPathMap = {
