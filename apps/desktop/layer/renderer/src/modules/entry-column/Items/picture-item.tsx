@@ -97,7 +97,7 @@ export const PictureWaterFallItem = memo(function PictureWaterFallItem({
       <EntryItemWrapper
         view={FeedViewType.Pictures}
         entryId={entryId}
-        itemClassName="group rounded-md hover:bg-transparent"
+        itemClassName="group rounded-md transition-transform duration-200 hover:-translate-y-0.5 hover:bg-transparent hover:shadow-lg"
         style={{
           width: itemWidth,
         }}
@@ -107,11 +107,11 @@ export const PictureWaterFallItem = memo(function PictureWaterFallItem({
             <SwipeMedia
               media={media}
               className={cn(
-                "w-full grow rounded-md after:pointer-events-none after:absolute after:inset-0 after:bg-transparent after:transition-colors after:duration-300 group-hover:after:bg-black/20",
+                "w-full grow overflow-hidden rounded-md after:pointer-events-none after:absolute after:inset-0 after:bg-transparent after:transition-colors after:duration-300 group-hover:after:bg-black/20",
                 isActive && "rounded-b-none",
               )}
               proxySize={proxySize}
-              imgClassName="object-cover"
+              imgClassName="object-cover transition-transform duration-300 ease-out group-hover:scale-105"
             />
             {!isImageOnly && (
               <div className="z-[3] shrink-0 overflow-hidden rounded-b-md pb-1">

@@ -95,6 +95,7 @@ export const GridItemFooter = ({
         <div
           className={cn(
             "relative mb-1 mt-1.5 flex w-full items-center gap-1 truncate font-medium",
+            "transition-colors duration-200 group-hover:text-accent",
             titleClassName,
           )}
         >

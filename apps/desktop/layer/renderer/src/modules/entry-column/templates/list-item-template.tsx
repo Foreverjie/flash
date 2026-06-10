@@ -210,7 +210,10 @@ export function ListItem({
         >
           {entry?.title ? (
             <EntryTranslation
-              className={cn("autospace-normal hyphens-auto font-medium", lineClamp.title)}
+              className={cn(
+                "autospace-normal hyphens-auto font-medium transition-colors duration-200 group-hover/entry:text-accent",
+                lineClamp.title,
+              )}
               source={titleCase(entry?.title ?? "")}
               target={titleCase(translation?.title ?? "")}
             />

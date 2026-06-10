@@ -1,18 +1,26 @@
+import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@follow/components/ui/tabs/index.jsx"
-import { cn } from "@follow/utils/utils"
+import { CategoryMap, RSSHubCategories } from "@follow/constants"
+import { useIsSubscribed } from "@follow/store/subscription/hooks"
+import { cn, formatNumber } from "@follow/utils/utils"
+import type { TrendingFeedItem } from "@follow-app/client-sdk"
+import { useQuery } from "@tanstack/react-query"
 import { createElement } from "react"
 import { useTranslation } from "react-i18next"
-import { useSearchParams } from "react-router"
+import { Link, useLocation, useSearchParams } from "react-router"
 
+import { useUISettingKey } from "~/atoms/settings/ui"
 import { AppErrorBoundary } from "~/components/common/AppErrorBoundary"
 import { ErrorComponentType } from "~/components/errors/enum"
+import { useFollow } from "~/hooks/biz/useFollow"
+import { navigateEntry } from "~/hooks/biz/useNavigateEntry"
+import { followClient } from "~/lib/api-client"
 import { DiscoverForm } from "~/modules/discover/DiscoverForm"
 import { DiscoverImport } from "~/modules/discover/DiscoverImport"
 import { DiscoverInboxList } from "~/modules/discover/DiscoverInboxList"
 import { DiscoverTransform } from "~/modules/discover/DiscoverTransform"
 import { DiscoverUser } from "~/modules/discover/DiscoverUser"
-import { Recommendations } from "~/modules/discover/recommendations"
-import { Trending } from "~/modules/trending"
+import { FeedIcon } from "~/modules/feed/feed-icon"
 
 const tabs: { name: I18nKeys; value: string }[] = [
   { name: "words.search", value: "search" },
@@ -32,10 +40,22 @@ const TabComponent: Record<string, React.FC<{ type?: string; isInit?: boolean }>
   transform: DiscoverTransform,
 }
 
+/** Bold, blank-canvas section heading: accent eyebrow + compact title. */
+function SectionHead({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
+        {eyebrow}
+      </div>
+      <h2 className="mt-1 text-[15px] font-semibold text-text">{title}</h2>
+    </div>
+  )
+}
+
 /**
- * Mobile-friendly Discover screen. Same data sources as the desktop variant
- * (DiscoverForm, Trending, Recommendations) but with compact typography and
- * a horizontally scrollable tab strip instead of the centered Stage layout.
+ * Mobile-friendly Discover screen. Leads with the search affordances (same data
+ * sources as the desktop variant) then storyboards the bold Discover surface:
+ * full-color topic tiles, a trending leaderboard, and curated starter packs.
  */
 export function MobileDiscoverScreen() {
   const [search, setSearch] = useSearchParams()
@@ -43,17 +63,15 @@ export function MobileDiscoverScreen() {
   const activeType = search.get("type") || "search"
 
   return (
-    <div className="flex flex-col gap-6 px-4 pb-10 pt-3">
+    <div className="flex flex-col gap-8 px-4 pb-10 pt-3">
       <header>
         <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
           {t("mobile.discover.eyebrow")}
         </div>
-        <h1 className="mt-1.5 text-balance text-[22px] font-semibold leading-tight tracking-[-0.01em] text-text">
+        <h1 className="mt-1.5 text-balance text-[28px] font-semibold leading-[1.05] tracking-[-0.02em] text-text">
           {t("mobile.discover.title")}
         </h1>
-        <p className="mt-1.5 text-sm leading-snug text-text-secondary">
-          {t("mobile.discover.body")}
-        </p>
+        <p className="mt-2 text-sm leading-snug text-text-secondary">{t("mobile.discover.body")}</p>
       </header>
 
       <Tabs
@@ -96,27 +114,247 @@ export function MobileDiscoverScreen() {
         </div>
       </Tabs>
 
-      <section className="mt-2">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-          {t("words.trending")}
-        </div>
-        <h2 className="mb-3 mt-1.5 text-[15px] font-semibold text-text">
-          {t("mobile.discover.trending_subtitle")}
-        </h2>
-        <Trending center={false} />
+      <section>
+        <SectionHead eyebrow={t("words.categories")} title={t("mobile.discover.topics_subtitle")} />
+        <TopicTiles />
       </section>
 
-      <section className="mt-2">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-          {t("words.for_you")}
-        </div>
-        <h2 className="mb-3 mt-1.5 text-[15px] font-semibold text-text">
-          {t("mobile.discover.recommendations_subtitle")}
-        </h2>
+      <section>
+        <SectionHead eyebrow={t("words.trending")} title={t("mobile.discover.trending_subtitle")} />
         <AppErrorBoundary errorType={ErrorComponentType.RSSHubDiscoverError}>
-          <Recommendations />
+          <TrendingLeaderboard />
         </AppErrorBoundary>
       </section>
+
+      <section>
+        <SectionHead
+          eyebrow={t("mobile.discover.packs_eyebrow")}
+          title={t("mobile.discover.packs_subtitle")}
+        />
+        <StarterPacks />
+      </section>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Topics — full-color category tiles (real RSSHub categories)
+// ──────────────────────────────────────────────────────────────────────────
+function TopicTiles() {
+  const { t } = useTranslation("common")
+  const categories = RSSHubCategories.filter((cat) => cat !== "all")
+
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-2.5">
+      {categories.map((cat) => {
+        const meta = CategoryMap[cat]
+        return (
+          <Link
+            key={cat}
+            to={`/discover/category/${cat}`}
+            className="relative flex h-[84px] flex-col justify-end overflow-hidden rounded-2xl p-3 text-white shadow-[var(--shadow-card)] transition-transform active:scale-[0.98]"
+            style={{
+              backgroundImage: `linear-gradient(-135deg, ${meta?.color}D9, ${meta?.color})`,
+            }}
+          >
+            <div className="absolute -right-3 -top-3 text-[44px] opacity-25">{meta?.emoji}</div>
+            <div className="relative text-[15px] font-bold leading-tight drop-shadow-sm">
+              {t(`discover.category.${cat}`)}
+            </div>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Trending — compact ranked leaderboard (real trending feeds)
+// ──────────────────────────────────────────────────────────────────────────
+function TrendingLeaderboard() {
+  const lang = useUISettingKey("discoverLanguage")
+  const { data, isLoading } = useQuery({
+    queryKey: ["trending", "mobile-leaderboard", lang],
+    queryFn: () =>
+      followClient.api.trending.getFeeds({
+        language: lang === "all" ? undefined : lang,
+        limit: 8,
+      }),
+    meta: { persist: true },
+  })
+
+  if (isLoading) {
+    return (
+      <div className="mt-2 flex flex-col">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="my-1.5 h-[52px] w-full rounded-xl" />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-1 flex flex-col">
+      {data?.data?.map((item, index) => (
+        <TrendingRow key={item.feed?.id || index} item={item} rank={index + 1} />
+      ))}
+    </div>
+  )
+}
+
+function TrendingRow({ item, rank }: { item: TrendingFeedItem; rank: number }) {
+  const { t } = useTranslation()
+  const { t: tCommon } = useTranslation("common")
+  const location = useLocation()
+  const follow = useFollow()
+  const isSubscribed = useIsSubscribed(item.feed?.id || "")
+  const followers = item.analytics?.subscriptionCount
+
+  return (
+    <div className="border-border-secondary flex items-center gap-3 border-b py-2.5 last:border-b-0">
+      <div
+        className={cn(
+          "w-5 shrink-0 text-center text-base font-bold tabular-nums",
+          rank <= 3 ? "text-accent" : "text-text-quaternary",
+        )}
+      >
+        {rank}
+      </div>
+
+      <button
+        type="button"
+        disabled={!item.feed?.id}
+        onClick={() => {
+          if (!item.feed?.id) return
+          navigateEntry({
+            feedId: item.feed.id,
+            view: item.analytics?.view ?? 0,
+            backPath: `${location.pathname}${location.search}`,
+          })
+        }}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+      >
+        <FeedIcon
+          target={item.feed ? { ...item.feed, type: "feed" } : null}
+          size={36}
+          className="shrink-0"
+          noMargin
+        />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-text">{item.feed?.title}</div>
+          {!!followers && (
+            <div className="mt-0.5 text-xs text-text-tertiary">
+              {formatNumber(followers)} {tCommon("feed.follower", { count: followers })}
+            </div>
+          )}
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={() =>
+          follow({
+            isList: false,
+            id: item.feed?.id,
+            url: item.feed?.url,
+          })
+        }
+        className={cn(
+          "h-7 shrink-0 rounded-full px-3.5 text-xs font-semibold transition-colors",
+          isSubscribed
+            ? "bg-brand-accent text-white"
+            : "border border-border bg-background text-text active:bg-fill",
+        )}
+      >
+        {isSubscribed ? t("feed.actions.followed") : t("feed.actions.follow")}
+      </button>
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Starter packs — curated horizontal carousel (mock content)
+// ──────────────────────────────────────────────────────────────────────────
+const STARTER_PACKS: {
+  id: string
+  name: string
+  desc: string
+  count: number
+  color: string
+  members: string[]
+}[] = [
+  {
+    id: "design-greats",
+    name: "Design greats",
+    desc: "The blogs every product designer keeps in their reader.",
+    count: 14,
+    color: "#EC407A",
+    members: ["R", "S", "N", "D"],
+  },
+  {
+    id: "ai-frontier",
+    name: "AI frontier",
+    desc: "Labs, researchers and analysts worth following weekly.",
+    count: 18,
+    color: "#7E57C2",
+    members: ["A", "O", "G", "D"],
+  },
+  {
+    id: "indie-web",
+    name: "The indie web",
+    desc: "Personal sites and small blogs with big ideas.",
+    count: 22,
+    color: "#66BB6A",
+    members: ["R", "M", "T", "K"],
+  },
+]
+
+function StarterPacks() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1.5">
+      {STARTER_PACKS.map((pack) => (
+        <div
+          key={pack.id}
+          className="border-border-secondary flex w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl border bg-background shadow-[var(--shadow-card)]"
+        >
+          <div className="flex h-[72px] items-end p-3" style={{ backgroundColor: pack.color }}>
+            <div className="flex">
+              {pack.members.map((m, i) => (
+                <div
+                  key={i}
+                  className="flex size-8 items-center justify-center rounded-full border-2 border-white text-xs font-bold"
+                  style={{
+                    backgroundColor: "#fff",
+                    color: pack.color,
+                    marginLeft: i ? -8 : 0,
+                  }}
+                >
+                  {m}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-1 flex-col p-3.5">
+            <div className="text-[15px] font-bold text-text">{pack.name}</div>
+            <div className="mt-1 line-clamp-2 min-h-[34px] text-[13px] leading-snug text-text-tertiary">
+              {pack.desc}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-xs font-medium text-text-secondary">
+                {t("mobile.discover.pack_feed_count", { count: pack.count })}
+              </span>
+              <button
+                type="button"
+                className="h-7 rounded-full bg-fill px-3.5 text-xs font-bold text-text active:bg-fill-secondary"
+              >
+                {t("mobile.discover.follow_all")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

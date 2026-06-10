@@ -108,9 +108,19 @@ export const ProfileButton: FC<ProfileButtonProps> = memo((props) => {
         <DropdownMenuItem
           className="pl-3"
           onClick={() => {
-            presentUserProfile(user?.id)
+            navigate("/profile")
           }}
           icon={<i className="i-mgc-user-3-cute-re" />}
+        >
+          {t("user_button.me")}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="pl-3"
+          onClick={() => {
+            presentUserProfile(user?.id)
+          }}
+          icon={<i className="i-mgc-eye-2-cute-re" />}
         >
           {t("user_button.profile")}
         </DropdownMenuItem>
