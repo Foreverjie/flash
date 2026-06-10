@@ -1,14 +1,15 @@
-// Shared building blocks + design data for the Me / profile surface
-// (desktop canvas + mobile-web screen). The reading stats, streak,
-// achievements and activity heatmap are presentational design elements;
-// the avatar, identity, subscription count and navigation are wired to
-// real data by the consuming screens.
+// Shared building blocks + data hooks for the Me / profile surface
+// (desktop canvas + mobile-web screen). Stats, streak, achievements and
+// the activity heatmap read from GET /me/stats when available and fall
+// back to presentational design values while loading or signed out.
 
 import type { FeedModel } from "@follow/store/feed/types"
 import type { TFunction } from "i18next"
 import type { CSSProperties } from "react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+
+import { useMeStatsQuery } from "~/queries/me"
 
 export interface MeStat {
   id: string
@@ -74,36 +75,84 @@ export function BoltMotif({
   )
 }
 
+/** Fallback design values shown while stats load or when signed out. */
+const FALLBACK_STREAK = 73
+const FALLBACK_READ = 3914
+
 export function useMeStats(feedCount: number, listCount: number): MeStat[] {
   const { t } = useTranslation()
+  const { data } = useMeStatsQuery()
+  const streak = data?.currentStreakDays ?? FALLBACK_STREAK
+  const read = data?.readCount ?? FALLBACK_READ
   return useMemo(
     () => [
       { id: "feeds", value: String(feedCount), label: t("me.stats.feeds") },
-      { id: "streak", value: "73", label: t("me.stats.streak"), accent: true },
-      { id: "read", value: "3,914", label: t("me.stats.read") },
+      { id: "streak", value: String(streak), label: t("me.stats.streak"), accent: true },
+      { id: "read", value: read.toLocaleString(), label: t("me.stats.read") },
       { id: "lists", value: String(listCount), label: t("me.stats.lists") },
     ],
-    [feedCount, listCount, t],
+    [feedCount, listCount, streak, read, t],
   )
+}
+
+/** Current reading streak + distance to the next (100-day) badge. */
+export function useMeStreak(): { current: number; toNextBadge: number } {
+  const { data } = useMeStatsQuery()
+  const current = data?.currentStreakDays ?? FALLBACK_STREAK
+  return { current, toNextBadge: Math.max(100 - current, 0) }
+}
+
+/** Localized weekday name ("Tuesdays") from a 0=Sunday index. */
+function weekdayName(weekday: number, locale?: string): string {
+  // 2026-06-07 is a known Sunday; offset to the target weekday.
+  const date = new Date(Date.UTC(2026, 5, 7 + weekday))
+  return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(date)
 }
 
 export function useMeHighlights(): MeHighlight[] {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const { data } = useMeStatsQuery()
   return useMemo(
     () => [
-      { id: "busiest", value: t("me.highlights.busiest_value"), label: t("me.highlights.busiest") },
-      { id: "top", value: t("me.highlights.top_value"), label: t("me.highlights.top") },
-      { id: "longest", value: t("me.highlights.longest_value"), label: t("me.highlights.longest") },
-      { id: "words", value: t("me.highlights.words_value"), label: t("me.highlights.words") },
+      {
+        id: "busiest",
+        value:
+          data?.busiestWeekday != null
+            ? weekdayName(data.busiestWeekday, i18n.language)
+            : t("me.highlights.busiest_value"),
+        label: t("me.highlights.busiest"),
+      },
+      {
+        id: "top",
+        value: data?.topFeed?.title || t("me.highlights.top_value"),
+        label: t("me.highlights.top"),
+      },
+      {
+        id: "longest",
+        value: data
+          ? t("me.highlights.days", { count: data.longestStreakDays })
+          : t("me.highlights.longest_value"),
+        label: t("me.highlights.longest"),
+      },
+      {
+        id: "read",
+        value: data
+          ? t("me.highlights.entries", { count: data.readCount })
+          : t("me.highlights.words_value"),
+        label: t("me.highlights.words"),
+      },
     ],
-    [t],
+    [data, i18n.language, t],
   )
 }
 
-export function useMeAchievements(): MeAchievement[] {
+export function useMeAchievements(feedCount = 0): MeAchievement[] {
   const { t } = useTranslation()
-  return useMemo(
-    () => [
+  const { data } = useMeStatsQuery()
+  return useMemo(() => {
+    const read = data?.readCount ?? FALLBACK_READ
+    const streak = data?.longestStreakDays ?? FALLBACK_STREAK
+    return [
       {
         id: "earlybird",
         name: t("me.achievements.earlybird.name"),
@@ -118,7 +167,8 @@ export function useMeAchievements(): MeAchievement[] {
         desc: t("me.achievements.power.desc"),
         icon: "i-mgc-fire-cute-fi",
         color: "#E5484D",
-        unlocked: true,
+        unlocked: read >= 1000,
+        progress: Math.min(read / 1000, 1),
       },
       {
         id: "curator",
@@ -142,8 +192,8 @@ export function useMeAchievements(): MeAchievement[] {
         desc: t("me.achievements.century.desc"),
         icon: "i-mgc-trophy-cute-re",
         color: "#30A46C",
-        unlocked: false,
-        progress: 0.73,
+        unlocked: streak >= 100,
+        progress: Math.min(streak / 100, 1),
       },
       {
         id: "explorer",
@@ -151,12 +201,11 @@ export function useMeAchievements(): MeAchievement[] {
         desc: t("me.achievements.explorer.desc"),
         icon: "i-mgc-compass-3-cute-re",
         color: "#10A2A2",
-        unlocked: false,
-        progress: 0.48,
+        unlocked: feedCount >= 100,
+        progress: feedCount > 0 ? Math.min(feedCount / 100, 1) : 0.48,
       },
-    ],
-    [t],
-  )
+    ]
+  }, [data, feedCount, t])
 }
 
 export function useMeSettings(email?: string | null): MeSettingItem[] {
@@ -254,6 +303,48 @@ export function buildReadingHeatmap(weeks = 26): number[][] {
     cells.push(col)
   }
   return cells
+}
+
+/**
+ * Weeks×7 heatmap levels + active-day count. Uses the real per-day read
+ * counts from /me/stats when present, otherwise the deterministic design
+ * grid so the surface still reads well while loading or signed out.
+ */
+export function useReadingHeatmap(weeks = 26): { grid: number[][]; activeDays: number } {
+  const { data } = useMeStatsQuery()
+  return useMemo(() => {
+    if (!data || data.heatmap.length === 0) {
+      return { grid: buildReadingHeatmap(weeks), activeDays: data?.activeDays ?? 182 }
+    }
+
+    const counts = new Map(data.heatmap.map((r) => [r.day, r.count]))
+    const max = Math.max(...data.heatmap.map((r) => r.count))
+    const level = (count: number) =>
+      count === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((count / max) * 4)))
+
+    // Build columns ending on the current week, days indexed 0=Sunday.
+    const today = new Date()
+    const grid: number[][] = []
+    const lastSunday = new Date(today)
+    lastSunday.setDate(today.getDate() - today.getDay())
+    for (let w = weeks - 1; w >= 0; w--) {
+      const col: number[] = []
+      for (let d = 0; d < 7; d++) {
+        const cell = new Date(lastSunday)
+        cell.setDate(lastSunday.getDate() - w * 7 + d)
+        if (cell > today) {
+          col.push(0)
+          continue
+        }
+        const key = `${cell.getFullYear()}-${String(cell.getMonth() + 1).padStart(2, "0")}-${String(
+          cell.getDate(),
+        ).padStart(2, "0")}`
+        col.push(level(counts.get(key) ?? 0))
+      }
+      grid.push(col)
+    }
+    return { grid, activeDays: data.activeDays }
+  }, [data, weeks])
 }
 
 /** Bare hostname for a feed, used as the subscription row subtitle. */

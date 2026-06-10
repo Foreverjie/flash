@@ -24,6 +24,7 @@ import {
   useMeAchievements,
   useMeSettings,
   useMeStats,
+  useMeStreak,
 } from "~/modules/profile/me/me-parts"
 import { signOut } from "~/queries/auth"
 
@@ -38,8 +39,9 @@ export function ProfileScreen() {
   const subscriptionIds = useAllFeedSubscriptionIds()
 
   const stats = useMeStats(feedCount, listCount)
-  const achievements = useMeAchievements()
+  const achievements = useMeAchievements(feedCount)
   const settings = useMeSettings(user?.email)
+  const streak = useMeStreak()
 
   if (!user) {
     return (
@@ -137,10 +139,10 @@ export function ProfileScreen() {
           <i className="i-mgc-fire-cute-fi text-3xl text-accent" />
           <div className="relative">
             <div className="text-2xl font-bold tracking-[-0.02em]">
-              {t("me.streak.title", { count: 73 })}
+              {t("me.streak.title", { count: streak.current })}
             </div>
             <div className="text-[12.5px] text-white/70">
-              {t("me.streak.subtitle", { count: 27 })}
+              {t("me.streak.subtitle", { count: streak.toNextBadge })}
             </div>
           </div>
         </div>

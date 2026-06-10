@@ -19,10 +19,13 @@ import entriesRouter from "./routes/entries.js"
 import feedsRouter from "./routes/feeds.js"
 import healthRouter from "./routes/health.js"
 import internalScraplingRouter from "./routes/internal-scrapling.js"
+import meRouter from "./routes/me.js"
+import packsRouter from "./routes/packs.js"
 import postsRouter from "./routes/posts.js"
 import readsRouter from "./routes/reads.js"
 import subscriptionsRouter from "./routes/subscriptions.js"
 import topicsRouter from "./routes/topics.js"
+import trendingRouter from "./routes/trending.js"
 import usersRouter from "./routes/users.js"
 import { logger } from "./utils/logger.js"
 
@@ -140,6 +143,18 @@ app.route("/api/v1/subscriptions", subscriptionsRouter)
 // Topics + onboarding routes
 app.route("/topics", topicsRouter)
 app.route("/api/v1/topics", topicsRouter)
+
+// Trending routes (Discover leaderboard)
+app.route("/trending", trendingRouter)
+app.route("/api/v1/trending", trendingRouter)
+
+// Starter pack routes (Discover curated bundles)
+app.route("/packs", packsRouter)
+app.route("/api/v1/packs", packsRouter)
+
+// Me routes (private aggregated stats)
+app.route("/me", meRouter)
+app.route("/api/v1/me", meRouter)
 
 // Entry routes (authenticated timeline)
 app.route("/entries", entriesRouter)

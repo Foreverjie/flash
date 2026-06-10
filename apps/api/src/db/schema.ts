@@ -362,6 +362,52 @@ export const feedTopics = pgTable(
 )
 
 /**
+ * Starter packs table - curated feed bundles surfaced on Discover
+ * ("Design greats", "AI frontier", ...). A pack is followed as a whole.
+ */
+export const starterPacks = pgTable(
+  "starter_packs",
+  {
+    id: varchar("id", { length: 255 }).primaryKey(),
+    slug: varchar("slug", { length: 64 }).notNull().unique(),
+    name: text("name").notNull(),
+    description: text("description"),
+    color: varchar("color", { length: 32 }),
+    sortOrder: integer("sort_order").default(0),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [index("starter_packs_sort_order_idx").on(table.sortOrder)],
+)
+
+/**
+ * Starter pack members - many-to-many between packs and feeds.
+ */
+export const starterPackFeeds = pgTable(
+  "starter_pack_feeds",
+  {
+    packId: varchar("pack_id", { length: 255 })
+      .notNull()
+      .references(() => starterPacks.id, { onDelete: "cascade" }),
+    feedId: varchar("feed_id", { length: 255 })
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").default(0),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [
+    uniqueIndex("starter_pack_feeds_pack_feed_idx").on(table.packId, table.feedId),
+    index("starter_pack_feeds_pack_id_idx").on(table.packId),
+  ],
+)
+
+/**
  * Comments table - User comments on posts
  */
 export const comments = pgTable(
@@ -473,6 +519,21 @@ export const feedTopicsRelations = relations(feedTopics, ({ one }) => ({
   }),
 }))
 
+export const starterPacksRelations = relations(starterPacks, ({ many }) => ({
+  packFeeds: many(starterPackFeeds),
+}))
+
+export const starterPackFeedsRelations = relations(starterPackFeeds, ({ one }) => ({
+  pack: one(starterPacks, {
+    fields: [starterPackFeeds.packId],
+    references: [starterPacks.id],
+  }),
+  feed: one(feeds, {
+    fields: [starterPackFeeds.feedId],
+    references: [feeds.id],
+  }),
+}))
+
 export const postsRelations = relations(posts, ({ one, many }) => ({
   feed: one(feeds, {
     fields: [posts.feedId],
@@ -546,3 +607,7 @@ export type Topic = typeof topics.$inferSelect
 export type NewTopic = typeof topics.$inferInsert
 export type FeedTopic = typeof feedTopics.$inferSelect
 export type NewFeedTopic = typeof feedTopics.$inferInsert
+export type StarterPack = typeof starterPacks.$inferSelect
+export type NewStarterPack = typeof starterPacks.$inferInsert
+export type StarterPackFeed = typeof starterPackFeeds.$inferSelect
+export type NewStarterPackFeed = typeof starterPackFeeds.$inferInsert

@@ -21,6 +21,8 @@ import { DiscoverInboxList } from "~/modules/discover/DiscoverInboxList"
 import { DiscoverTransform } from "~/modules/discover/DiscoverTransform"
 import { DiscoverUser } from "~/modules/discover/DiscoverUser"
 import { FeedIcon } from "~/modules/feed/feed-icon"
+import type { StarterPack } from "~/queries/packs"
+import { usePacksQuery, usePackSubscribeMutation } from "~/queries/packs"
 
 const tabs: { name: I18nKeys; value: string }[] = [
   { name: "words.search", value: "search" },
@@ -273,88 +275,119 @@ function TrendingRow({ item, rank }: { item: TrendingFeedItem; rank: number }) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Starter packs — curated horizontal carousel (mock content)
+// Starter packs — curated horizontal carousel (GET /packs, design fallback)
 // ──────────────────────────────────────────────────────────────────────────
-const STARTER_PACKS: {
-  id: string
-  name: string
-  desc: string
-  count: number
-  color: string
-  members: string[]
-}[] = [
+const FALLBACK_PACKS: StarterPack[] = [
   {
     id: "design-greats",
+    slug: "design-greats",
     name: "Design greats",
-    desc: "The blogs every product designer keeps in their reader.",
-    count: 14,
+    description: "The blogs every product designer keeps in their reader.",
     color: "#EC407A",
-    members: ["R", "S", "N", "D"],
+    feedCount: 14,
+    previews: ["R", "S", "N", "D"].map((m) => ({
+      feedId: m,
+      title: m,
+      image: null,
+      siteUrl: null,
+    })),
   },
   {
     id: "ai-frontier",
+    slug: "ai-frontier",
     name: "AI frontier",
-    desc: "Labs, researchers and analysts worth following weekly.",
-    count: 18,
+    description: "Labs, researchers and analysts worth following weekly.",
     color: "#7E57C2",
-    members: ["A", "O", "G", "D"],
+    feedCount: 18,
+    previews: ["A", "O", "G", "D"].map((m) => ({
+      feedId: m,
+      title: m,
+      image: null,
+      siteUrl: null,
+    })),
   },
   {
     id: "indie-web",
+    slug: "indie-web",
     name: "The indie web",
-    desc: "Personal sites and small blogs with big ideas.",
-    count: 22,
+    description: "Personal sites and small blogs with big ideas.",
     color: "#66BB6A",
-    members: ["R", "M", "T", "K"],
+    feedCount: 22,
+    previews: ["R", "M", "T", "K"].map((m) => ({
+      feedId: m,
+      title: m,
+      image: null,
+      siteUrl: null,
+    })),
   },
 ]
 
 function StarterPacks() {
-  const { t } = useTranslation()
+  const { data } = usePacksQuery()
+  const packs = data && data.length > 0 ? data : FALLBACK_PACKS
+  const isLive = Boolean(data && data.length > 0)
 
   return (
     <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1.5">
-      {STARTER_PACKS.map((pack) => (
-        <div
-          key={pack.id}
-          className="border-border-secondary flex w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl border bg-background shadow-[var(--shadow-card)]"
-        >
-          <div className="flex h-[72px] items-end p-3" style={{ backgroundColor: pack.color }}>
-            <div className="flex">
-              {pack.members.map((m, i) => (
-                <div
-                  key={i}
-                  className="flex size-8 items-center justify-center rounded-full border-2 border-white text-xs font-bold"
-                  style={{
-                    backgroundColor: "#fff",
-                    color: pack.color,
-                    marginLeft: i ? -8 : 0,
-                  }}
-                >
-                  {m}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-1 flex-col p-3.5">
-            <div className="text-[15px] font-bold text-text">{pack.name}</div>
-            <div className="mt-1 line-clamp-2 min-h-[34px] text-[13px] leading-snug text-text-tertiary">
-              {pack.desc}
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-xs font-medium text-text-secondary">
-                {t("mobile.discover.pack_feed_count", { count: pack.count })}
-              </span>
-              <button
-                type="button"
-                className="h-7 rounded-full bg-fill px-3.5 text-xs font-bold text-text active:bg-fill-secondary"
-              >
-                {t("mobile.discover.follow_all")}
-              </button>
-            </div>
-          </div>
-        </div>
+      {packs.map((pack) => (
+        <StarterPackCard key={pack.id} pack={pack} isLive={isLive} />
       ))}
+    </div>
+  )
+}
+
+function StarterPackCard({ pack, isLive }: { pack: StarterPack; isLive: boolean }) {
+  const { t } = useTranslation()
+  const subscribe = usePackSubscribeMutation()
+  const followed = subscribe.isSuccess
+
+  return (
+    <div className="border-border-secondary flex w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl border bg-background shadow-[var(--shadow-card)]">
+      <div className="flex h-[72px] items-end p-3" style={{ backgroundColor: pack.color ?? "" }}>
+        <div className="flex">
+          {pack.previews.map((m, i) => (
+            <div
+              key={m.feedId}
+              className="flex size-8 items-center justify-center overflow-hidden rounded-full border-2 border-white text-xs font-bold"
+              style={{
+                backgroundColor: "#fff",
+                color: pack.color ?? "",
+                marginLeft: i ? -8 : 0,
+              }}
+            >
+              {m.image ? (
+                <img src={m.image} alt="" className="size-full object-cover" />
+              ) : (
+                (m.title || "?").slice(0, 1).toUpperCase()
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col p-3.5">
+        <div className="text-[15px] font-bold text-text">{pack.name}</div>
+        <div className="mt-1 line-clamp-2 min-h-[34px] text-[13px] leading-snug text-text-tertiary">
+          {pack.description}
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs font-medium text-text-secondary">
+            {t("mobile.discover.pack_feed_count", { count: pack.feedCount })}
+          </span>
+          <button
+            type="button"
+            disabled={!isLive || subscribe.isPending || followed}
+            onClick={() => subscribe.mutate(pack.slug)}
+            className={cn(
+              "h-7 rounded-full px-3.5 text-xs font-bold transition-colors",
+              followed
+                ? "bg-brand-accent text-white"
+                : "bg-fill text-text active:bg-fill-secondary",
+            )}
+          >
+            {followed ? t("feed.actions.followed") : t("mobile.discover.follow_all")}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

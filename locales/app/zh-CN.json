@@ -302,6 +302,8 @@
   "me.heatmap.more": "多",
   "me.highlights.busiest": "最常阅读的一天",
   "me.highlights.busiest_value": "周二",
+  "me.highlights.days": "{{count}} 天",
+  "me.highlights.entries": "{{count}} 篇",
   "me.highlights.longest": "最长连续天数",
   "me.highlights.longest_value": "112 天",
   "me.highlights.top": "阅读最多的来源",

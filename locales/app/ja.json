@@ -299,6 +299,8 @@
   "me.heatmap.more": "多",
   "me.highlights.busiest": "最も読む曜日",
   "me.highlights.busiest_value": "火曜日",
+  "me.highlights.days": "{{count}} 日",
+  "me.highlights.entries": "{{count}} 件",
   "me.highlights.longest": "最長連続日数",
   "me.highlights.longest_value": "112 日",
   "me.highlights.top": "最も読んだソース",

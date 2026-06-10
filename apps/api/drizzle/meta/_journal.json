@@ -15,6 +15,13 @@
       "when": 1778311908113,
       "tag": "0001_thick_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781058574705,
+      "tag": "0002_fearless_terrax",
+      "breakpoints": true
     }
   ]
 }

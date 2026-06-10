@@ -303,6 +303,8 @@
   "me.heatmap.more": "More",
   "me.highlights.busiest": "Busiest reading day",
   "me.highlights.busiest_value": "Tuesdays",
+  "me.highlights.days": "{{count}} days",
+  "me.highlights.entries": "{{count}} entries",
   "me.highlights.longest": "Longest streak",
   "me.highlights.longest_value": "112 days",
   "me.highlights.top": "Most-read source",

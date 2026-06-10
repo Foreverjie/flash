@@ -21,7 +21,6 @@ import { FeedIcon } from "../../feed/feed-icon"
 import type { MeAchievement, MeSettingItem, MeStat } from "./me-parts"
 import {
   BoltMotif,
-  buildReadingHeatmap,
   feedFrequencyLabel,
   feedHost,
   formatJoined,
@@ -30,6 +29,7 @@ import {
   useMeHighlights,
   useMeSettings,
   useMeStats,
+  useReadingHeatmap,
 } from "./me-parts"
 
 export function MeDesktopScreen() {
@@ -45,7 +45,7 @@ export function MeDesktopScreen() {
 
   const stats = useMeStats(feedCount, listCount)
   const highlights = useMeHighlights()
-  const achievements = useMeAchievements()
+  const achievements = useMeAchievements(feedCount)
   const settings = useMeSettings(user?.email)
 
   if (!user) {
@@ -163,7 +163,7 @@ export function MeDesktopScreen() {
           <section className="mt-11">
             <BoldSection kicker={t("me.year.kicker")} title={t("me.year.title")} />
             <div className="border-border-secondary grid grid-cols-[1fr_280px] gap-7 rounded-2xl border bg-background p-[22px]">
-              <ReadingHeatmap activeDaysLabel={t("me.heatmap.active_days", { count: 182 })} />
+              <ReadingHeatmap />
               <div className="border-border-secondary flex flex-col gap-3.5 border-l pl-6">
                 {highlights.map((h) => (
                   <div key={h.id}>
@@ -286,9 +286,10 @@ function BoldSection({
   )
 }
 
-function ReadingHeatmap({ activeDaysLabel }: { activeDaysLabel: string }) {
+function ReadingHeatmap() {
   const { t } = useTranslation()
-  const weeks = buildReadingHeatmap(26)
+  const { grid: weeks, activeDays } = useReadingHeatmap(26)
+  const activeDaysLabel = t("me.heatmap.active_days", { count: activeDays })
   const dayLabels = ["", "M", "", "W", "", "F", ""]
   return (
     <div>
