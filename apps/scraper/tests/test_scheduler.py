@@ -12,6 +12,7 @@ async def test_sync_all_feeds_calls_scrape_for_each_feed():
     ]
 
     fake_scraper = MagicMock()
+    fake_scraper.needs_existing_guids = False
     fake_scraper.scrape = AsyncMock(return_value=[])
     with (
         patch("scraper.scheduler.node_client.get_scrapling_feeds", new=AsyncMock(return_value=mock_feeds)),
@@ -40,6 +41,7 @@ async def test_sync_all_feeds_skips_failed_feed_and_continues():
         return []
 
     fake_scraper = MagicMock()
+    fake_scraper.needs_existing_guids = False
     fake_scraper.scrape = AsyncMock(side_effect=scrape_side_effect)
     with (
         patch("scraper.scheduler.node_client.get_scrapling_feeds", new=AsyncMock(return_value=mock_feeds)),

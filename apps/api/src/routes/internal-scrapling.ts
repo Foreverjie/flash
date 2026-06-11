@@ -1,10 +1,11 @@
 // apps/api/src/routes/internal-scrapling.ts
 import { zValidator } from "@hono/zod-validator"
-import { and, eq, gt, sql } from "drizzle-orm"
+import { and, desc, eq, gt, inArray } from "drizzle-orm"
 import { Hono } from "hono"
 import { z } from "zod"
 
 import { db, feeds, posts } from "../db/index.js"
+import { SCRAPLING_ADAPTER_TYPES } from "../lib/scraping-client.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
 import { sendNotFound, structuredSuccess } from "../utils/response.js"
@@ -52,7 +53,7 @@ router.get("/feeds", async (c) => {
   const activeFeeds = await db.query.feeds.findMany({
     where: and(
       gt(feeds.subscriptionCount, 0),
-      sql`${feeds.adapterType} IN ('x_timeline', 'bilibili_up_video')`,
+      inArray(feeds.adapterType, [...SCRAPLING_ADAPTER_TYPES]),
     ),
     columns: { id: true, url: true, adapterType: true },
   })
@@ -60,14 +61,42 @@ router.get("/feeds", async (c) => {
   const result = activeFeeds.map((f) => ({
     feedId: f.id,
     adapterType: f.adapterType,
-    source:
-      f.adapterType === "x_timeline"
-        ? f.url.replace("x_timeline://", "")
-        : f.url.replace("bilibili_up_video://", ""),
+    source: f.url.replace(`${f.adapterType}://`, ""),
   }))
 
   return c.json(structuredSuccess(result))
 })
+
+/**
+ * GET /internal/scrapling/feeds/:feedId/guids
+ * Existing post guids for a feed, newest first. Used by adapters that diff
+ * against already-ingested posts (e.g. community listings labeling price changes).
+ */
+router.get(
+  "/feeds/:feedId/guids",
+  zValidator("param", z.object({ feedId: z.string().min(1) })),
+  async (c) => {
+    const { feedId } = c.req.valid("param")
+
+    const feed = await db.query.feeds.findFirst({
+      where: and(eq(feeds.id, feedId), inArray(feeds.adapterType, [...SCRAPLING_ADAPTER_TYPES])),
+      columns: { id: true },
+    })
+
+    if (!feed) {
+      return sendNotFound(c, "Feed")
+    }
+
+    const feedPosts = await db.query.posts.findMany({
+      where: eq(posts.feedId, feedId),
+      columns: { guid: true },
+      orderBy: [desc(posts.publishedAt)],
+      limit: 5000,
+    })
+
+    return c.json(structuredSuccess({ guids: feedPosts.map((p) => p.guid) }))
+  },
+)
 
 /**
  * POST /internal/scrapling/ingest
@@ -87,10 +116,7 @@ router.post(
 
     // Verify feed exists and is a supported scraper-backed type
     const feed = await db.query.feeds.findFirst({
-      where: and(
-        eq(feeds.id, feedId),
-        sql`${feeds.adapterType} IN ('x_timeline', 'bilibili_up_video')`,
-      ),
+      where: and(eq(feeds.id, feedId), inArray(feeds.adapterType, [...SCRAPLING_ADAPTER_TYPES])),
     })
 
     if (!feed) {

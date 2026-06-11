@@ -48,6 +48,50 @@ describe("GET /internal/scrapling/feeds", () => {
   })
 })
 
+describe("GET /internal/scrapling/feeds/:feedId/guids", () => {
+  beforeEach(() => {
+    vi.stubEnv("INTERNAL_API_KEY", "test-key")
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it("returns 401 without correct key", async () => {
+    vi.stubEnv("INTERNAL_API_KEY", "real-key")
+    const app = makeApp()
+    const res = await app.request("/internal/scrapling/feeds/feed-1/guids", {
+      headers: { "x-internal-key": "wrong-key" },
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it("returns 404 for non-scrapling feed", async () => {
+    vi.spyOn(db.query.feeds, "findFirst").mockResolvedValueOnce(undefined as never)
+
+    const app = makeApp()
+    const res = await app.request("/internal/scrapling/feeds/feed-1/guids", {
+      headers: { "x-internal-key": "test-key" },
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns guids newest first", async () => {
+    vi.spyOn(db.query.feeds, "findFirst").mockResolvedValueOnce({ id: "feed-1" } as never)
+    vi.spyOn(db.query.posts, "findMany").mockResolvedValueOnce([
+      { guid: "AAA111@250" },
+      { guid: "AAA111@243" },
+    ] as never)
+
+    const app = makeApp()
+    const res = await app.request("/internal/scrapling/feeds/feed-1/guids", {
+      headers: { "x-internal-key": "test-key" },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { data: { guids: string[] } }
+    expect(body.data.guids).toEqual(["AAA111@250", "AAA111@243"])
+  })
+})
+
 describe("POST /internal/scrapling/ingest", () => {
   beforeEach(() => {
     vi.stubEnv("INTERNAL_API_KEY", "test-key")

@@ -190,4 +190,61 @@ describe("POST /feeds — x_timeline creation", () => {
     expect(body.data.feed.adapterType).toBe("bilibili_up_video")
     expect(body.data.isNew).toBe(true)
   })
+
+  it("returns 201 with new feed when creating a leyoujia_community feed by community id", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null)
+    const valuesSpy = vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([
+        {
+          id: "new-xq-feed",
+          url: "leyoujia_community://9575",
+          adapterType: "leyoujia_community",
+        },
+      ]),
+    })
+    const mockInsert = vi.fn().mockReturnValue({ values: valuesSpy })
+    ;(db as unknown as Record<string, unknown>).insert = mockInsert
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        type: "leyoujia_community",
+        communityId: "9575",
+        title: "中海康城花园",
+      }),
+    })
+
+    expect(res.status).toBe(201)
+    const body = (await res.json()) as { data: { feed: { adapterType: string }; isNew: boolean } }
+    expect(body.data.feed.adapterType).toBe("leyoujia_community")
+    expect(body.data.isNew).toBe(true)
+    expect(valuesSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: "leyoujia_community://9575",
+        title: "中海康城花园",
+        adapterType: "leyoujia_community",
+        adapterConfig: { communityId: "9575" },
+      }),
+    )
+  })
+
+  it("rejects a community feed with a non-numeric community id", async () => {
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "qfang_community", communityId: "not-a-number" }),
+    })
+
+    expect(res.status).toBe(400)
+  })
 })

@@ -1,6 +1,20 @@
+/** Feed adapter types backed by the Python scraping service. */
+export const SCRAPLING_ADAPTER_TYPES = [
+  "x_timeline",
+  "bilibili_up_video",
+  "leyoujia_community",
+  "qfang_community",
+] as const
+
+export type ScraplingAdapterType = (typeof SCRAPLING_ADAPTER_TYPES)[number]
+
+export function isScraplingAdapterType(value: string | null): value is ScraplingAdapterType {
+  return SCRAPLING_ADAPTER_TYPES.includes(value as ScraplingAdapterType)
+}
+
 export interface ScrapeParams {
   feedId: string
-  adapterType: "x_timeline" | "bilibili_up_video"
+  adapterType: ScraplingAdapterType
   source: string
 }
 

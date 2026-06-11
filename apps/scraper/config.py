@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     scrape_interval_minutes: int = 15
     scrape_timeout_seconds: int = 30
     bilibili_cookie: str = ""
+    community_min_scrape_interval_minutes: int = 360
 
     class Config:
         env_file = ".env"

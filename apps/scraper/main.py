@@ -6,8 +6,10 @@ from fastapi import FastAPI, Header, HTTPException
 from scraper.client import NodeApiClient
 from scraper.config import settings
 from scraper.models import ScrapeRequest
-from scraper.scheduler import start_scheduler
+from scraper.scheduler import run_scraper, start_scheduler
 from scraper.scrapers.bilibili_up_video import BilibiliUpVideoScraper
+from scraper.scrapers.leyoujia_community import LeyoujiaCommunityScraper
+from scraper.scrapers.qfang_community import QfangCommunityScraper
 from scraper.scrapers.x_timeline import XTimelineScraper
 
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +32,8 @@ app = FastAPI(title="Scrapling Service", lifespan=lifespan)
 scrapers = {
     "x_timeline": XTimelineScraper(),
     "bilibili_up_video": BilibiliUpVideoScraper(),
+    "leyoujia_community": LeyoujiaCommunityScraper(),
+    "qfang_community": QfangCommunityScraper(),
 }
 node_client = NodeApiClient(
     base_url=settings.node_api_url,
@@ -52,7 +56,8 @@ async def scrape(req: ScrapeRequest, x_internal_key: str = Header(None)):
         if scraper is None:
             raise RuntimeError(f"Unsupported adapter type: {req.adapter_type}")
 
-        posts = await scraper.scrape(req.source)
+        # force=True: manual refresh bypasses the adapter's politeness throttle
+        posts = await run_scraper(scraper, node_client, req.feed_id, req.source, force=True)
         inserted = 0
         if posts:
             inserted = await node_client.ingest_posts(feed_id=req.feed_id, posts=posts)

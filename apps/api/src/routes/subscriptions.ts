@@ -7,6 +7,7 @@ import { Hono } from "hono"
 
 import type { User } from "../auth/index.js"
 import { db, feeds, subscriptions } from "../db/index.js"
+import { SCRAPLING_ADAPTER_TYPES } from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
@@ -113,38 +114,43 @@ subscriptionsRouter.post("/", requireAuth, async (c) => {
     feed = await db.query.feeds.findFirst({ where: eq(feeds.url, url) })
 
     // Auto-create scraper-backed feeds on first subscribe
-    if (!feed && (url.startsWith("x_timeline://") || url.startsWith("bilibili_up_video://"))) {
-      const isXTimeline = url.startsWith("x_timeline://")
-      const source = isXTimeline
-        ? url.replace("x_timeline://", "").replace(/^@/, "")
-        : url.replace("bilibili_up_video://", "")
+    const adapterType = SCRAPLING_ADAPTER_TYPES.find((t) => url.startsWith(`${t}://`))
+    if (!feed && adapterType) {
+      let source = url.replace(`${adapterType}://`, "")
+      if (adapterType === "x_timeline") {
+        source = source.replace(/^@/, "")
+      }
 
       if (!source) {
-        return c.json(
-          {
-            code: 400,
-            message: isXTimeline ? "Invalid X timeline handle" : "Invalid Bilibili UID",
-          },
-          400,
-        )
+        return c.json({ code: 400, message: `Invalid ${adapterType} source` }, 400)
+      }
+
+      const defaultTitles: Record<typeof adapterType, string> = {
+        x_timeline: `@${source} on X`,
+        bilibili_up_video: `Bilibili UP ${source}`,
+        leyoujia_community: `乐有家小区 ${source}`,
+        qfang_community: `Q房网小区 ${source}`,
       }
 
       const [newFeed] = await db
         .insert(feeds)
         .values({
           id: generateSnowflakeId(),
-          url,
-          title: title ?? (isXTimeline ? `@${source} on X` : `Bilibili UP ${source}`),
-          adapterType: isXTimeline ? "x_timeline" : "bilibili_up_video",
-          adapterConfig: isXTimeline ? { handle: source } : { uid: source },
+          url: `${adapterType}://${source}`,
+          title: title ?? defaultTitles[adapterType],
+          adapterType,
+          adapterConfig:
+            adapterType === "x_timeline"
+              ? { handle: source }
+              : adapterType === "bilibili_up_video"
+                ? { uid: source }
+                : { communityId: source },
           ownerUserId: user.id,
         })
         .returning()
 
       feed = newFeed
-      logger.info(
-        `[Subscriptions] Auto-created ${isXTimeline ? "X timeline" : "Bilibili UP video"} feed for ${source}`,
-      )
+      logger.info(`[Subscriptions] Auto-created ${adapterType} feed for ${source}`)
     }
   }
 

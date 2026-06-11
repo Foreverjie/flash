@@ -26,5 +26,10 @@ class IngestRequest(BaseModel):
 
 class ScrapeRequest(BaseModel):
     feed_id: str
-    adapter_type: Literal["x_timeline", "bilibili_up_video"]
+    adapter_type: Literal[
+        "x_timeline",
+        "bilibili_up_video",
+        "leyoujia_community",
+        "qfang_community",
+    ]
     source: str

@@ -10,7 +10,7 @@ import { z } from "zod"
 import type { User } from "../auth/index.js"
 import { db, feeds, posts, subscriptions } from "../db/index.js"
 import { rssManager } from "../lib/rss/index.js"
-import { scrapingClient } from "../lib/scraping-client.js"
+import { isScraplingAdapterType, scrapingClient } from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
@@ -48,6 +48,13 @@ const createFeedSchema = z.union([
     uid: z.string().regex(/^\d+$/, "Invalid Bilibili UID"),
     title: z.string().max(200).optional(),
   }),
+  // Community resale-listing watchers — id from the community page URL, e.g.
+  // https://shenzhen.leyoujia.com/xq/detail/9575 or https://shenzhen.qfang.com/garden/sale/57558
+  z.object({
+    type: z.enum(["leyoujia_community", "qfang_community"]),
+    communityId: z.string().regex(/^\d+$/, "Invalid community id"),
+    title: z.string().max(200).optional(),
+  }),
 ])
 
 const updateFeedSchema = z.object({
@@ -67,12 +74,8 @@ const subscribeSchema = z.object({
 const feedsRouter = new Hono<{ Variables: FeedsVariables }>()
 
 function getScrapingSource(feed: { adapterType: string | null; url: string }) {
-  if (feed.adapterType === "x_timeline") {
-    return feed.url.replace("x_timeline://", "")
-  }
-
-  if (feed.adapterType === "bilibili_up_video") {
-    return feed.url.replace("bilibili_up_video://", "")
+  if (feed.adapterType && isScraplingAdapterType(feed.adapterType)) {
+    return feed.url.replace(`${feed.adapterType}://`, "")
   }
 
   return ""
@@ -155,8 +158,34 @@ feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (
     const user = c.get("user")
     const body = c.req.valid("json")
 
-    if (body.type === "x_timeline" || body.type === "bilibili_up_video") {
-      const source = body.type === "x_timeline" ? body.handle : body.uid
+    if (body.type && body.type !== "rss") {
+      let source: string
+      let defaultTitle: string
+      let adapterConfig: Record<string, string>
+      switch (body.type) {
+        case "x_timeline": {
+          source = body.handle
+          defaultTitle = `@${body.handle} on X`
+          adapterConfig = { handle: body.handle }
+          break
+        }
+        case "bilibili_up_video": {
+          source = body.uid
+          defaultTitle = `Bilibili UP ${body.uid}`
+          adapterConfig = { uid: body.uid }
+          break
+        }
+        case "leyoujia_community":
+        case "qfang_community": {
+          source = body.communityId
+          defaultTitle =
+            body.type === "leyoujia_community"
+              ? `乐有家小区 ${body.communityId}`
+              : `Q房网小区 ${body.communityId}`
+          adapterConfig = { communityId: body.communityId }
+          break
+        }
+      }
       const syntheticUrl = `${body.type}://${source}`
 
       const existing = await db.query.feeds.findFirst({
@@ -173,11 +202,9 @@ feedsRouter.post("/", requireAuth, zValidator("json", createFeedSchema), async (
         .values({
           id: feedId,
           url: syntheticUrl,
-          title:
-            body.title ??
-            (body.type === "x_timeline" ? `@${body.handle} on X` : `Bilibili UP ${body.uid}`),
+          title: body.title ?? defaultTitle,
           adapterType: body.type,
-          adapterConfig: body.type === "x_timeline" ? { handle: body.handle } : { uid: body.uid },
+          adapterConfig,
         })
         .returning()
 
@@ -370,7 +397,7 @@ feedsRouter.post(
       }
 
       // Delegate to Python scraping service for scraper-backed feeds
-      if (feed.adapterType === "x_timeline" || feed.adapterType === "bilibili_up_video") {
+      if (feed.adapterType && isScraplingAdapterType(feed.adapterType)) {
         const source = getScrapingSource(feed)
         if (!source) {
           return sendError(c, `Malformed ${feed.adapterType} URL`, 400, 400)
