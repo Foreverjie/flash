@@ -20,44 +20,18 @@ type SubscriptionsVariables = {
 const subscriptionsRouter = new Hono<{ Variables: SubscriptionsVariables }>()
 
 /**
- * Auto-subscribe a user to all existing feeds if they have no subscriptions.
- */
-async function autoSubscribeIfEmpty(userId: string) {
-  const existing = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.userId, userId),
-  })
-
-  if (existing) return // User already has subscriptions
-
-  const allFeeds = await db.query.feeds.findMany()
-  if (allFeeds.length === 0) return
-
-  const values = allFeeds.map((feed) => ({
-    id: generateSnowflakeId(),
-    userId,
-    feedId: feed.id,
-    title: null,
-    category: null,
-    isPrivate: false,
-  }))
-
-  await db.insert(subscriptions).values(values).onConflictDoNothing()
-  logger.info(`[Subscriptions] Auto-subscribed user ${userId} to ${allFeeds.length} feeds`)
-}
-
-/**
  * GET /subscriptions
  * Returns the authenticated user's subscriptions with feed metadata.
  * Response shape matches SubscriptionWithFeed[] expected by apiMorph.toSubscription.
+ *
+ * Note: users choose their subscriptions in onboarding; zero subscriptions is
+ * a valid state (the client renders a Discover empty state for it).
  */
 subscriptionsRouter.get("/", requireAuth, async (c) => {
   const user = c.get("user")
   if (!user) {
     return c.json({ code: 0, data: [] })
   }
-
-  // Auto-subscribe new users to existing feeds
-  await autoSubscribeIfEmpty(user.id)
 
   const userSubscriptions = await db.query.subscriptions.findMany({
     where: eq(subscriptions.userId, user.id),
