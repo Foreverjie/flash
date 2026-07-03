@@ -12,6 +12,7 @@ import { logger as honoLogger } from "hono/logger"
 import { auth } from "./auth/index.js"
 import type { AuthVariables } from "./middleware/auth.js"
 import { optionalAuth } from "./middleware/auth.js"
+import { requireCaptcha } from "./middleware/captcha.js"
 import authRouter from "./routes/auth.js"
 import commentsRouter from "./routes/comments.js"
 import cronRouter from "./routes/cron.js"
@@ -23,6 +24,7 @@ import meRouter from "./routes/me.js"
 import packsRouter from "./routes/packs.js"
 import postsRouter from "./routes/posts.js"
 import readsRouter from "./routes/reads.js"
+import settingsRouter from "./routes/settings.js"
 import subscriptionsRouter from "./routes/subscriptions.js"
 import topicsRouter from "./routes/topics.js"
 import trendingRouter from "./routes/trending.js"
@@ -101,6 +103,10 @@ app.use("*", optionalAuth)
 // Better-auth Handler
 // ============================================================
 
+// Signup is captcha-gated (no-op when HCAPTCHA_SECRET is unset)
+app.use("/api/auth/sign-up/email", requireCaptcha)
+app.use("/better-auth/sign-up/email", requireCaptcha)
+
 // Mount Better-auth handler for all auth operations
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 // Also mount at /better-auth/* for client-sdk compatibility (sdk uses /better-auth prefix)
@@ -163,6 +169,10 @@ app.route("/api/v1/entries", entriesRouter)
 // Read status routes
 app.route("/reads", readsRouter)
 app.route("/api/v1/reads", readsRouter)
+
+// Settings sync routes
+app.route("/settings", settingsRouter)
+app.route("/api/v1/settings", settingsRouter)
 
 // Comment routes
 app.route("/comments", commentsRouter)
