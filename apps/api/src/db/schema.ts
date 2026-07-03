@@ -460,6 +460,33 @@ export const readStatus = pgTable(
   ],
 )
 
+/**
+ * User settings table - per-user, per-tab settings payloads synced by clients
+ * (general / appearance / integration / ai). The `updatedAt` per tab is what
+ * clients use to decide sync direction and to detect brand-new accounts.
+ */
+export const userSettings = pgTable(
+  "user_settings",
+  {
+    id: varchar("id", { length: 255 }).primaryKey(),
+    userId: varchar("user_id", { length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tab: varchar("tab", { length: 32 }).notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => [
+    uniqueIndex("user_settings_user_tab_idx").on(table.userId, table.tab),
+    index("user_settings_user_id_idx").on(table.userId),
+  ],
+)
+
 // ============================================================
 // Relations
 // ============================================================
