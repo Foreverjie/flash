@@ -1,0 +1,85 @@
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "apps/desktop/**"
+      - "packages/**"
+      - "e2e/**"
+      - "locales/**"
+      - ".github/workflows/e2e-web.yml"
+  push:
+    branches: [main]
+
+name: 🧪 E2E web funnel
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  e2e:
+    name: New-user funnel (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: flash_e2e
+        ports:
+          - 54329:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      E2E_DATABASE_URL: postgres://postgres:test@localhost:54329/flash_e2e
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          lfs: true
+
+      - name: Checkout LFS objects
+        run: git lfs checkout
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run migrations and seed fixtures
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ env.E2E_DATABASE_URL }}
+        run: |
+          pnpm exec drizzle-kit migrate
+          pnpm run db:seed:e2e
+
+      - name: Install Playwright Chromium
+        working-directory: e2e
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e suite
+        working-directory: e2e
+        run: pnpm exec playwright test
+
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: |
+            e2e/test-results/
+            e2e/playwright-report/
+          retention-days: 7

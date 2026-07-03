@@ -1,13 +1,37 @@
+import { mkdirSync, writeFileSync } from "node:fs"
+
+import { join } from "pathe"
 import { Resend } from "resend"
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@scflash.win"
 
+/**
+ * When Resend is not configured and MAIL_OUTPUT_DIR is set (e2e tests, local
+ * dev), persist each email as a JSON file so tests can read links out of it.
+ * Filename is the recipient with a timestamp; the latest file wins.
+ */
+function writeMailFile(email: string, subject: string, url: string) {
+  const dir = process.env.MAIL_OUTPUT_DIR
+  if (!dir) return
+  try {
+    mkdirSync(dir, { recursive: true })
+    const safeRecipient = email.replaceAll(/[^a-z0-9@.+-]/gi, "_")
+    writeFileSync(
+      join(dir, `${Date.now()}-${safeRecipient}.json`),
+      JSON.stringify({ to: email, subject, url }, null, 2),
+    )
+  } catch (error) {
+    console.warn("[Email] Failed to write mail file:", error)
+  }
+}
+
 export async function sendVerificationEmail(email: string, url: string) {
   if (!resend) {
     console.warn("[Email] Resend not configured, logging verification URL")
     console.info(`[Email] Verification URL for ${email}: ${url}`)
+    writeMailFile(email, "Verify your email address", url)
     return
   }
 
@@ -32,6 +56,7 @@ export async function sendPasswordResetEmail(email: string, url: string) {
   if (!resend) {
     console.warn("[Email] Resend not configured, logging reset URL")
     console.info(`[Email] Reset URL for ${email}: ${url}`)
+    writeMailFile(email, "Reset your password", url)
     return
   }
 

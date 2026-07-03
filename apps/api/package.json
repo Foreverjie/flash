@@ -16,6 +16,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
+    "db:seed:e2e": "tsx src/scripts/seed-e2e.ts",
     "db:studio": "drizzle-kit studio",
     "dev": "tsx watch src/index.ts",
     "dev:vercel": "vercel dev",
