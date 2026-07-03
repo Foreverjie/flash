@@ -39,6 +39,7 @@ export function EmailManagement() {
       if (!user?.email) return
       return sendVerificationEmail({
         email: user.email,
+        callbackURL: window.location.origin,
       })
     },
     onSuccess: () => {

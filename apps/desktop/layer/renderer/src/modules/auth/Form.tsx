@@ -222,7 +222,9 @@ export function RegisterForm({
       email: values.email,
       password: values.password,
       name: values.email.split("@")[0]!,
-      callbackURL: "/",
+      // Absolute URL so the verification email links back to this web app,
+      // not the API origin Better Auth would resolve "/" against.
+      callbackURL: window.location.origin,
       fetchOptions: {
         onSuccess() {
           setRegisteredEmail(values.email)
@@ -251,7 +253,10 @@ export function RegisterForm({
           onClick={async () => {
             setIsResending(true)
             try {
-              await sendVerificationEmail({ email: registeredEmail })
+              await sendVerificationEmail({
+                email: registeredEmail,
+                callbackURL: window.location.origin,
+              })
               toast.success(t("register.verify_email.resend_success"))
             } finally {
               setIsResending(false)

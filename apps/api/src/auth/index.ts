@@ -80,6 +80,9 @@ export const auth = betterAuth({
       await sendVerificationEmail(user.email, url)
     },
     sendOnSignUp: true,
+    // Clicking the verification link should both verify and create a session,
+    // so brand-new users land signed-in instead of at a login wall.
+    autoSignInAfterVerification: true,
   },
 
   // Session configuration
