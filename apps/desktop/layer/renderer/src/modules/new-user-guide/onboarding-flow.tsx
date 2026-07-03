@@ -11,7 +11,7 @@ import { tracker } from "@follow/tracker"
 import { cn } from "@follow/utils"
 import type { Transition, Variants } from "motion/react"
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { PlainModal } from "~/components/ui/modal/stacked/custom-modal"
 import { useModalStack } from "~/components/ui/modal/stacked/hooks"
@@ -271,8 +271,14 @@ function ScreenWelcome({ onAuthed }: { onAuthed: () => void }) {
   const { status } = useSession()
 
   // If the user is already authenticated when this screen mounts, hop forward.
+  // Guarded so parent re-renders (which recreate onAuthed) can't advance twice
+  // and silently skip the topics step.
+  const advancedRef = useRef(false)
   useEffect(() => {
-    if (status === "authenticated") onAuthed()
+    if (status === "authenticated" && !advancedRef.current) {
+      advancedRef.current = true
+      onAuthed()
+    }
   }, [status, onAuthed])
 
   const handleStart = async (initialState: "register" | "login") => {
@@ -808,8 +814,9 @@ export function OnboardingFlow({ onClose }: { onClose: () => void }) {
     }
   }, [trackedStep])
 
-  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS))
-  const back = () => setStep((s) => Math.max(s - 1, 1))
+  // Stable identities: ScreenWelcome's auto-advance effect depends on `next`.
+  const next = useCallback(() => setStep((s) => Math.min(s + 1, TOTAL_STEPS)), [])
+  const back = useCallback(() => setStep((s) => Math.max(s - 1, 1)), [])
 
   const subscribeMut = useOnboardingSubscribeMutation()
 

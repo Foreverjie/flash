@@ -68,6 +68,9 @@ export function useOnboardingSubscribeMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user", "subscriptions"] })
       queryClient.invalidateQueries({ queryKey: ["subscription"] })
+      // Refetch timeline entries: any fetch that ran before these
+      // subscriptions existed is cached as empty for the current view.
+      queryClient.invalidateQueries({ queryKey: ["entries"] })
     },
   })
 }

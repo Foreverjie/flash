@@ -1,7 +1,9 @@
+import { Button } from "@follow/components/ui/button/index.js"
 import { EmptyStage } from "@follow/components/ui/empty/index.js"
 import { useScrollViewElement } from "@follow/components/ui/scroll-area/hooks.js"
 import type { FeedViewType } from "@follow/constants"
 import { useTypeScriptHappyCallback } from "@follow/hooks"
+import { useAllSubscription } from "@follow/store/subscription/hooks"
 import { LRUCache } from "@follow/utils/lru-cache"
 import type { Range, VirtualItem, Virtualizer } from "@tanstack/react-virtual"
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual"
@@ -9,6 +11,7 @@ import type { HTMLMotionProps } from "motion/react"
 import type { FC, MutableRefObject, ReactNode } from "react"
 import { memo, startTransition, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router"
 import { useEventCallback } from "usehooks-ts"
 
 import { useGeneralSettingKey } from "~/atoms/settings/general"
@@ -25,13 +28,28 @@ export const EntryEmptyList = ({
 }: HTMLMotionProps<"div"> & { ref?: React.Ref<HTMLDivElement | null> }) => {
   const unreadOnly = useGeneralSettingKey("unreadOnly")
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const hasAnySubscription = useAllSubscription().length > 0
   return (
     <m.div
       className="absolute flex size-full grow flex-col items-center justify-center px-6"
       {...props}
       ref={ref}
     >
-      {unreadOnly ? (
+      {!hasAnySubscription ? (
+        <EmptyStage
+          eyebrow={t("entry_list.no_subscriptions_eyebrow")}
+          glyph={<i className="i-mgc-compass-3-cute-re" />}
+          title={t("entry_list.no_subscriptions")}
+          body={t("entry_list.no_subscriptions_body")}
+          size="md"
+          action={
+            <Button buttonClassName="mt-1" onClick={() => navigate("/discover")}>
+              {t("entry_list.no_subscriptions_cta")}
+            </Button>
+          }
+        />
+      ) : unreadOnly ? (
         <EmptyStage
           eyebrow={t("entry_list.zero_unread_eyebrow")}
           glyph={<i className="i-mgc-celebrate-cute-re" />}
