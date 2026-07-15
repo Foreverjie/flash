@@ -9,7 +9,7 @@ import { expect, test } from "@playwright/test"
 
 async function openLoginModal(page: import("@playwright/test").Page) {
   await page.goto("/")
-  await page.getByRole("button", { name: "Login", exact: true }).first().click()
+  await page.getByRole("button", { name: "Get started" }).click()
 }
 
 test("GitHub login redirects to the correct authorize URL", async ({ page }) => {

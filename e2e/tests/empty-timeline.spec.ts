@@ -7,9 +7,8 @@ import { waitForMailLink } from "../helpers/mail"
  * first-class empty state with a Discover CTA — never a blank pane.
  *
  * The signup happens in one browser context; the assertion runs in a fresh
- * context (login as the same user) because the client's local store retains
- * entries browsed on the public timeline before signup, masking the empty
- * state in the original session.
+ * context (login as the same user) so the local entry store is guaranteed
+ * cold and can't mask the empty state.
  */
 
 const PASSWORD = "e2e-Password-1234"
@@ -19,7 +18,7 @@ test("zero-feed onboarding finish lands on the Discover empty state", async ({ p
 
   // — Create + verify an account, finish onboarding following nothing
   await page.goto("/")
-  await page.getByRole("button", { name: "Login", exact: true }).first().click()
+  await page.getByRole("button", { name: "Get started" }).click()
   await page.getByRole("button", { name: "Continue with Email" }).click()
   await page.getByLabel("Email").fill(email)
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD)
@@ -38,9 +37,7 @@ test("zero-feed onboarding finish lands on the Discover empty state", async ({ p
   await page.waitForURL(/timeline/, { timeout: 20_000 })
 
   // — Fresh context with a cold local store. Sign in via the auth API (the
-  // request shares the context's cookie jar) and land directly on /timeline:
-  // browsing "/" first would repopulate the local store with public-timeline
-  // entries and mask the empty state.
+  // request shares the context's cookie jar) and land directly on /timeline.
   const context = await browser.newContext()
   const freshPage = await context.newPage()
   const loginRes = await freshPage.request.post("http://localhost:3001/api/auth/sign-in/email", {

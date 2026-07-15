@@ -4,8 +4,8 @@ import { usePrefetchSessionUser, useWhoami } from "@follow/store/user/hooks"
 import { preventDefault } from "@follow/utils/dom"
 import type { PropsWithChildren } from "react"
 import * as React from "react"
-import { Suspense, useRef, useState } from "react"
-import { Outlet } from "react-router"
+import { lazy, Suspense, useRef, useState } from "react"
+import { Outlet, useNavigate } from "react-router"
 
 import { setMainContainerElement, setRootContainerElement } from "~/atoms/dom"
 import { useUISettingKey } from "~/atoms/settings/ui"
@@ -20,12 +20,15 @@ import { EntriesProvider } from "~/modules/entry-column/context/EntriesContext"
 import { CmdF } from "~/modules/panel/cmdf"
 import { SearchCmdK } from "~/modules/panel/cmdk"
 import { CmdNTrigger } from "~/modules/panel/cmdn"
-import { PublicTimelineLayout } from "~/modules/public-timeline"
 import { AppNotificationContainer } from "~/modules/upgrade/lazy/index"
 
 import { OnboardingCoach } from "../new-user-guide/OnboardingCoach"
 import { NewUserGuide } from "./subscription-column/components/NewUserGuide"
 import { SubscriptionColumnContainer } from "./subscription-column/SubscriptionColumn"
+
+const LazyOnboardingFlow = lazy(() =>
+  import("~/modules/new-user-guide/onboarding-flow").then((m) => ({ default: m.OnboardingFlow })),
+)
 
 const errorTypes = [
   ErrorComponentType.Page,
@@ -146,9 +149,10 @@ export function MainDestopLayout() {
   // Show public timeline when:
   // 1. Session check completed and no user found (sessionQuery settled + no user)
   // 2. Or explicit auth failure (401 received)
-  const showPublicTimeline = (sessionQuery.isFetched && !user) || (isAuthFail && !user)
+  const showOnboardingLanding = (sessionQuery.isFetched && !user) || (isAuthFail && !user)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const navigate = useNavigate()
 
   return (
     <RootContainer ref={containerRef}>
@@ -158,9 +162,13 @@ export function MainDestopLayout() {
         <AppNotificationContainer />
       </Suspense>
 
-      {showPublicTimeline ? (
-        // Public mode: show feeds & posts from public API without auth
-        <PublicTimelineLayout />
+      {showOnboardingLanding ? (
+        // Logged-out landing: the onboarding welcome (Stage). Its buttons open
+        // register/login; once the session exists this layout flips to the
+        // signed-in app and the NewUserGuide takes over for fresh accounts.
+        <Suspense>
+          <LazyOnboardingFlow onClose={() => navigate("/timeline")} />
+        </Suspense>
       ) : (
         <>
           <EntriesProvider>
