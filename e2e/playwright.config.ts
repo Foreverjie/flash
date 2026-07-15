@@ -4,9 +4,8 @@ import { defineConfig, devices } from "@playwright/test"
  * E2E suite for the new-user critical path.
  *
  * Boots the API (port 3001) and the web renderer (port 2233) against a
- * dedicated Postgres provided via E2E_DATABASE_URL. The stack runs with:
- *   - RESEND_API_KEY unset  → emails are written to MAIL_OUTPUT_DIR
- *   - HCAPTCHA_SECRET unset → captcha verification skipped server-side
+ * dedicated Postgres provided via E2E_DATABASE_URL. The stack runs with
+ * RESEND_API_KEY unset → emails are written to MAIL_OUTPUT_DIR.
  *
  * Locally: start Postgres and run migrations + seed first, e.g.
  *   docker run -d --name flash-e2e-pg -e POSTGRES_PASSWORD=test \
@@ -69,7 +68,6 @@ export default defineConfig({
         NODE_ENV: "development",
         // Explicitly unset external services so the env seams engage
         RESEND_API_KEY: "",
-        HCAPTCHA_SECRET: "",
         // Dummy OAuth apps so provider buttons render; tests assert the
         // authorize redirect and never complete the external login.
         GITHUB_CLIENT_ID: "e2e-dummy-github",

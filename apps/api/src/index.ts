@@ -12,7 +12,6 @@ import { logger as honoLogger } from "hono/logger"
 import { auth } from "./auth/index.js"
 import type { AuthVariables } from "./middleware/auth.js"
 import { optionalAuth } from "./middleware/auth.js"
-import { requireCaptcha } from "./middleware/captcha.js"
 import authRouter from "./routes/auth.js"
 import commentsRouter from "./routes/comments.js"
 import cronRouter from "./routes/cron.js"
@@ -102,10 +101,6 @@ app.use("*", optionalAuth)
 // ============================================================
 // Better-auth Handler
 // ============================================================
-
-// Signup is captcha-gated (no-op when HCAPTCHA_SECRET is unset)
-app.use("/api/auth/sign-up/email", requireCaptcha)
-app.use("/better-auth/sign-up/email", requireCaptcha)
 
 // Mount Better-auth handler for all auth operations
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw))

@@ -11,9 +11,8 @@ import {
 import { Input } from "@follow/components/ui/input/Input.js"
 import type { LoginRuntime } from "@follow/shared/auth"
 import { env } from "@follow/shared/env.desktop"
-import HCaptcha from "@hcaptcha/react-hcaptcha"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { Trans, useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -54,16 +53,10 @@ export function LoginWithPassword({
 
   const { present, dismissAll } = useModalStack()
 
-  const captchaRef = useRef<HCaptcha>(null)
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const response = await captchaRef.current?.execute({ async: true })
     const res = await loginHandler("credential", runtime, {
       email: values.email,
       password: values.password,
-      headers: {
-        "x-token": `hc:${response?.response}`,
-      },
     })
     if (res?.error) {
       toast.error(res.error.message)
@@ -143,9 +136,6 @@ export function LoginWithPassword({
           )}
         />
         <div className="flex flex-col space-y-3">
-          {!import.meta.env.DEV && (
-            <HCaptcha sitekey={env.VITE_HCAPTCHA_SITE_KEY} ref={captchaRef} size="invisible" />
-          )}
           <Button
             type="submit"
             isLoading={form.formState.isSubmitting}
@@ -214,10 +204,7 @@ export function RegisterForm({
 
   const serverConfigs = useServerConfigs()
 
-  const captchaRef = useRef<HCaptcha>(null)
-
   async function onSubmit(values: z.infer<typeof registerFormSchema>) {
-    const response = await captchaRef.current?.execute({ async: true })
     return signUp.email({
       email: values.email,
       password: values.password,
@@ -231,9 +218,6 @@ export function RegisterForm({
         },
         onError(context) {
           toast.error(context.error.message)
-        },
-        headers: {
-          "x-token": `hc:${response?.response}`,
         },
       },
     })
@@ -320,9 +304,6 @@ export function RegisterForm({
             )}
           />
           {serverConfigs?.REFERRAL_ENABLED && <ReferralForm className="mb-4 w-full" align="left" />}
-          {!import.meta.env.DEV && (
-            <HCaptcha sitekey={env.VITE_HCAPTCHA_SITE_KEY} ref={captchaRef} size="invisible" />
-          )}
           <Button type="submit" buttonClassName="w-full" size="lg">
             {t("register.submit")}
           </Button>
