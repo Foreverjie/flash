@@ -1,3 +1,4 @@
+import { IN_ELECTRON } from "@follow/shared/constants"
 import { invalidateUserSession, whoamiQueryKey } from "@follow/store/user/hooks"
 import { userActions, userSyncService } from "@follow/store/user/store"
 import { tracker } from "@follow/tracker"
@@ -9,6 +10,7 @@ import { useAuthQuery } from "~/hooks/common"
 import { deleteUserCustom as deleteUserFn, getAccountInfo, signOut as signOutFn } from "~/lib/auth"
 import { ipcServices } from "~/lib/client"
 import { defineQuery } from "~/lib/defineQuery"
+import { settingSyncQueue } from "~/modules/settings/helper/sync-queue"
 import { clearLocalPersistStoreData } from "~/store/utils/clear"
 
 export const auth = {
@@ -92,6 +94,9 @@ export const useSession = (options?: { enabled?: boolean }) => {
 export const handleSessionChanges = async () => {
   await userSyncService.whoami()
   invalidateUserSession()
+  // Boot skips settings sync for logged-out visitors; start it once signed in
+  settingSyncQueue.init()
+  settingSyncQueue.syncLocal()
   ipcServices?.auth.sessionChanged()
 }
 
@@ -110,6 +115,15 @@ export const signOut = async () => {
   await signOutFn()
   await userActions.removeCurrentUser()
   invalidateUserSession()
+
+  // Reload into the root route so logged-out users land on the onboarding
+  // welcome instead of a broken unauthenticated timeline
+  if (IN_ELECTRON) {
+    window.location.hash = "#/"
+    window.location.reload()
+  } else {
+    window.location.assign("/")
+  }
 }
 
 export const deleteUser = async ({ TOTPCode }: { TOTPCode?: string }) => {

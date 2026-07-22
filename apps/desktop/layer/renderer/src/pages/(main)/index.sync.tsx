@@ -1,12 +1,21 @@
-import { redirect } from "react-router"
+import { Navigate } from "react-router"
 
-import { HomeFeedScreen } from "~/modules/mobile-web/screens/HomeFeedScreen"
+import { useSession } from "~/queries/auth"
 
+// Root entry (`/`). Authenticated users go to their timeline; logged-out
+// visitors land on the onboarding/landing flow. From there they can dismiss
+// onboarding into the public timeline (`/timeline/*`), which renders without
+// bouncing back here.
 export function Component() {
-  return <HomeFeedScreen />
-}
+  const { status } = useSession()
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const loader = () => {
-  return redirect("/timeline")
+  if (status === "loading" || status === "unknown") {
+    return null
+  }
+
+  if (status === "authenticated") {
+    return <Navigate to="/timeline" replace />
+  }
+
+  return <Navigate to="/onboarding" replace />
 }

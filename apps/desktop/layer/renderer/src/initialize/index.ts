@@ -2,6 +2,7 @@ import { initializeDayjs } from "@follow/components/dayjs"
 import { registerGlobalContext } from "@follow/shared/bridge"
 import { DEV, ELECTRON_BUILD, IN_ELECTRON } from "@follow/shared/constants"
 import { hydrateDatabaseToStore } from "@follow/store/hydrate"
+import { useUserStore } from "@follow/store/user/store"
 import { tracker } from "@follow/tracker"
 import { repository } from "@pkg"
 import { enableMapSet } from "immer"
@@ -85,10 +86,14 @@ export const initializeApp = async () => {
   initSentry()
   await apm("i18n", initI18n)
 
-  apm("setting sync", () => {
-    settingSyncQueue.init()
-    settingSyncQueue.syncLocal()
-  })
+  // Settings sync hits authenticated endpoints; logged-out visitors skip it
+  // (it is kicked off again by handleSessionChanges after login)
+  if (useUserStore.getState().whoami) {
+    apm("setting sync", () => {
+      settingSyncQueue.init()
+      settingSyncQueue.syncLocal()
+    })
+  }
 
   await apm("initAnalytics", initAnalytics)
 

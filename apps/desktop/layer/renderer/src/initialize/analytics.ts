@@ -1,11 +1,9 @@
 import { env } from "@follow/shared/env.desktop"
-import { setFirebaseTracker, setPostHogTracker, tracker } from "@follow/tracker"
+import { setPostHogTracker, tracker } from "@follow/tracker"
 import type { AuthSessionResponse } from "@follow-app/client-sdk"
 import posthog from "posthog-js"
 
 import { QUERY_PERSIST_KEY } from "~/constants/app"
-
-import { ga4 } from "../lib/ga4"
 
 export const initAnalytics = async () => {
   tracker.manager.appendUserProperties({
@@ -14,8 +12,6 @@ export const initAnalytics = async () => {
     hash: GIT_COMMIT_SHA,
     language: navigator.language,
   })
-
-  setFirebaseTracker(ga4)
 
   setPostHogTracker(
     posthog.init(env.VITE_POSTHOG_KEY, {
