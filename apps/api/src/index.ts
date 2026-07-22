@@ -24,6 +24,7 @@ import packsRouter from "./routes/packs.js"
 import postsRouter from "./routes/posts.js"
 import readsRouter from "./routes/reads.js"
 import settingsRouter from "./routes/settings.js"
+import statusRouter from "./routes/status.js"
 import subscriptionsRouter from "./routes/subscriptions.js"
 import topicsRouter from "./routes/topics.js"
 import trendingRouter from "./routes/trending.js"
@@ -168,6 +169,10 @@ app.route("/api/v1/reads", readsRouter)
 // Settings sync routes
 app.route("/settings", settingsRouter)
 app.route("/api/v1/settings", settingsRouter)
+
+// Status routes (public server configs)
+app.route("/status", statusRouter)
+app.route("/api/v1/status", statusRouter)
 
 // Comment routes
 app.route("/comments", commentsRouter)
