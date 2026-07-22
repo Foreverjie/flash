@@ -89,8 +89,12 @@ async def test_scrape_parses_listings_and_skips_sidebar():
     assert "243万" in first.content
     assert "建筑面积88.99㎡" in first.content
     assert first.media == [{"url": "https://img.leyoujia.com/a.jpg", "type": "photo"}]
-    # Without guid context, titles are unlabeled
-    assert first.title == "龙岗大运中海康城花园3室2厅，人车分流"
+    # Rendered as a property card: hero image + original headline kept for context
+    assert first.content.startswith("<div ")
+    assert 'src="https://img.leyoujia.com/a.jpg"' in first.content
+    assert "龙岗大运中海康城花园3室2厅，人车分流" in first.content
+    # Without guid context, titles are unlabeled and lead with price · area · layout
+    assert first.title == "243万 · 88.99㎡ · 3室2厅"
 
 
 @pytest.mark.asyncio
@@ -116,8 +120,8 @@ async def test_scrape_uses_latest_price_for_relisted_property():
 async def test_scrape_unchanged_price_keeps_neutral_title():
     scraper = _scraper_with_fixture()
     posts = await scraper.scrape("9575", existing_guids=["AAA111@243", "BBB222@510"], force=True)
-    assert posts[0].title == "龙岗大运中海康城花园3室2厅，人车分流"
-    assert posts[1].title == "中海康城花园4室2厅，高楼层"
+    assert posts[0].title == "243万 · 88.99㎡ · 3室2厅"
+    assert posts[1].title == "510万 · 120.5㎡ · 4室2厅"
 
 
 @pytest.mark.asyncio

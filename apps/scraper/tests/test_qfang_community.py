@@ -76,7 +76,7 @@ async def test_scrape_walks_all_pages_and_parses_listings():
 
     assert [p.guid for p in posts] == ["505019201@3200", "425863@337", "777001@800"]
     first = posts[0]
-    assert first.title == "中信红树湾 4室2厅167.56m²满五年"
+    assert first.title == "3200万 · 167.56㎡ · 4室2厅"
     assert first.url == "https://shenzhen.qfang.com/sale/505019201"
     assert first.author == "中信红树湾"
     assert "3200万" in first.content
@@ -99,8 +99,8 @@ async def test_scrape_labels_price_changes():
     )
 
     assert posts[0].title.startswith("📉 降价 3500万→3200万 | ")
-    assert posts[1].title == "中信红树湾 3室 64.55㎡"
-    assert posts[2].title == "中信红树湾 2室 80㎡"
+    assert posts[1].title == "337万 · 64.55㎡ · 3室0厅"
+    assert posts[2].title == "800万 · 80㎡ · 2室1厅"
 
 
 @pytest.mark.asyncio

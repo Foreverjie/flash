@@ -47,18 +47,78 @@ def _as_number(price: str) -> float:
         return 0.0
 
 
-def _build_post(listing: dict, source_label: str, prefix: str, extra_line: str) -> ScrapedPost:
-    title = f"{prefix} | {listing['title']}" if prefix else listing["title"]
+# Area ("建筑面积89.4㎡" / "面积 89.4 ㎡") and layout ("3室2厅" / "四室两厅") — the
+# two facts buyers scan for. Extracted from the title + attr lines; either may miss.
+_AREA_RE = re.compile(r"(?:建筑面积|面积)?\s*([\d.]+)\s*(?:㎡|平)")
+_ROOMS_RE = re.compile(r"([\d一二三四五六七八九十]+室[\d一二三四五六七八九十]+厅)")
 
-    lines = [f"<p><strong>总价：</strong>{listing['price']}万（{listing['unit_price']}）</p>"]
-    if extra_line:
-        lines.append(f"<p><strong>{extra_line}</strong></p>")
-    lines.extend(f"<p>{line}</p>" for line in listing["attr_lines"])
-    if listing["labels"]:
-        lines.append(f"<p>{' / '.join(listing['labels'])}</p>")
+
+def _extract_specs(listing: dict) -> tuple[str, str]:
+    blob = " ".join([listing.get("title", ""), *listing.get("attr_lines", [])])
+    area = _AREA_RE.search(blob)
+    rooms = _ROOMS_RE.search(blob)
+    return (area.group(1) if area else "", rooms.group(1) if rooms else "")
+
+
+# Inline-styled "property card". The desktop/web reader renders inline styles by
+# default (readerRenderInlineStyle=true); if a reader disables them the markup still
+# degrades to a readable stack. Colors are picked to read on both light and dark:
+# a warm red for the price (the convention in CN listings) and the brand yellow CTA.
+_CARD = "border:1px solid rgba(120,120,128,0.22);border-radius:16px;padding:16px;max-width:560px"
+_IMG = "width:100%;border-radius:12px;display:block;margin-bottom:14px"
+_PRICE = "font-size:30px;font-weight:800;color:#ff4d3a;line-height:1.1"
+_UNIT = "font-size:13px;opacity:0.55;margin-left:10px"
+_DROP = "font-size:13px;font-weight:700;color:#ff4d3a;margin:10px 0 0"
+_CHIPS = "display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 2px"
+_CHIP = "font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;background:rgba(120,120,128,0.14)"
+_HEADLINE = "font-size:14px;opacity:0.85;margin:12px 0;line-height:1.5"
+_SPECS = "border-top:1px solid rgba(120,120,128,0.18);padding-top:10px;margin-top:12px"
+_SPEC_ROW = "font-size:13px;opacity:0.72;padding:3px 0"
+_CTA = (
+    "display:inline-block;margin-top:14px;padding:9px 18px;border-radius:10px;"
+    "background:#facc15;color:#1c1c1e;font-weight:600;font-size:13px;text-decoration:none"
+)
+
+
+def _build_post(listing: dict, source_label: str, prefix: str, extra_line: str) -> ScrapedPost:
+    area, rooms = _extract_specs(listing)
+
+    # Scannable title leads with what buyers compare: price · area · layout.
+    facts = [f"{listing['price']}万"]
+    if area:
+        facts.append(f"{area}㎡")
+    if rooms:
+        facts.append(rooms)
+    headline = " · ".join(facts)
+    title = f"{prefix} | {headline}" if prefix else headline
+
+    card = [f'<div style="{_CARD}">']
+    # Hero image first — the listing photo is the strongest signal.
     if listing["image"]:
-        lines.append(f'<img src="{listing["image"]}" alt="{listing["title"]}">')
-    lines.append(f'<p><a href="{listing["url"]}">在{source_label}查看房源</a></p>')
+        card.append(f'<img src="{listing["image"]}" alt="{headline}" style="{_IMG}">')
+    # Price hero + unit price.
+    unit = f'<span style="{_UNIT}">{listing["unit_price"]}</span>' if listing["unit_price"] else ""
+    card.append(f'<div><span style="{_PRICE}">{listing["price"]}万</span>{unit}</div>')
+    # Price-change callout (降价/涨价).
+    if extra_line:
+        card.append(f'<div style="{_DROP}">{extra_line}</div>')
+    # Area / layout / labels as pills.
+    chips = [f"{area}㎡"] if area else []
+    if rooms:
+        chips.append(rooms)
+    chips.extend(listing["labels"][:3])
+    if chips:
+        pills = "".join(f'<span style="{_CHIP}">{c}</span>' for c in chips)
+        card.append(f'<div style="{_CHIPS}">{pills}</div>')
+    # Original listing headline for context.
+    if listing["title"]:
+        card.append(f'<p style="{_HEADLINE}">{listing["title"]}</p>')
+    # Descriptive attributes.
+    if listing["attr_lines"]:
+        rows = "".join(f'<div style="{_SPEC_ROW}">{line}</div>' for line in listing["attr_lines"])
+        card.append(f'<div style="{_SPECS}">{rows}</div>')
+    card.append(f'<a href="{listing["url"]}" style="{_CTA}">在{source_label}查看房源 →</a>')
+    card.append("</div>")
 
     media = [{"url": listing["image"], "type": "photo"}] if listing["image"] else []
 
@@ -66,7 +126,7 @@ def _build_post(listing: dict, source_label: str, prefix: str, extra_line: str) 
         guid=f"{listing['id']}@{listing['price']}",
         title=title,
         url=listing["url"],
-        content="\n".join(lines),
+        content="\n".join(card),
         published_at=datetime.now(timezone.utc).isoformat(),
         author=listing["community"] or source_label,
         media=media,
