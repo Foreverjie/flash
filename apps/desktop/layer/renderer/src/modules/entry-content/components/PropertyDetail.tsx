@@ -68,11 +68,11 @@ const layoutLabel = (p: PropertyListing) =>
 
 function SpecCell({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="bg-background p-5">
+    <div className="bg-background p-4 sm:p-5">
       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-tertiary">
         {label}
       </div>
-      <div className="text-[15px] font-medium text-text">{value || "—"}</div>
+      <div className="text-sm font-medium text-text sm:text-[15px]">{value || "—"}</div>
     </div>
   )
 }
@@ -126,7 +126,7 @@ export function PropertyDetail({
       </div>
 
       {/* Title */}
-      <h1 className="text-[2.5rem] font-bold leading-[1.1] tracking-tight text-text">
+      <h1 className="text-[1.9rem] font-bold leading-[1.12] tracking-tight text-text sm:text-[2.5rem]">
         {p.community}
       </h1>
 
@@ -140,7 +140,7 @@ export function PropertyDetail({
 
       {/* Price */}
       <div className="mt-6 flex flex-wrap items-baseline gap-3">
-        <span className="text-[2.75rem] font-extrabold leading-none tracking-tight text-text">
+        <span className="text-[2.1rem] font-extrabold leading-none tracking-tight text-text sm:text-[2.75rem]">
           {p.total}
         </span>
         {!!p.unit && <span className="text-sm text-text-tertiary">{p.unit}</span>}
@@ -163,7 +163,7 @@ export function PropertyDetail({
       )}
 
       {/* Spec grid */}
-      <div className="mt-7 grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-border bg-border">
+      <div className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
         <SpecCell label="户型" value={layoutLabel(p)} />
         <SpecCell label="面积" value={p.area ? `${p.area}㎡` : "—"} />
         <SpecCell label="楼层" value={p.floor} />
