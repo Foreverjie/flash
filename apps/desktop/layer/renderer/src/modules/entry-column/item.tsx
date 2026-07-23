@@ -1,5 +1,6 @@
 import { FeedViewType, isFreeRole } from "@follow/constants"
-import { useHasEntry } from "@follow/store/entry/hooks"
+import { useEntry, useHasEntry } from "@follow/store/entry/hooks"
+import { useFeedById } from "@follow/store/feed/hooks"
 import { useEntryTranslation, usePrefetchEntryTranslation } from "@follow/store/translation/hooks"
 import { useUserRole } from "@follow/store/user/hooks"
 import type { FC } from "react"
@@ -8,8 +9,21 @@ import { memo } from "react"
 import { useActionLanguage, useGeneralSettingKey } from "~/atoms/settings/general"
 
 import { getItemComponentByView } from "./Items/getItemComponentByView"
+import { PropertyItem } from "./Items/property-item"
 import { EntryItemWrapper } from "./layouts/EntryItemWrapper"
 import type { EntryListItemFC } from "./types"
+
+// Feed URL schemes whose entries render as Property Feed cards.
+const PROPERTY_FEED_SCHEMES = ["leyoujia_community://", "qfang_community://"]
+
+function useIsPropertyFeedEntry(entryId: string) {
+  const feedId = useEntry(entryId, (e) => e.feedId)
+  return (
+    useFeedById(feedId, (feed) =>
+      PROPERTY_FEED_SCHEMES.some((scheme) => feed.url?.startsWith(scheme)),
+    ) ?? false
+  )
+}
 
 interface EntryItemProps {
   entryId: string
@@ -39,7 +53,8 @@ const EntryItemImpl = memo(function EntryItemImpl({
     withContent: view === FeedViewType.SocialMedia,
   })
 
-  const Item: EntryListItemFC = getItemComponentByView(view)
+  const isPropertyFeed = useIsPropertyFeedEntry(entryId)
+  const Item: EntryListItemFC = isPropertyFeed ? PropertyItem : getItemComponentByView(view)
 
   return (
     <EntryItemWrapper
