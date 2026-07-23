@@ -1,4 +1,4 @@
-import type { FeedSchema, InboxSchema } from "@follow/database/schemas/types"
+import type { FeedSchema, InboxSchema, PropertyListing } from "@follow/database/schemas/types"
 import { getDateISOString } from "@follow/utils/utils"
 import type {
   AddFeedsResponse,
@@ -69,6 +69,7 @@ class APIMorph {
         ? {
             links: data.entries.extra.links ?? undefined,
             title_keyword: data.entries.extra.title_keyword ?? undefined,
+            property: (data.entries.extra as { property?: PropertyListing }).property ?? undefined,
           }
         : null,
       language: data.entries.language,
@@ -215,6 +216,8 @@ class APIMorph {
           ? {
               links: item.entries.extra.links ?? undefined,
               title_keyword: item.entries.extra.title_keyword ?? undefined,
+              property:
+                (item.entries.extra as { property?: PropertyListing }).property ?? undefined,
             }
           : null,
         language: item.entries.language,

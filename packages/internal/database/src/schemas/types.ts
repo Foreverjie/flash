@@ -51,6 +51,31 @@ export type AttachmentsModel = {
   title?: string
 }
 
+/** Structured second-hand property listing behind the Property Feed card. */
+export type PropertyListing = {
+  community: string
+  title: string
+  city: string
+  hood: string
+  beds: number
+  halls: number
+  baths: number
+  area: number
+  total: string
+  total_num: number
+  unit: string
+  unit_num: number
+  floor: string
+  orientation: string
+  reno: string
+  tags: string[]
+  badge: "new" | "reduced" | ""
+  reduced_by: string
+  orig: string
+  sold: boolean
+  image: string
+}
+
 export type ExtraModel = {
   links?: {
     url: string
@@ -58,6 +83,7 @@ export type ExtraModel = {
     content_html?: string
   }[]
   title_keyword?: string
+  property?: PropertyListing
 }
 
 // export { ImageColorsResult } from "react-native-image-colors"

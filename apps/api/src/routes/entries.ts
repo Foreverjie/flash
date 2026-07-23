@@ -54,7 +54,9 @@ function toEntryWithFeed(
       media: post.media ?? null,
       categories: post.categories ?? null,
       attachments: post.attachments ?? null,
-      extra: post.extra ?? null,
+      // Structured listing data rides along in `extra` so the Property Feed card
+      // renders natively without a separate client field/migration.
+      extra: post.property ? { ...post.extra, property: post.property } : (post.extra ?? null),
       language: post.language,
       content: post.content,
     },
@@ -199,7 +201,9 @@ entriesRouter.get("/", requireAuth, async (c) => {
         media: row.posts.media ?? null,
         categories: row.posts.categories ?? null,
         attachments: row.posts.attachments ?? null,
-        extra: row.posts.extra ?? null,
+        extra: row.posts.property
+          ? { ...row.posts.extra, property: row.posts.property }
+          : (row.posts.extra ?? null),
         language: row.posts.language,
         content: row.posts.content,
       },
