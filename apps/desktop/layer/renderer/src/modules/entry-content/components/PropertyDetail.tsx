@@ -5,6 +5,62 @@ import type { ReactNode } from "react"
 import { RelativeTime } from "~/components/ui/datetime"
 import { Media } from "~/components/ui/media/Media"
 
+/** Feed URL schemes whose entries are community property listings. */
+export const COMMUNITY_FEED_SCHEMES = ["leyoujia_community://", "qfang_community://"]
+
+const EMPTY_PROPERTY: PropertyListing = {
+  community: "",
+  title: "",
+  city: "",
+  hood: "",
+  beds: 0,
+  halls: 0,
+  baths: 0,
+  area: 0,
+  total: "",
+  total_num: 0,
+  unit: "",
+  unit_num: 0,
+  floor: "",
+  orientation: "",
+  reno: "",
+  tags: [],
+  badge: "",
+  reduced_by: "",
+  orig: "",
+  sold: false,
+  image: "",
+}
+
+/**
+ * Minimal PropertyListing parsed from the post title ("price · area · layout"),
+ * used as a fallback when the structured `property` field hasn't synced yet — so
+ * community listings still render a native card, never the raw content HTML.
+ */
+export function parseListingTitle(title: string, community: string): PropertyListing | null {
+  const body = title.includes(" | ") ? title.slice(title.indexOf(" | ") + 3) : title
+  const parts = body
+    .split(" · ")
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const total = parts[0]
+  if (!total) return null
+
+  let area = 0
+  let beds = 0
+  let halls = 0
+  for (const part of parts.slice(1)) {
+    const areaMatch = part.match(/([\d.]+)\s*㎡/)
+    if (areaMatch) area = Number(areaMatch[1])
+    const layoutMatch = part.match(/(\d+)室(?:(\d+)厅)?/)
+    if (layoutMatch) {
+      beds = Number(layoutMatch[1])
+      halls = layoutMatch[2] ? Number(layoutMatch[2]) : 0
+    }
+  }
+  return { ...EMPTY_PROPERTY, community, total, area, beds, halls }
+}
+
 const layoutLabel = (p: PropertyListing) =>
   [p.beds ? `${p.beds}室` : "", p.halls ? `${p.halls}厅` : "", p.baths ? `${p.baths}卫` : ""]
     .filter(Boolean)

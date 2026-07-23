@@ -26,7 +26,7 @@ import { EntryRenderError } from "../entry-content/EntryRenderError"
 import { ReadabilityNotice } from "../entry-content/ReadabilityNotice"
 import { EntryAttachments } from "../EntryAttachments"
 import { EntryTitle } from "../EntryTitle"
-import { PropertyDetail } from "../PropertyDetail"
+import { COMMUNITY_FEED_SCHEMES, parseListingTitle, PropertyDetail } from "../PropertyDetail"
 import { MediaTranscript, TranscriptToggle, useTranscription } from "./shared"
 import { ArticleAudioPlayer } from "./shared/AudioPlayer"
 import type { EntryLayoutProps } from "./types"
@@ -40,6 +40,7 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
   const entry = useEntry(entryId, (state) => ({
     feedId: state.feedId,
     inboxId: state.inboxHandle,
+    title: state.title,
   }))
   const property = useEntry(entryId, (state) => state.extra?.property)
   const { data: transcriptionData } = useTranscription(entryId)
@@ -68,13 +69,20 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
 
   if (!entry) return null
 
-  // Community listing entries render as a native Property Feed detail card.
-  if (property) {
-    return (
-      <div className={cn(readableContentMaxWidthClassName, "mx-auto mt-1 px-4")}>
-        <PropertyDetail entryId={entryId} property={property} />
-      </div>
-    )
+  // Community listing entries render as a native Property Feed detail card. Detect
+  // by feed URL scheme so it works even before the structured field has synced;
+  // prefer the structured `property`, else parse the title so it's never the raw HTML.
+  const isCommunityFeed =
+    !!feed?.url && COMMUNITY_FEED_SCHEMES.some((scheme) => feed.url!.startsWith(scheme))
+  if (isCommunityFeed || property) {
+    const resolved = property ?? parseListingTitle(entry.title ?? "", feed?.title ?? "")
+    if (resolved) {
+      return (
+        <div className={cn(readableContentMaxWidthClassName, "mx-auto mt-1 px-4")}>
+          <PropertyDetail entryId={entryId} property={resolved} />
+        </div>
+      )
+    }
   }
 
   return (
