@@ -26,6 +26,7 @@ import { EntryRenderError } from "../entry-content/EntryRenderError"
 import { ReadabilityNotice } from "../entry-content/ReadabilityNotice"
 import { EntryAttachments } from "../EntryAttachments"
 import { EntryTitle } from "../EntryTitle"
+import { PropertyDetail } from "../PropertyDetail"
 import { MediaTranscript, TranscriptToggle, useTranscription } from "./shared"
 import { ArticleAudioPlayer } from "./shared/AudioPlayer"
 import type { EntryLayoutProps } from "./types"
@@ -40,6 +41,7 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
     feedId: state.feedId,
     inboxId: state.inboxHandle,
   }))
+  const property = useEntry(entryId, (state) => state.extra?.property)
   const { data: transcriptionData } = useTranscription(entryId)
 
   const feed = useFeedById(entry?.feedId)
@@ -65,6 +67,15 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
   }, [removeBlock])
 
   if (!entry) return null
+
+  // Community listing entries render as a native Property Feed detail card.
+  if (property) {
+    return (
+      <div className={cn(readableContentMaxWidthClassName, "mx-auto mt-1 px-4")}>
+        <PropertyDetail entryId={entryId} property={property} />
+      </div>
+    )
+  }
 
   return (
     <div className={cn(readableContentMaxWidthClassName, "mx-auto mt-1 px-4")}>
