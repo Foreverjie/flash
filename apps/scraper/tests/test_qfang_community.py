@@ -80,9 +80,12 @@ async def test_scrape_walks_all_pages_and_parses_listings():
     assert first.url == "https://shenzhen.qfang.com/sale/505019201"
     assert first.author == "中信红树湾"
     assert "3200万" in first.content
-    assert "4室2厅 · 167.56平米 · 精装 · 高层（共31层）" in first.content
+    assert "中信红树湾 4室2厅167.56m²满五年" in first.content  # listing headline in card
     assert first.media == [{"url": "https://img.qfangimg.com/a.jpg-240x180", "type": "photo"}]
     assert scraper._fetch_page.await_count == 2
+    # Mandatory structured property field
+    assert (first.property.beds, first.property.halls, first.property.area) == (4, 2, 167.56)
+    assert first.property.total_num == 32000000 and first.property.reno == "精装"
 
 
 @pytest.mark.asyncio
@@ -99,7 +102,8 @@ async def test_scrape_labels_price_changes():
     )
 
     assert posts[0].title.startswith("📉 降价 3500万→3200万 | ")
-    assert posts[1].title == "337万 · 64.55㎡ · 3室0厅"
+    assert posts[0].property.badge == "reduced"
+    assert posts[1].title == "337万 · 64.55㎡ · 3室"
     assert posts[2].title == "800万 · 80㎡ · 2室1厅"
 
 

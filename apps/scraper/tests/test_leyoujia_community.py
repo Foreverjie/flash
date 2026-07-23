@@ -87,7 +87,7 @@ async def test_scrape_parses_listings_and_skips_sidebar():
     assert first.url == "https://shenzhen.leyoujia.com/esf/detail/AAA111"
     assert first.author == "中海康城花园"
     assert "243万" in first.content
-    assert "建筑面积88.99㎡" in first.content
+    assert "88.99㎡" in first.content
     assert first.media == [{"url": "https://img.leyoujia.com/a.jpg", "type": "photo"}]
     # Rendered as a property card: hero image + original headline kept for context
     assert first.content.startswith("<div ")
@@ -95,6 +95,13 @@ async def test_scrape_parses_listings_and_skips_sidebar():
     assert "龙岗大运中海康城花园3室2厅，人车分流" in first.content
     # Without guid context, titles are unlabeled and lead with price · area · layout
     assert first.title == "243万 · 88.99㎡ · 3室2厅"
+    # Mandatory structured property field
+    pr = first.property
+    assert pr is not None
+    assert (pr.community, pr.beds, pr.halls, pr.area) == ("中海康城花园", 3, 2, 88.99)
+    assert pr.total == "243万" and pr.total_num == 2430000
+    assert pr.unit_num == 27306 and pr.orientation == "西南" and pr.reno == "精装"
+    assert pr.city == "深圳"
 
 
 @pytest.mark.asyncio
@@ -104,8 +111,12 @@ async def test_scrape_labels_new_listings_and_price_changes():
     posts = await scraper.scrape("9575", existing_guids=["BBB222@530"], force=True)
 
     assert posts[0].title.startswith("🆕 新上 | ")
+    assert posts[0].property.badge == "new"
     assert posts[1].title.startswith("📉 降价 530万→510万 | ")
-    assert "价格变动：530万 → 510万" in posts[1].content
+    # Price drop surfaces as a card badge + struck original price
+    assert posts[1].property.badge == "reduced"
+    assert "降价 20万" in posts[1].content
+    assert "530万" in posts[1].content
 
 
 @pytest.mark.asyncio
