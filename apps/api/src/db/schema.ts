@@ -196,6 +196,34 @@ export const feeds = pgTable(
 )
 
 /**
+ * Structured second-hand property listing — the mandatory field behind the
+ * Property Feed card, emitted by the community scraper adapters.
+ */
+export interface PropertyListing {
+  community: string
+  title: string
+  city: string
+  hood: string
+  beds: number
+  halls: number
+  baths: number
+  area: number
+  total: string
+  total_num: number
+  unit: string
+  unit_num: number
+  floor: string
+  orientation: string
+  reno: string
+  tags: string[]
+  badge: "new" | "reduced" | ""
+  reduced_by: string
+  orig: string
+  sold: boolean
+  image: string
+}
+
+/**
  * Posts table - Fetched and formatted RSS entries
  */
 export const posts = pgTable(
@@ -269,6 +297,9 @@ export const posts = pgTable(
     // Extra data
     language: varchar("language", { length: 10 }),
     extra: jsonb("extra").$type<Record<string, unknown>>(),
+    // Structured real-estate listing data — mandatory for community-listing feeds
+    // (leyoujia_community / qfang_community), powers the native Property Feed card.
+    property: jsonb("property").$type<PropertyListing>(),
     // Scrape status for detail content fetching
     scrapeStatus: varchar("scrape_status", { length: 20 }).default("pending"),
     scrapeAttempts: integer("scrape_attempts").default(0),

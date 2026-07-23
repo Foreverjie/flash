@@ -29,6 +29,13 @@
       "when": 1783051171796,
       "tag": "0003_third_madrox",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784773052337,
+      "tag": "0004_rich_magik",
+      "breakpoints": true
     }
   ]
 }

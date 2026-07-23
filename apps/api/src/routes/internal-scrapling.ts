@@ -8,7 +8,7 @@ import { db, feeds, posts } from "../db/index.js"
 import { SCRAPLING_ADAPTER_TYPES } from "../lib/scraping-client.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
-import { sendNotFound, structuredSuccess } from "../utils/response.js"
+import { sendError, sendNotFound, structuredSuccess } from "../utils/response.js"
 
 const router = new Hono()
 
@@ -19,6 +19,33 @@ router.use("*", async (c, next) => {
     return c.json({ code: 401, message: "Unauthorized" }, 401)
   }
   return next()
+})
+
+// Community (real-estate) adapters must attach structured listing data.
+const COMMUNITY_ADAPTER_TYPES = ["leyoujia_community", "qfang_community"] as const
+
+const propertySchema = z.object({
+  community: z.string(),
+  title: z.string().default(""),
+  city: z.string().default(""),
+  hood: z.string().default(""),
+  beds: z.number().default(0),
+  halls: z.number().default(0),
+  baths: z.number().default(0),
+  area: z.number().default(0),
+  total: z.string().default(""),
+  total_num: z.number().default(0),
+  unit: z.string().default(""),
+  unit_num: z.number().default(0),
+  floor: z.string().default(""),
+  orientation: z.string().default(""),
+  reno: z.string().default(""),
+  tags: z.array(z.string()).default([]),
+  badge: z.enum(["new", "reduced", ""]).default(""),
+  reduced_by: z.string().default(""),
+  orig: z.string().default(""),
+  sold: z.boolean().default(false),
+  image: z.string().default(""),
 })
 
 const scrapedPostSchema = z.object({
@@ -42,6 +69,8 @@ const scrapedPostSchema = z.object({
       }),
     )
     .default([]),
+  // Present for community listing feeds; null for other adapters.
+  property: propertySchema.nullish(),
 })
 
 /**
@@ -123,6 +152,22 @@ router.post(
       return sendNotFound(c, "Feed")
     }
 
+    // Structured `property` is mandatory for community listing feeds.
+    const isCommunityFeed = (COMMUNITY_ADAPTER_TYPES as readonly string[]).includes(
+      feed.adapterType ?? "",
+    )
+    if (isCommunityFeed) {
+      const missing = incomingPosts.find((p) => !p.property)
+      if (missing) {
+        return sendError(
+          c,
+          `Missing required "property" field for community listing ${missing.guid}`,
+          400,
+          400,
+        )
+      }
+    }
+
     let inserted = 0
     for (const item of incomingPosts) {
       const result = await db
@@ -138,6 +183,7 @@ router.post(
           publishedAt: new Date(item.published_at),
           media: item.media,
           attachments: item.attachments.length > 0 ? item.attachments : undefined,
+          property: item.property ?? undefined,
           scrapeStatus: "scraped", // already full content — skip readability queue
         })
         .onConflictDoNothing() // (feedId, guid) unique — silent dedup
