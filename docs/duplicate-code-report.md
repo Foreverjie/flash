@@ -20,16 +20,16 @@
 - **Recommended action:** **Merge** if the main process already depends on `@follow/utils`; otherwise leave (a 1-line trivial helper isn't worth a new dependency edge).
 - **Risk:** Low. **Confidence:** High (they are duplicates); Medium (on whether merging is worth it).
 
-## DUP2 — `parseHtml()` defined three times
+## DUP2 — `parseHtml()` "three parsers" (CORRECTED + RESOLVED)
 
 - **Files:**
-  - `packages/internal/utils/src/html.ts` — `parseHtml(content, options?: ParseHtmlOptions)` (shared)
-  - `apps/desktop/layer/renderer/src/lib/parse-html.ts` — `parseHtml(content, options?: {...})` (desktop renderer)
-  - `apps/mobile/web-app/html-renderer/src/parser.tsx` — `parseHtml(...)` (mobile web-app renderer)
-- **Analysis:** signatures diverge (desktop uses an inline options type; shared has a named `ParseHtmlOptions`). These are content/HTML renderers that plausibly need platform-specific component maps — so bodies likely differ meaningfully. This is a **classic drift risk**: three parsers for "render feed HTML" that can diverge in sanitization/behavior.
-- **Reason duplicated:** different rendering targets (desktop DOM, mobile web-app, shared).
-- **Recommended action:** **Extract-core** — pull shared parsing/sanitization into `@follow/utils` and let each platform inject only its component map. Confirm bodies differ before merging (they may already share the core and only differ in the wrapper).
-- **Risk:** Medium (touches the reader rendering path — cover with the reading e2e flow). **Confidence:** Medium (that they overlap enough to consolidate — needs a body diff).
+  - `packages/internal/utils/src/html.ts` — `parseHtml` (shared core: parsing + **sanitization**)
+  - `apps/desktop/layer/renderer/src/lib/parse-html.ts` — desktop wrapper
+  - `apps/mobile/web-app/html-renderer/src/parser.tsx` — mobile web-app wrapper
+- **Correction (Phase 4):** the original "three parsers that can drift on sanitization" premise was **wrong**. The desktop and mobile-web files are **not** separate parsers — both already delegate to the shared `parseHtmlGeneral` (`@follow/utils/html`) and only inject a platform-specific React `components` map. So sanitization already lived in exactly one place; there was no sanitization-drift risk. The component maps differ **intentionally** (desktop `Media`/`ShadowDOM`/desktop-Shiki vs mobile `MarkdownImage`/mobile-Shiki, different link/video handling) and must stay separate.
+- **Actual duplication found:** the DOM helper `extractCodeFromHtml` was **byte-identical** across the desktop and mobile-web files (~57 lines each).
+- **Resolution:** extracted `extractCodeFromHtml` into `@follow/utils/extract-code`; both renderers now import it; its 15-case test suite was relocated from the desktop app (where it ran in no configured runner) to `packages/internal/utils` (happy-dom vitest project) and now executes. Validated: typecheck 18/18, utils tests 50 passed, `build:web` success. Component maps left untouched.
+- **Status:** Resolved.
 
 ## DUP3 — Deprecated `Collapse` vs `CollapseCss` (two implementations of one component)
 
