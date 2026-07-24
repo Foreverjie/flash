@@ -193,9 +193,6 @@ importers:
       '@mozilla/readability':
         specifier: 0.6.0
         version: 0.6.0(patch_hash=61709486ef07e9c8175a4b3f19f1aa4e2a1a75a3c557643c574d6cdacd6dd959)
-      '@supabase/supabase-js':
-        specifier: ^2.47.10
-        version: 2.79.0(bufferutil@4.0.9)
       bcrypt:
         specifier: 6.0.0
         version: 6.0.0
@@ -214,6 +211,9 @@ importers:
       linkedom:
         specifier: 0.18.12
         version: 0.18.12
+      pathe:
+        specifier: 2.0.3
+        version: 2.0.3
       pg:
         specifier: 8.16.3
         version: 8.16.3
@@ -242,6 +242,9 @@ importers:
       drizzle-kit:
         specifier: 0.31.6
         version: 0.31.6
+      msw:
+        specifier: 2.12.7
+        version: 2.12.7(@types/node@24.5.2)(typescript@5.9.3)
       tsup:
         specifier: ^8.3.5
         version: 8.5.0(jiti@2.6.1)(postcss@8.5.6)(tsx@4.20.6)(typescript@5.9.3)(yaml@2.8.1)
@@ -20785,8 +20788,7 @@ snapshots:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
 
-  '@inquirer/ansi@1.0.2':
-    optional: true
+  '@inquirer/ansi@1.0.2': {}
 
   '@inquirer/checkbox@3.0.1':
     dependencies:
@@ -20807,7 +20809,6 @@ snapshots:
       '@inquirer/type': 3.0.10(@types/node@24.5.2)
     optionalDependencies:
       '@types/node': 24.5.2
-    optional: true
 
   '@inquirer/core@10.3.2(@types/node@24.5.2)':
     dependencies:
@@ -20821,11 +20822,10 @@ snapshots:
       yoctocolors-cjs: 2.1.3
     optionalDependencies:
       '@types/node': 24.5.2
-    optional: true
 
   '@inquirer/core@9.2.1':
     dependencies:
-      '@inquirer/figures': 1.0.14
+      '@inquirer/figures': 1.0.15
       '@inquirer/type': 2.0.0
       '@types/mute-stream': 0.0.4
       '@types/node': 22.19.0
@@ -20852,8 +20852,7 @@ snapshots:
 
   '@inquirer/figures@1.0.14': {}
 
-  '@inquirer/figures@1.0.15':
-    optional: true
+  '@inquirer/figures@1.0.15': {}
 
   '@inquirer/input@3.0.1':
     dependencies:
@@ -20916,7 +20915,6 @@ snapshots:
   '@inquirer/type@3.0.10(@types/node@24.5.2)':
     optionalDependencies:
       '@types/node': 24.5.2
-    optional: true
 
   '@isaacs/balanced-match@4.0.1': {}
 
@@ -21323,7 +21321,6 @@ snapshots:
       is-node-process: 1.2.0
       outvariant: 1.4.3
       strict-event-emitter: 0.5.1
-    optional: true
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:
@@ -21554,17 +21551,14 @@ snapshots:
     dependencies:
       '@octokit/openapi-types': 12.11.0
 
-  '@open-draft/deferred-promise@2.2.0':
-    optional: true
+  '@open-draft/deferred-promise@2.2.0': {}
 
   '@open-draft/logger@0.3.0':
     dependencies:
       is-node-process: 1.2.0
       outvariant: 1.4.3
-    optional: true
 
-  '@open-draft/until@2.1.0':
-    optional: true
+  '@open-draft/until@2.1.0': {}
 
   '@openpanel/sdk@1.0.0': {}
 
@@ -23985,8 +23979,7 @@ snapshots:
 
   '@types/stack-utils@2.0.3': {}
 
-  '@types/statuses@2.0.6':
-    optional: true
+  '@types/statuses@2.0.6': {}
 
   '@types/tar@6.1.13':
     dependencies:
@@ -28955,8 +28948,7 @@ snapshots:
       graphql: 16.8.1
       tslib: 2.6.2
 
-  graphql@16.12.0:
-    optional: true
+  graphql@16.12.0: {}
 
   graphql@16.8.1: {}
 
@@ -29191,8 +29183,7 @@ snapshots:
       property-information: 7.1.0
       space-separated-tokens: 2.0.2
 
-  headers-polyfill@4.0.3:
-    optional: true
+  headers-polyfill@4.0.3: {}
 
   hermes-estree@0.25.1: {}
 
@@ -29623,8 +29614,7 @@ snapshots:
 
   is-negative-zero@2.0.3: {}
 
-  is-node-process@1.2.0:
-    optional: true
+  is-node-process@1.2.0: {}
 
   is-number-object@1.1.1:
     dependencies:
@@ -31189,7 +31179,6 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - '@types/node'
-    optional: true
 
   multiline@2.0.0:
     dependencies:
@@ -31212,8 +31201,7 @@ snapshots:
 
   mute-stream@1.0.0: {}
 
-  mute-stream@2.0.0:
-    optional: true
+  mute-stream@2.0.0: {}
 
   mv@2.1.1:
     dependencies:
@@ -31553,8 +31541,7 @@ snapshots:
 
   os-tmpdir@1.0.2: {}
 
-  outvariant@1.4.3:
-    optional: true
+  outvariant@1.4.3: {}
 
   overlap-area@1.1.0:
     dependencies:
@@ -33145,8 +33132,7 @@ snapshots:
 
   retry@0.12.0: {}
 
-  rettime@0.7.0:
-    optional: true
+  rettime@0.7.0: {}
 
   reusify@1.1.0: {}
 
@@ -33746,8 +33732,7 @@ snapshots:
 
   statuses@2.0.1: {}
 
-  statuses@2.0.2:
-    optional: true
+  statuses@2.0.2: {}
 
   std-env@3.10.0: {}
 
@@ -33784,8 +33769,7 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
-  strict-event-emitter@0.5.1:
-    optional: true
+  strict-event-emitter@0.5.1: {}
 
   string-argv@0.3.2: {}
 
@@ -34299,7 +34283,6 @@ snapshots:
   tough-cookie@6.0.0:
     dependencies:
       tldts: 7.0.17
-    optional: true
 
   tr46@0.0.3: {}
 
@@ -34773,8 +34756,7 @@ snapshots:
       '@unrs/resolver-binding-win32-ia32-msvc': 1.11.1
       '@unrs/resolver-binding-win32-x64-msvc': 1.11.1
 
-  until-async@3.0.2:
-    optional: true
+  until-async@3.0.2: {}
 
   untildify@4.0.0: {}
 
