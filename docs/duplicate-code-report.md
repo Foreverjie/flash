@@ -47,8 +47,13 @@ Desktop and mobile each ship their own version of several UI concepts. These are
 | Store/atoms structure | `renderer/src/{store,atoms}` | `apps/mobile/src/{store,atoms}` |
 | `initialize/`, `providers/` | desktop renderer | mobile |
 
-- **Recommended action:** **Keep** the UI split. BUT audit for **business logic** (role checks, formatting, action orchestration) copy-pasted between them — that logic belongs in shared packages (`@follow/store`, `@follow/atoms`, `@follow/utils`). Example smell: `UserRole.Trial`/`Free` gating logic appears in both desktop and mobile avatar/badge components and in `@follow/atoms/helper/setting.ts` — consolidate the _predicate_ (e.g. an `isPaidRole`) into the shared helper and reuse.
+- **Recommended action:** **Keep** the UI split. BUT audit for **business logic** (role checks, formatting, action orchestration) copy-pasted between them — that logic belongs in shared packages (`@follow/store`, `@follow/atoms`, `@follow/utils`).
 - **Risk:** Low–Medium. **Confidence:** Medium.
+
+### DUP4a — Paid-role gating predicate (RESOLVED, partial)
+
+- **Done:** the compound "paid" check `role !== Free && role !== Trial` was duplicated at 4 sites (desktop `UserAvatar`, `SubscriptionColumnDock`, mobile `UserAvatar`, `@follow/atoms` setting helper). Extracted into **`isPaidRole`** in `@follow/constants` and all 4 sites converted. `isPaidRole` treats `PreProTrial` as paid and null as not-paid; it is deliberately **not** `!isFreeRole` (which counts `PreProTrial` as free for translation gating) — the two model different product rules. Validated: typecheck 18/18, eslint clean, `build:web`.
+- **Left inline (intentional):** the inverse `role === Free || role === Trial` checks (`useEntryActions`, `commands/entry`, mobile `SettingsList`, `UserProBadge`, mobile `UserHeaderBanner`). At the nullable sites, `!isPaidRole(role)` would flip behavior for a null role (current `false` vs `!isPaidRole` `true` → would disable the translation toggle / pop activation & plan modals for logged-out/loading users). Converting them safely would need a separate literal `isFreeOrTrialRole` predicate whose name collides confusingly with `isFreeRole`; deferred as a conscious non-goal.
 
 ## DUP5 — Store module boilerplate (structural repetition, not literal duplication)
 
