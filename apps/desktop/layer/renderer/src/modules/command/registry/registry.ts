@@ -1,6 +1,5 @@
 import { atom } from "jotai"
 
-// import { createKeybindingsHandler } from "tinykeys"
 import { jotaiStore } from "~/lib/jotai"
 
 import type { Command, CommandOptions } from "../types"
