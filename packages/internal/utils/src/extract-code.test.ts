@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { extractCodeFromHtml } from "../parse-html"
+import { extractCodeFromHtml } from "./extract-code"
 
 describe("extractCodeFromHtml", () => {
   it("should extract code from div elements", () => {
