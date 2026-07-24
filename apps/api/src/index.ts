@@ -5,6 +5,7 @@
 import "dotenv/config"
 
 import { serve } from "@hono/node-server"
+import type { Env, Schema } from "hono"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger as honoLogger } from "hono/logger"
@@ -118,67 +119,62 @@ app.on(["POST", "GET"], "/better-auth/*", async (c) => {
 // API Routes
 // ============================================================
 
-// Health check
+// Mount a router at both the bare path and the versioned `/api/v1` path.
+const mountV1 = <E extends Env, S extends Schema, P extends string>(
+  path: string,
+  router: Hono<E, S, P>,
+) => {
+  app.route(path, router)
+  app.route(`/api/v1${path}`, router)
+}
+
+// Health check (mirrored at /api/health, not /api/v1)
 app.route("/health", healthRouter)
 app.route("/api/health", healthRouter)
 
 // Auth routes (custom endpoints)
-app.route("/auth", authRouter)
-app.route("/api/v1/auth", authRouter)
+mountV1("/auth", authRouter)
 
 // User routes
-app.route("/users", usersRouter)
-app.route("/api/v1/users", usersRouter)
+mountV1("/users", usersRouter)
 
 // Feed routes
-app.route("/feeds", feedsRouter)
-app.route("/api/v1/feeds", feedsRouter)
+mountV1("/feeds", feedsRouter)
 
 // Post routes (public timeline)
-app.route("/posts", postsRouter)
-app.route("/api/v1/posts", postsRouter)
+mountV1("/posts", postsRouter)
 
 // Subscription routes
-app.route("/subscriptions", subscriptionsRouter)
-app.route("/api/v1/subscriptions", subscriptionsRouter)
+mountV1("/subscriptions", subscriptionsRouter)
 
 // Topics + onboarding routes
-app.route("/topics", topicsRouter)
-app.route("/api/v1/topics", topicsRouter)
+mountV1("/topics", topicsRouter)
 
 // Trending routes (Discover leaderboard)
-app.route("/trending", trendingRouter)
-app.route("/api/v1/trending", trendingRouter)
+mountV1("/trending", trendingRouter)
 
 // Starter pack routes (Discover curated bundles)
-app.route("/packs", packsRouter)
-app.route("/api/v1/packs", packsRouter)
+mountV1("/packs", packsRouter)
 
 // Me routes (private aggregated stats)
-app.route("/me", meRouter)
-app.route("/api/v1/me", meRouter)
+mountV1("/me", meRouter)
 
 // Entry routes (authenticated timeline)
-app.route("/entries", entriesRouter)
-app.route("/api/v1/entries", entriesRouter)
+mountV1("/entries", entriesRouter)
 
 // Read status routes
-app.route("/reads", readsRouter)
-app.route("/api/v1/reads", readsRouter)
+mountV1("/reads", readsRouter)
 
 // Settings sync routes
-app.route("/settings", settingsRouter)
-app.route("/api/v1/settings", settingsRouter)
+mountV1("/settings", settingsRouter)
 
 // Status routes (public server configs)
-app.route("/status", statusRouter)
-app.route("/api/v1/status", statusRouter)
+mountV1("/status", statusRouter)
 
 // Comment routes
-app.route("/comments", commentsRouter)
-app.route("/api/v1/comments", commentsRouter)
+mountV1("/comments", commentsRouter)
 
-// Cron routes (scheduled tasks)
+// Cron routes (scheduled tasks, mirrored at /api/cron, not /api/v1)
 app.route("/cron", cronRouter)
 app.route("/api/cron", cronRouter)
 
