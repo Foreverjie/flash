@@ -7,15 +7,16 @@
  */
 import { Logo } from "@follow/components/icons/logo.jsx"
 import { Button } from "@follow/components/ui/button/index.js"
+import { useWhoami } from "@follow/store/user/hooks"
 import { tracker } from "@follow/tracker"
 import { cn } from "@follow/utils"
 import type { Transition, Variants } from "motion/react"
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { PlainModal } from "~/components/ui/modal/stacked/custom-modal"
-import { useModalStack } from "~/components/ui/modal/stacked/hooks"
+import { ONBOARDING_COACH_FLAG_KEY } from "~/constants/coach"
 import { LoginModalContent } from "~/modules/auth/LoginModalContent"
+import { settingSyncQueue } from "~/modules/settings/helper/sync-queue"
 import { useSession } from "~/queries/auth"
 import {
   useFeedsForTopicsQuery,
@@ -229,118 +230,59 @@ function Item({
 }
 
 /**
- * Open the existing login/signup modal. Resolves once the user is authenticated
- * and the session query reports a logged-in user; rejects if the modal is
- * dismissed without auth.
+ * Step 1 — authentication as a real, inline step (not a stacked modal).
+ *
+ * The proven auth surface (`LoginModalContent`) is rendered inline via its
+ * `embedded` mode, so it keeps every provider, email/2FA, referral and legal
+ * affordance without the modal-promise handshake the old flow relied on.
+ *
+ * Advancing is driven purely by the session query: once Better Auth flips the
+ * session to `authenticated`, the effect moves the flow forward — to the topics
+ * step for brand-new accounts, or straight into the app for already-onboarded
+ * users who only needed to re-authenticate.
  */
-function useRequireAuth() {
-  const modalStack = useModalStack()
+function ScreenWelcome({ onAuthed, onClose }: { onAuthed: () => void; onClose: () => void }) {
   const { status } = useSession()
+  const user = useWhoami()
 
-  return (initialState: "register" | "login"): Promise<boolean> => {
-    if (status === "authenticated") return Promise.resolve(true)
-    return new Promise<boolean>((resolve) => {
-      const modalId = "onboarding-login"
-      modalStack.present({
-        CustomModalComponent: PlainModal,
-        title: initialState === "login" ? "Sign in" : "Sign up",
-        id: modalId,
-        overlay: true,
-        content: () => (
-          <LoginModalContent
-            runtime={window.electron ? "app" : "browser"}
-            initialState={initialState}
-            onBack={() => modalStack.dismissTop()}
-          />
-        ),
-        clickOutsideToDismiss: true,
-        onClose: () => {
-          // The session query refetches automatically on auth changes; we
-          // resolve true if a user is now present, false otherwise. The
-          // caller re-reads `useSession().status` to decide whether to
-          // proceed, so resolution value here is informational only.
-          resolve(true)
-        },
-      })
-    })
-  }
-}
-
-function ScreenWelcome({ onAuthed }: { onAuthed: () => void }) {
-  const requireAuth = useRequireAuth()
-  const { status } = useSession()
-
-  // If the user is already authenticated when this screen mounts, hop forward.
-  // Guarded so parent re-renders (which recreate onAuthed) can't advance twice
-  // and silently skip the topics step.
+  // Guarded so parent re-renders (which recreate the callbacks) can't advance
+  // twice and silently skip the topics step.
   const advancedRef = useRef(false)
   useEffect(() => {
-    if (status === "authenticated" && !advancedRef.current) {
-      advancedRef.current = true
-      onAuthed()
-    }
-  }, [status, onAuthed])
-
-  const handleStart = async (initialState: "register" | "login") => {
-    if (status === "authenticated") {
-      onAuthed()
-      return
-    }
-    await requireAuth(initialState)
-    // Caller advances when session flips to authenticated via the effect above.
-  }
+    if (status !== "authenticated" || advancedRef.current) return
+    advancedRef.current = true
+    if (user?.onboardedAt) onClose()
+    else onAuthed()
+  }, [status, user?.onboardedAt, onAuthed, onClose])
 
   return (
-    <Stage
-      eyebrow={COPY.eyebrow}
-      step={1}
-      footer={
-        <>
-          <span className="text-[11px] text-text-secondary">
-            By continuing you agree to our terms.
-          </span>
-          <span className="text-xs text-text-secondary">Step 1 of {TOTAL_STEPS}</span>
-        </>
-      }
-    >
-      <StepContent>
-        <div className="mx-auto flex w-full max-w-[720px] flex-col items-start gap-[18px] text-left sm:items-center sm:gap-7 sm:text-center">
-          <Item>
-            <Logo className="size-14 rounded-[14px] sm:hidden" />
-            <Logo className="hidden size-[76px] rounded-[18px] sm:inline-flex" />
+    <div className="relative flex size-full flex-col bg-background text-text">
+      <div className="flex min-h-7 flex-none items-center justify-between gap-3 px-5 pt-3 sm:min-h-10 sm:px-7 sm:pt-5">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.28em] text-accent sm:text-[11px]">
+          {COPY.eyebrow}
+        </span>
+        <StepDots step={1} />
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 overflow-y-auto p-6 sm:px-10">
+        <StepContent>
+          <Item className="flex w-full max-w-[420px] flex-col items-center gap-2 text-center">
+            <p className="m-0 text-balance text-lg font-semibold leading-snug text-text sm:text-xl">
+              {COPY.welcomeTitle}
+            </p>
+            <p className="m-0 text-[13px] leading-normal text-text-secondary">{COPY.welcomeBody}</p>
           </Item>
-          <Item
-            as="h1"
-            className="m-0 text-balance text-[30px] font-semibold leading-[1.04] -tracking-wide text-text sm:text-[56px]"
-          >
-            {COPY.welcomeTitle}
+          <Item className="w-full">
+            <LoginModalContent embedded runtime={window.electron ? "app" : "browser"} />
           </Item>
-          <Item
-            as="p"
-            className="m-0 w-full text-sm leading-normal text-text-secondary sm:max-w-[520px] sm:text-[17px]"
-          >
-            {COPY.welcomeBody}
-          </Item>
-          <Item className="mt-1 flex w-full flex-col items-stretch gap-2.5 sm:mt-2 sm:w-auto sm:flex-row sm:items-center">
-            <Button
-              variant="primary"
-              buttonClassName="h-12 w-full px-5 text-sm sm:w-auto"
-              onClick={() => handleStart("register")}
-            >
-              Get started
-              <i className="i-mgc-right-cute-re ml-1 size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              buttonClassName="h-12 w-full px-5 text-sm sm:w-auto"
-              onClick={() => handleStart("login")}
-            >
-              I already have an account
-            </Button>
-          </Item>
-        </div>
-      </StepContent>
-    </Stage>
+        </StepContent>
+      </div>
+      <div className="flex flex-none items-center justify-between gap-3 border-t border-border px-5 py-4 sm:px-7">
+        <span className="text-[11px] text-text-secondary">
+          By continuing you agree to our terms.
+        </span>
+        <span className="text-xs text-text-secondary">Step 1 of {TOTAL_STEPS}</span>
+      </div>
+    </div>
   )
 }
 
@@ -836,6 +778,16 @@ export function OnboardingFlow({ onClose }: { onClose: () => void }) {
     } catch {
       // ignore
     }
+    // Arm the one-shot coach card shown on the first read surface.
+    try {
+      window.localStorage.setItem(ONBOARDING_COACH_FLAG_KEY, "1")
+    } catch {
+      // Storage may be unavailable in private mode; the coach card just won't show.
+    }
+    // Persist the user's onboarding selections (general settings) to the server.
+    settingSyncQueue.replaceRemote("general").catch((error) => {
+      console.error("Failed to sync settings after onboarding", error)
+    })
     if (reduceMotion) {
       onClose()
       return
@@ -856,7 +808,7 @@ export function OnboardingFlow({ onClose }: { onClose: () => void }) {
           transition={STEP_TRANSITION}
           className="absolute inset-0"
         >
-          {step === 1 && <ScreenWelcome onAuthed={next} />}
+          {step === 1 && <ScreenWelcome onAuthed={next} onClose={onClose} />}
           {step === 2 && (
             <ScreenInterests
               topics={topics}

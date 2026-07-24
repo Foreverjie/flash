@@ -3,12 +3,12 @@
  * Curated topics used by onboarding/discover to recommend feeds.
  */
 import { zValidator } from "@hono/zod-validator"
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm"
 import { Hono } from "hono"
 import { z } from "zod"
 
 import type { User } from "../auth/index.js"
-import { db, feeds, feedTopics, subscriptions, topics } from "../db/index.js"
+import { db, feeds, feedTopics, subscriptions, topics, users } from "../db/index.js"
 import { requireAuth } from "../middleware/auth.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
@@ -74,6 +74,14 @@ topicsRouter.post(
     }
 
     const { feedIds, topicSlugs } = c.req.valid("json")
+
+    // Reaching this endpoint means the user finished the onboarding flow, even
+    // if they skipped every topic/feed. Stamp completion once and keep the
+    // original timestamp on any repeat call.
+    await db
+      .update(users)
+      .set({ onboardedAt: new Date() })
+      .where(and(eq(users.id, user.id), isNull(users.onboardedAt)))
 
     // Resolve topic slugs to feed ids only as a fallback. When feedIds are
     // present, they represent the user's final curated choices.

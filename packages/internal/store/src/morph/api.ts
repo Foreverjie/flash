@@ -279,6 +279,7 @@ class APIMorph {
       suspended: data.suspended,
       role: data.role,
       roleEndAt: data.roleEndAt,
+      onboardedAt: (data as { onboardedAt?: string | null }).onboardedAt ?? null,
       deleted: data.deleted,
       stripeCustomerId: data.stripeCustomerId,
       inactive: data.inactive,

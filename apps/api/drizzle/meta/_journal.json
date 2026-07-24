@@ -36,6 +36,13 @@
       "when": 1784773052337,
       "tag": "0004_rich_magik",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784795768468,
+      "tag": "0005_groovy_black_panther",
+      "breakpoints": true
     }
   ]
 }

@@ -1,26 +1,19 @@
 import { useWhoami } from "@follow/store/user/hooks"
-import { lazy, Suspense } from "react"
-import { useSearchParams } from "react-router"
+import { Navigate, useSearchParams } from "react-router"
 
-import { useAuthQuery } from "~/hooks/common/useBizQuery"
-import { settings } from "~/queries/settings"
-
-const LazyNewUserGuideModal = lazy(() =>
-  import("~/modules/new-user-guide/modal").then((m) => ({ default: m.NewUserGuideModal })),
-)
-
+/**
+ * Routes signed-in users who still need onboarding to the single canonical
+ * onboarding mount at `/onboarding` (which lives outside the main layout, so
+ * this never loops). The flow's step 1 detects the existing session and skips
+ * straight to the topics step.
+ */
 export function NewUserGuide() {
   const user = useWhoami()
-  const { data: remoteSettings, isLoading } = useAuthQuery(settings.get(), {})
   const [searchParams] = useSearchParams()
   // ?onboarding=force lets you preview the flow on an existing account.
   const forceShow = searchParams.get("onboarding") === "force"
-  const isNewUser =
-    !isLoading && remoteSettings && Object.keys(remoteSettings.updated ?? {}).length === 0
+  // A user is new until they finish onboarding (server stamps onboardedAt).
+  const isNewUser = !!user && !user.onboardedAt
 
-  return user && (isNewUser || forceShow) ? (
-    <Suspense>
-      <LazyNewUserGuideModal />
-    </Suspense>
-  ) : null
+  return user && (isNewUser || forceShow) ? <Navigate to="/onboarding" replace /> : null
 }

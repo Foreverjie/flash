@@ -55,6 +55,9 @@ export const users = pgTable("users", {
   banExpires: timestamp("ban_expires", { mode: "date" }),
   // Better-auth anonymous plugin fields
   isAnonymous: boolean("is_anonymous"),
+  // Set the first time a user finishes the onboarding flow. Null = not yet
+  // onboarded; drives whether the client replays topics/feeds after login.
+  onboardedAt: timestamp("onboarded_at", { mode: "date" }),
 })
 
 /**

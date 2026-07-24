@@ -25,8 +25,8 @@ function clearFlag() {
 
 /**
  * One-shot coach card shown on the first read surface after onboarding.
- * Reads a localStorage flag set by NewUserGuideModal; auto-dismisses on
- * first interaction and clears the flag so it never appears again.
+ * Reads a localStorage flag set when the onboarding flow finishes; auto-dismisses
+ * on first interaction and clears the flag so it never appears again.
  */
 export function OnboardingCoach({ className }: { className?: string }) {
   const { t } = useTranslation()

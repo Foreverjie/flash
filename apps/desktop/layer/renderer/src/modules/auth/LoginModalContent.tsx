@@ -26,6 +26,11 @@ interface LoginModalContentProps {
   canClose?: boolean
   initialState?: "register" | "login"
   onBack?: () => void
+  /**
+   * Render the form inline (no fixed modal card / outside-click dismiss) so it
+   * can be embedded directly into a surface such as the onboarding welcome step.
+   */
+  embedded?: boolean
 }
 
 export const LoginModalContent = (props: LoginModalContentProps) => {
@@ -34,7 +39,7 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
   const modal = useCurrentModal()
   const { present } = useModalStack()
 
-  const { canClose = true, initialState, onBack, runtime } = props
+  const { canClose = true, initialState, onBack, runtime, embedded = false } = props
 
   const { t } = useTranslation()
   const { data: authProviders, isLoading } = useAuthProviders()
@@ -238,6 +243,10 @@ export const LoginModalContent = (props: LoginModalContentProps) => {
       )}
     </>
   )
+  if (embedded) {
+    return <div className="relative mx-auto w-full max-w-sm">{Inner}</div>
+  }
+
   if (isMobile) {
     return (
       <div className="flex min-h-full flex-col items-center justify-center bg-background px-4 pb-8 pt-12">

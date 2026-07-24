@@ -4,8 +4,8 @@ import { usePrefetchSessionUser, useWhoami } from "@follow/store/user/hooks"
 import { preventDefault } from "@follow/utils/dom"
 import type { PropsWithChildren } from "react"
 import * as React from "react"
-import { lazy, Suspense, useRef, useState } from "react"
-import { Outlet, useNavigate } from "react-router"
+import { Suspense, useRef, useState } from "react"
+import { Navigate, Outlet } from "react-router"
 
 import { setMainContainerElement, setRootContainerElement } from "~/atoms/dom"
 import { useUISettingKey } from "~/atoms/settings/ui"
@@ -25,10 +25,6 @@ import { AppNotificationContainer } from "~/modules/upgrade/lazy/index"
 import { OnboardingCoach } from "../new-user-guide/OnboardingCoach"
 import { NewUserGuide } from "./subscription-column/components/NewUserGuide"
 import { SubscriptionColumnContainer } from "./subscription-column/SubscriptionColumn"
-
-const LazyOnboardingFlow = lazy(() =>
-  import("~/modules/new-user-guide/onboarding-flow").then((m) => ({ default: m.OnboardingFlow })),
-)
 
 const errorTypes = [
   ErrorComponentType.Page,
@@ -146,13 +142,17 @@ export function MainDestopLayout() {
   const user = useWhoami()
   const sessionQuery = usePrefetchSessionUser()
 
-  // Show public timeline when:
-  // 1. Session check completed and no user found (sessionQuery settled + no user)
-  // 2. Or explicit auth failure (401 received)
+  // Logged-out (session settled with no user, or an explicit 401): send the
+  // visitor to the single canonical onboarding mount at `/onboarding` rather
+  // than rendering the flow inline here. `/onboarding` lives outside this
+  // layout, so there's no redirect loop.
   const showOnboardingLanding = (sessionQuery.isFetched && !user) || (isAuthFail && !user)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const navigate = useNavigate()
+
+  if (showOnboardingLanding) {
+    return <Navigate to="/onboarding" replace />
+  }
 
   return (
     <RootContainer ref={containerRef}>
@@ -162,34 +162,24 @@ export function MainDestopLayout() {
         <AppNotificationContainer />
       </Suspense>
 
-      {showOnboardingLanding ? (
-        // Logged-out landing: the onboarding welcome (Stage). Its buttons open
-        // register/login; once the session exists this layout flips to the
-        // signed-in app and the NewUserGuide takes over for fresh accounts.
-        <Suspense>
-          <LazyOnboardingFlow onClose={() => navigate("/timeline")} />
-        </Suspense>
-      ) : (
-        <>
-          <EntriesProvider>
-            {!isMobile && <SubscriptionColumnContainer />}
+      <EntriesProvider>
+        {!isMobile && <SubscriptionColumnContainer />}
 
-            <main
-              ref={setMainContainerElement}
-              className="flex min-w-0 flex-1 bg-theme-background pt-[calc(var(--fo-window-padding-top)_-10px)] !outline-none"
-              // NOTE: tabIndex for main element can get by `document.activeElement`
-              tabIndex={-1}
-            >
-              <AppErrorBoundary errorType={errorTypes}>
-                <Outlet />
-              </AppErrorBoundary>
-            </main>
-          </EntriesProvider>
+        <main
+          ref={setMainContainerElement}
+          className="flex min-w-0 flex-1 bg-theme-background pt-[calc(var(--fo-window-padding-top)_-10px)] !outline-none"
+          // NOTE: tabIndex for main element can get by `document.activeElement`
+          tabIndex={-1}
+        >
+          <AppErrorBoundary errorType={errorTypes}>
+            <Outlet />
+          </AppErrorBoundary>
+        </main>
+      </EntriesProvider>
 
-          <NewUserGuide />
-          <OnboardingCoach />
-        </>
-      )}
+      {/* Signed-in-but-not-onboarded users are routed to `/onboarding`. */}
+      <NewUserGuide />
+      <OnboardingCoach />
 
       <SearchCmdK />
       <CmdNTrigger />

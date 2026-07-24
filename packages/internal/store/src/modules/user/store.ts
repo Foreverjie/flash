@@ -15,6 +15,9 @@ export type UserModel = UserSchema
 export type MeModel = AuthUser & {
   emailVerified?: boolean
   twoFactorEnabled?: boolean | null
+  // Bridges the installed @follow-app/client-sdk until AuthUser regenerates
+  // from the users schema and includes this column natively.
+  onboardedAt?: string | null
 }
 type UserStore = {
   users: Record<string, UserModel>
