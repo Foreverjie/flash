@@ -1,5 +1,5 @@
 import { ActionButton } from "@follow/components/ui/button/index.js"
-import { UserRole, UserRoleName } from "@follow/constants"
+import { isPaidRole, UserRoleName } from "@follow/constants"
 import { useUserRole } from "@follow/store/user/hooks"
 import { cn } from "@follow/utils/utils"
 import { memo } from "react"
@@ -21,7 +21,7 @@ export const SubscriptionColumnDock = memo(() => {
   const feedColumnShow = useSubscriptionColumnShow()
 
   const showPlan = !isInMASReview && serverConfig?.PAYMENT_ENABLED && !!role
-  const isPaid = role && role !== UserRole.Trial && role !== UserRole.Free
+  const isPaid = isPaidRole(role)
 
   return (
     <div

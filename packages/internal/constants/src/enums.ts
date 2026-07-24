@@ -36,3 +36,14 @@ export const isFreeRole = (role?: UserRole | null) => {
     ? role === UserRole.Free || role === UserRole.Trial || role === UserRole.PreProTrial
     : true
 }
+
+/**
+ * Whether the role receives "paid" UI treatment (pro badge, avatar ring, gated
+ * paid settings). `PreProTrial` counts as paid here — it is a Pro *preview* —
+ * so this is intentionally NOT the negation of `isFreeRole`, which treats
+ * `PreProTrial` as free for entitlement gating (e.g. translation prefetch).
+ * A null/undefined role is not paid.
+ */
+export const isPaidRole = (role?: UserRole | null) => {
+  return !!role && role !== UserRole.Free && role !== UserRole.Trial
+}
