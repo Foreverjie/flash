@@ -42,16 +42,12 @@
 - **Recommended action:** **Manual review** — confirm the Flash Vercel project root/build settings. If root is `apps/api`, this is safe to delete; otherwise it's live legacy infra tied to `app.follow.is`.
 - **Confidence:** Medium.
 
-## D4 — Deprecated `CommandActionButton` / `CommandIdButton` (CORRECTED — NOT dead)
+## D4 — Deprecated `CommandActionButton` / `CommandIdButton` (RESOLVED — removed)
 
-- **File:** `apps/desktop/layer/renderer/src/modules/command/command-button.tsx`
-- **Location:** `@deprecated` exports `CommandActionButton` (line ~23) and `CommandIdButton` (line ~44), plus exported type `CommandIdButtonProps`.
-- **Phase 4 correction:** the original Phase 2 note grepped `CommandButton` (which only matched the _internal type name_ `CommandButtonProps`) and wrongly concluded "no external references." A precise grep of the actual export names finds live consumers:
-  - **`command-button.test-d.ts`** (a type-level test in the same module) imports and exercises both `CommandActionButton` and `CommandIdButton`. These `.test-d.ts` files are `.ts` in the TS program and are compiled by `pnpm run typecheck`, so the import is load-bearing — removing the exports breaks typecheck unless the test is removed too.
-  - **Naming collision:** a _different, live_ component `~/components/ui/button/CommandActionButton.tsx` shares the name `CommandActionButton` and is actively used by `entry-content/actions/header-actions.tsx` and `entry-column/layouts/EntryItemWrapper.tsx`. Easy to conflate.
-- **Deletion risk:** Medium (coupled: deleting the exports requires deleting/rewriting `command-button.test-d.ts`, and touches a deprecated public export of the module).
-- **Recommended action:** **Manual review / P1, not a mechanical P0.** If the deprecated pair is truly to be retired: (1) confirm nothing outside the type test consumes them, (2) delete `command-button.tsx`'s deprecated exports **and** `command-button.test-d.ts` together, (3) `typecheck` + `build:web`. Do **not** touch the same-named live `components/ui/button/CommandActionButton.tsx`.
-- **Confidence:** High (that they are still referenced by the type test → **not** safe for a P0 delete).
+- **File:** `apps/desktop/layer/renderer/src/modules/command/command-button.tsx` (+ `command-button.test-d.ts`) — **deleted**.
+- **Phase 4 correction:** the original Phase 2 note grepped `CommandButton` (which only matched the _internal type name_ `CommandButtonProps`) and wrongly concluded "no external references." A precise grep of the actual export names found one consumer: the module's own type test `command-button.test-d.ts` (compiled by `pnpm run typecheck`). No runtime UI used them. A _different, live_ component `~/components/ui/button/CommandActionButton.tsx` shares the name `CommandActionButton` (used by `entry-content/actions/header-actions.tsx` and `entry-column/layouts/EntryItemWrapper.tsx`) — easy to conflate, and left untouched.
+- **Resolution:** with maintainer approval to waive the "no public-interface changes" guard, both `command-button.tsx` and its type test `command-button.test-d.ts` were deleted together (168 deletions). `pnpm run typecheck` green (18/18, `@follow/web` recompiled). The live same-named component was not touched.
+- **Confidence:** Resolved.
 
 ## D5 — Deprecated `Collapse` / `CollapseGroup` (non-Css variants)
 
