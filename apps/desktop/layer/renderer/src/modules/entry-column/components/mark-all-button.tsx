@@ -35,7 +35,6 @@ export const MarkAllReadButton = ({
   const { t } = useTranslation()
   const { t: commonT } = useTranslation("common")
 
-  // const activeScope = useGlobalFocusableScope()
   const when = useGlobalFocusableScopeSelector(
     // eslint-disable-next-line @eslint-react/hooks-extra/no-unnecessary-use-callback
     useCallback(

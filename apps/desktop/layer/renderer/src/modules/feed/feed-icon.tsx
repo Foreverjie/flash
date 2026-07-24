@@ -1,4 +1,3 @@
-// import { Avatar, AvatarFallback, AvatarImage } from "@follow/components/ui/avatar/index.jsx"
 import { PlatformIcon } from "@follow/components/ui/platform-icon/index.jsx"
 import type { FeedModel } from "@follow/store/feed/types"
 import { getBackgroundGradient } from "@follow/utils/color"
@@ -149,7 +148,6 @@ const FallbackableImage = function FallbackableImage({
   )
 }
 
-// type FeedIconFeed = Pick<FeedModel, "title" | "image" | "siteUrl" | "type"> | ListModel
 type IconTarget = {
   title?: Nullable<string>
   image?: Nullable<string>

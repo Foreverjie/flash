@@ -1,4 +1,5 @@
-import { UserRole } from "@follow/constants"
+import type { UserRole } from "@follow/constants"
+import { isPaidRole } from "@follow/constants"
 import { cn } from "@follow/utils/utils"
 import type { Image as ExpoImage } from "expo-image"
 import { useCallback } from "react"
@@ -60,18 +61,17 @@ export const UserAvatar = ({
       })
     })()
   }, [aviRef, image, openLightbox])
-  const avatarBadge =
-    role && role !== UserRole.Free && role !== UserRole.Trial ? (
-      <View
-        className="absolute bottom-0 right-0 rounded-full"
-        style={{
-          width: size / 3,
-          height: size / 3,
-        }}
-      >
-        <PowerIcon color={accentColor} width={size / 3} height={size / 3} />
-      </View>
-    ) : null
+  const avatarBadge = isPaidRole(role) ? (
+    <View
+      className="absolute bottom-0 right-0 rounded-full"
+      style={{
+        width: size / 3,
+        height: size / 3,
+      }}
+    >
+      <PowerIcon color={accentColor} width={size / 3} height={size / 3} />
+    </View>
+  ) : null
   if (!image) {
     return (
       <View

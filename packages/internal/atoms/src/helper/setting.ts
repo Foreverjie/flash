@@ -1,4 +1,4 @@
-import { UserRole } from "@follow/constants"
+import { isPaidRole } from "@follow/constants"
 import { useRefValue } from "@follow/hooks"
 import { getSettingPaidLevel, SettingPaidLevels } from "@follow/shared/settings/constants"
 import { useUserStore } from "@follow/store/user/store"
@@ -50,8 +50,8 @@ export const createSettingAtom = <T extends object>(
     ) {
       return true
     }
-    const role = useUserStore.getState().role ?? UserRole.Free
-    return role !== UserRole.Free && role !== UserRole.Trial
+    const { role } = useUserStore.getState()
+    return isPaidRole(role)
   }
 
   const resolveAccessibleValue = (
