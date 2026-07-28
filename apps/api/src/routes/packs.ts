@@ -10,6 +10,7 @@ import { z } from "zod"
 
 import type { User } from "../auth/index.js"
 import { db, feeds, starterPackFeeds, starterPacks, subscriptions } from "../db/index.js"
+import { resolveFeedView } from "../lib/feed-view.js"
 import { requireAuth } from "../middleware/auth.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
@@ -102,10 +103,14 @@ packsRouter.post(
     }
 
     const memberRows = await db
-      .select({ feedId: starterPackFeeds.feedId })
+      .select({ feedId: starterPackFeeds.feedId, adapterType: feeds.adapterType })
       .from(starterPackFeeds)
+      .innerJoin(feeds, eq(feeds.id, starterPackFeeds.feedId))
       .where(eq(starterPackFeeds.packId, pack.id))
     const feedIds = memberRows.map((m) => m.feedId)
+    const viewByFeedId = new Map(
+      memberRows.map((feed) => [feed.feedId, resolveFeedView(feed.adapterType)] as const),
+    )
     if (feedIds.length === 0) {
       return c.json(structuredSuccess({ subscribed: 0, alreadySubscribed: 0 }))
     }
@@ -124,6 +129,7 @@ packsRouter.post(
         feedId,
         title: null,
         category: null,
+        view: viewByFeedId.get(feedId),
         isPrivate: false,
       }))
 

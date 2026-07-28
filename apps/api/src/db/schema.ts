@@ -5,6 +5,7 @@
 import { relations, sql } from "drizzle-orm"
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -333,8 +334,10 @@ export const subscriptions = pgTable(
     title: text("title"), // User's custom title
     category: text("category"),
     tags: jsonb("tags").$type<string[]>(),
+    view: integer("view").notNull().default(0),
     // Settings
     isPrivate: boolean("is_private").default(false),
+    hideFromTimeline: boolean("hide_from_timeline").default(false),
     notify: boolean("notify").default(true),
     // Timestamps
     createdAt: timestamp("created_at", { mode: "date" })
@@ -347,7 +350,9 @@ export const subscriptions = pgTable(
   (table) => [
     uniqueIndex("subscriptions_user_feed_idx").on(table.userId, table.feedId),
     index("subscriptions_user_id_idx").on(table.userId),
+    index("subscriptions_user_view_idx").on(table.userId, table.view),
     index("subscriptions_feed_id_idx").on(table.feedId),
+    check("subscriptions_view_check", sql`${table.view} between 0 and 5`),
   ],
 )
 

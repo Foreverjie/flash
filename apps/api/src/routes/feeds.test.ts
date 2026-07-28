@@ -7,13 +7,20 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 // Mock DB — must be hoisted before any imports that pull in feeds.ts
 vi.mock("../db/index.js", () => ({
   db: {
-    query: { feeds: { findFirst: vi.fn() } },
+    query: {
+      feeds: { findFirst: vi.fn(), findMany: vi.fn() },
+      posts: { findMany: vi.fn() },
+      subscriptions: { findFirst: vi.fn() },
+    },
     update: vi.fn().mockReturnValue({
       set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) }),
     }),
+    // Legacy list branch counts total feeds via select().from()
+    select: vi.fn().mockReturnValue({ from: vi.fn().mockResolvedValue([{ value: 0 }]) }),
   },
   feeds: {},
   posts: {},
+  subscriptions: {},
 }))
 
 // Bypass auth for unit tests
@@ -26,6 +33,59 @@ const server = setupServer()
 beforeAll(() => server.listen())
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())
+
+describe("GET /feeds SDK detail lookup", () => {
+  beforeEach(() => {
+    vi.resetModules()
+  })
+
+  it("returns the feed detail shape used by the Explore follow form", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "x_timeline://example",
+      title: "Example",
+      adapterType: "x_timeline",
+      subscriptionCount: 12,
+      updatesPerWeek: 4,
+    })
+    ;(db.query.posts.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: "post-1", feedId: "feed-123", publishedAt: new Date("2026-07-28T00:00:00Z") },
+    ])
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds?id=feed-123")
+    const body = (await res.json()) as {
+      data: {
+        feed: { id: string }
+        entries: Array<{ id: string }>
+        analytics: { view: number }
+      }
+    }
+
+    expect(res.status).toBe(200)
+    expect(body.data.feed.id).toBe("feed-123")
+    expect(body.data.entries).toHaveLength(1)
+    expect(body.data.analytics.view).toBe(1)
+  })
+
+  it("clamps oversized legacy list limits instead of rejecting Explore requests", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([])
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds?limit=1000")
+
+    expect(res.status).toBe(200)
+    expect(db.query.feeds.findMany).toHaveBeenCalledWith(expect.objectContaining({ limit: 100 }))
+  })
+})
 
 describe("POST /feeds/:id/refresh — x_timeline branch", () => {
   beforeEach(async () => {

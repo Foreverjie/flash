@@ -14,6 +14,7 @@ import { auth } from "./auth/index.js"
 import type { AuthVariables } from "./middleware/auth.js"
 import { optionalAuth } from "./middleware/auth.js"
 import authRouter from "./routes/auth.js"
+import categoriesRouter from "./routes/categories.js"
 import commentsRouter from "./routes/comments.js"
 import cronRouter from "./routes/cron.js"
 import entriesRouter from "./routes/entries.js"
@@ -146,6 +147,9 @@ mountV1("/posts", postsRouter)
 
 // Subscription routes
 mountV1("/subscriptions", subscriptionsRouter)
+
+// Subscription category compatibility routes
+mountV1("/categories", categoriesRouter)
 
 // Topics + onboarding routes
 mountV1("/topics", topicsRouter)

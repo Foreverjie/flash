@@ -43,6 +43,13 @@
       "when": 1784795768468,
       "tag": "0005_groovy_black_panther",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785206973814,
+      "tag": "0006_lowly_shiva",
+      "breakpoints": true
     }
   ]
 }

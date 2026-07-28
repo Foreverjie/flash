@@ -7,7 +7,9 @@ import { Hono } from "hono"
 
 import type { User } from "../auth/index.js"
 import { db, posts, readStatus, subscriptions } from "../db/index.js"
+import { isFeedView } from "../lib/feed-view.js"
 import { requireAuth } from "../middleware/auth.js"
+import { resolveRequestedFeedViews } from "../services/subscription-service.js"
 import { generateSnowflakeId } from "../utils/id.js"
 
 type ReadsVariables = {
@@ -118,9 +120,10 @@ readsRouter.delete("/", requireAuth, async (c) => {
 readsRouter.post("/all", requireAuth, async (c) => {
   const user = c.get("user")!
   const body = await c.req.json().catch(() => ({}))
-  const { feedId, feedIdList, insertedBefore } = body as {
+  const { feedId, feedIdList, view, excludePrivate, insertedBefore } = body as {
     feedId?: string
     feedIdList?: string[]
+    view?: number
     listId?: string
     startTime?: string
     endTime?: string
@@ -128,21 +131,18 @@ readsRouter.post("/all", requireAuth, async (c) => {
     insertedBefore?: string
   }
 
-  // Determine target feeds
-  let targetFeedIds: string[] = []
-
-  if (feedId) {
-    targetFeedIds = [feedId]
-  } else if (feedIdList && feedIdList.length > 0) {
-    targetFeedIds = feedIdList
-  } else {
-    // All subscribed feeds
-    const userSubs = await db.query.subscriptions.findMany({
-      where: eq(subscriptions.userId, user.id),
-      columns: { feedId: true },
-    })
-    targetFeedIds = userSubs.map((s) => s.feedId)
+  if (view !== undefined && view !== -1 && !isFeedView(view)) {
+    return c.json({ code: 400, message: "Invalid feed view" }, 400)
   }
+
+  const requestedFeedIds = feedId ? [feedId] : feedIdList ? [...new Set(feedIdList)] : undefined
+  const viewByFeedId = await resolveRequestedFeedViews({
+    userId: user.id,
+    view: view === undefined || view === -1 ? undefined : view,
+    feedIds: requestedFeedIds,
+    excludePrivate: excludePrivate ?? false,
+  })
+  const targetFeedIds = [...viewByFeedId.keys()]
 
   if (targetFeedIds.length === 0) {
     return c.json({ code: 0, data: { read: {} } })

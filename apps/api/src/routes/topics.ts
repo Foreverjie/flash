@@ -9,6 +9,7 @@ import { z } from "zod"
 
 import type { User } from "../auth/index.js"
 import { db, feeds, feedTopics, subscriptions, topics, users } from "../db/index.js"
+import { resolveFeedView } from "../lib/feed-view.js"
 import { requireAuth } from "../middleware/auth.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
@@ -108,8 +109,14 @@ topicsRouter.post(
     const ids = [...expandedIds]
 
     // Filter to feeds that actually exist
-    const existing = await db.select({ id: feeds.id }).from(feeds).where(inArray(feeds.id, ids))
+    const existing = await db
+      .select({ id: feeds.id, adapterType: feeds.adapterType })
+      .from(feeds)
+      .where(inArray(feeds.id, ids))
     const validIds = existing.map((f) => f.id)
+    const viewByFeedId = new Map(
+      existing.map((feed) => [feed.id, resolveFeedView(feed.adapterType)] as const),
+    )
     if (validIds.length === 0) {
       return c.json({ code: 0, data: { subscribed: 0 } })
     }
@@ -129,6 +136,7 @@ topicsRouter.post(
         feedId,
         title: null,
         category: null,
+        view: viewByFeedId.get(feedId),
         isPrivate: false,
       }))
 

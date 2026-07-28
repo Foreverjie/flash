@@ -3,12 +3,13 @@
  * RSS feed management with RSS adapter integration
  */
 import { zValidator } from "@hono/zod-validator"
-import { and, eq, sql } from "drizzle-orm"
+import { and, count, eq, sql } from "drizzle-orm"
 import { Hono } from "hono"
 import { z } from "zod"
 
 import type { User } from "../auth/index.js"
 import { db, feeds, posts, subscriptions } from "../db/index.js"
+import { resolveFeedView, resolveSubscriptionView } from "../lib/feed-view.js"
 import { rssManager } from "../lib/rss/index.js"
 import { isScraplingAdapterType, scrapingClient } from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
@@ -68,7 +69,28 @@ const subscribeSchema = z.object({
   feedId: z.string().min(1),
   title: z.string().max(200).optional(),
   category: z.string().max(100).optional(),
+  view: z.number().int().min(0).max(5).optional(),
   isPrivate: z.boolean().default(false),
+  hideFromTimeline: z.boolean().default(false),
+})
+
+const getFeedSchema = z.object({
+  id: z.string().min(1).optional(),
+  url: z.string().min(1).optional(),
+  entriesLimit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .transform((value) => Math.min(value, 50))
+    .default(10),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .transform((value) => Math.min(value, 100))
+    .default(20),
+  search: z.string().optional(),
 })
 
 const feedsRouter = new Hono<{ Variables: FeedsVariables }>()
@@ -83,47 +105,75 @@ function getScrapingSource(feed: { adapterType: string | null; url: string }) {
 
 /**
  * GET /feeds
- * List feeds with pagination
+ * The client SDK uses this endpoint for a feed detail lookup. Keep the legacy
+ * paginated response only when neither `id` nor `url` is provided.
  */
-feedsRouter.get(
-  "/",
-  zValidator(
-    "query",
-    z.object({
-      page: z
-        .string()
-        .optional()
-        .transform((v) => Number(v) || 1),
-      limit: z
-        .string()
-        .optional()
-        .transform((v) => Math.min(Number(v) || 20, 100)),
-      search: z.string().optional(),
-    }),
-  ),
-  async (c) => {
-    const { page, limit } = c.req.valid("query")
-    const offset = (page - 1) * limit
+feedsRouter.get("/", zValidator("query", getFeedSchema), async (c) => {
+  const { id, url, entriesLimit, page, limit } = c.req.valid("query")
 
-    const feedsList = await db.query.feeds.findMany({
-      limit,
-      offset,
-      orderBy: (feeds, { desc }) => [desc(feeds.createdAt)],
+  if (id || url) {
+    const feed = await db.query.feeds.findFirst({
+      where: id ? eq(feeds.id, id) : eq(feeds.url, url!),
     })
 
-    const totalFeeds = await db.query.feeds.findMany()
+    if (!feed) return sendNotFound(c, "Feed")
 
+    const [recentPosts, subscription] = await Promise.all([
+      db.query.posts.findMany({
+        where: eq(posts.feedId, feed.id),
+        limit: entriesLimit,
+        orderBy: (posts, { desc }) => [desc(posts.publishedAt)],
+      }),
+      c.get("user")
+        ? db.query.subscriptions.findFirst({
+            where: and(
+              eq(subscriptions.userId, c.get("user")!.id),
+              eq(subscriptions.feedId, feed.id),
+            ),
+          })
+        : Promise.resolve(),
+    ])
+
+    const view = subscription?.view ?? resolveFeedView(feed.adapterType)
     return c.json(
       structuredSuccess({
-        data: feedsList,
-        page,
-        limit,
-        total: totalFeeds.length,
-        hasMore: offset + limit < totalFeeds.length,
+        feed,
+        entries: recentPosts,
+        subscription,
+        readCount: 0,
+        subscriptionCount: feed.subscriptionCount ?? 0,
+        analytics: {
+          feedId: feed.id,
+          subscriptionCount: feed.subscriptionCount ?? 0,
+          updatesPerWeek: feed.updatesPerWeek,
+          latestEntryPublishedAt: recentPosts.at(0)?.publishedAt ?? null,
+          view,
+        },
       }),
     )
-  },
-)
+  }
+
+  const offset = (page - 1) * limit
+
+  const feedsList = await db.query.feeds.findMany({
+    limit,
+    offset,
+    orderBy: (feeds, { desc }) => [desc(feeds.createdAt)],
+  })
+
+  const [totalRow] = await db.select({ value: count() }).from(feeds)
+  const total = totalRow?.value ?? 0
+
+  return c.json(
+    structuredSuccess({
+      data: feedsList,
+      page,
+      limit,
+      total,
+      hasMore: offset + limit < total,
+    }),
+  )
+})
 
 /**
  * GET /feeds/:id
@@ -551,7 +601,7 @@ feedsRouter.post(
 feedsRouter.post("/subscribe", requireAuth, zValidator("json", subscribeSchema), async (c) => {
   try {
     const user = c.get("user")
-    const { feedId, title, category, isPrivate } = c.req.valid("json")
+    const { feedId, title, category, view, isPrivate, hideFromTimeline } = c.req.valid("json")
 
     if (!user) {
       return sendError(c, "User not found", 401, 401)
@@ -584,7 +634,9 @@ feedsRouter.post("/subscribe", requireAuth, zValidator("json", subscribeSchema),
         feedId,
         title,
         category,
+        view: resolveSubscriptionView(view, feed.adapterType),
         isPrivate,
+        hideFromTimeline,
       })
       .returning()
 

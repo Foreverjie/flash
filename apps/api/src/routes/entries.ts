@@ -2,12 +2,14 @@
  * Entries Routes
  * Returns entries with feed data in the format expected by the client SDK (EntryWithFeed).
  */
-import { and, desc, eq, inArray, lt } from "drizzle-orm"
+import { and, desc, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm"
 import { Hono } from "hono"
 
 import type { User } from "../auth/index.js"
-import { db, feeds, posts, readStatus, subscriptions } from "../db/index.js"
+import { db, feeds, posts, readStatus } from "../db/index.js"
+import { isFeedView } from "../lib/feed-view.js"
 import { requireAuth } from "../middleware/auth.js"
+import { resolveRequestedFeedViews } from "../services/subscription-service.js"
 
 type EntriesVariables = {
   user: User | null
@@ -22,11 +24,12 @@ const entriesRouter = new Hono<{ Variables: EntriesVariables }>()
 function toEntryWithFeed(
   post: typeof posts.$inferSelect,
   feed: typeof feeds.$inferSelect | null,
+  view: number,
   read = false,
 ) {
   return {
     read,
-    view: feed?.adapterType === "bilibili_up_video" ? 3 : 1, // Videos(3) for bilibili, Articles(1) otherwise
+    view,
     from: [],
     feeds: {
       type: "feed" as const,
@@ -78,31 +81,34 @@ entriesRouter.post("/", requireAuth, async (c) => {
     feedId,
     feedIdList,
     limit = 50,
+    view,
+    read,
+    excludePrivate,
     publishedAfter,
     publishedBefore,
   } = body as {
     feedId?: string
     feedIdList?: string[]
     limit?: number
+    view?: number
+    read?: boolean
+    excludePrivate?: boolean
     publishedAfter?: string
     publishedBefore?: string
   }
 
-  // Build the set of feed IDs to query
-  let targetFeedIds: string[] = []
-
-  if (feedId) {
-    targetFeedIds = [feedId]
-  } else if (feedIdList && feedIdList.length > 0) {
-    targetFeedIds = feedIdList
-  } else {
-    // Get all subscribed feed IDs for the user
-    const userSubs = await db.query.subscriptions.findMany({
-      where: eq(subscriptions.userId, user.id),
-      columns: { feedId: true },
-    })
-    targetFeedIds = userSubs.map((s) => s.feedId)
+  if (view !== undefined && view !== -1 && !isFeedView(view)) {
+    return c.json({ code: 400, message: "Invalid feed view" }, 400)
   }
+
+  const requestedFeedIds = feedId ? [feedId] : feedIdList ? [...new Set(feedIdList)] : undefined
+  const viewByFeedId = await resolveRequestedFeedViews({
+    userId: user.id,
+    view: view === undefined || view === -1 ? undefined : view,
+    feedIds: requestedFeedIds,
+    excludePrivate: excludePrivate ?? false,
+  })
+  const targetFeedIds = [...viewByFeedId.keys()]
 
   if (targetFeedIds.length === 0) {
     return c.json({ code: 0, data: [] })
@@ -118,6 +124,8 @@ entriesRouter.post("/", requireAuth, async (c) => {
   if (publishedBefore) {
     conditions.push(lt(posts.publishedAt, new Date(publishedBefore)))
   }
+  if (read === true) conditions.push(isNotNull(readStatus.id))
+  if (read === false) conditions.push(isNull(readStatus.id))
 
   // Fetch posts with their feeds and read status
   const postRows = await db
@@ -133,7 +141,9 @@ entriesRouter.post("/", requireAuth, async (c) => {
     .orderBy(desc(posts.publishedAt))
     .limit(Math.min(limit, 100))
 
-  const data = postRows.map((row) => toEntryWithFeed(row.posts, row.feeds, !!row.readStatusId))
+  const data = postRows.map((row) =>
+    toEntryWithFeed(row.posts, row.feeds, viewByFeedId.get(row.posts.feedId)!, !!row.readStatusId),
+  )
 
   return c.json({ code: 0, data })
 })

@@ -2,6 +2,7 @@ import { FeedViewType } from "@follow/constants"
 import { SubscriptionService } from "@follow/database/services/subscription"
 import { tracker } from "@follow/tracker"
 import { omit } from "es-toolkit"
+import type { Draft } from "immer"
 
 import { api } from "../../context"
 import type { Hydratable, Resetable } from "../../lib/base"
@@ -47,16 +48,17 @@ export interface SubscriptionState {
   categoryOpenStateByView: Record<FeedViewType, Record<string, boolean>>
 }
 
-const emptyDataSetByView: Record<FeedViewType, Set<FeedId>> = {
-  [FeedViewType.All]: new Set(),
-  [FeedViewType.Articles]: new Set(),
-  [FeedViewType.Audios]: new Set(),
-  [FeedViewType.Notifications]: new Set(),
-  [FeedViewType.Pictures]: new Set(),
-  [FeedViewType.SocialMedia]: new Set(),
-  [FeedViewType.Videos]: new Set(),
-}
-const emptyCategoryOpenStateByView: Record<FeedViewType, Record<string, boolean>> = {
+const createSetByView = <T>(): Record<FeedViewType, Set<T>> => ({
+  [FeedViewType.All]: new Set<T>(),
+  [FeedViewType.Articles]: new Set<T>(),
+  [FeedViewType.Audios]: new Set<T>(),
+  [FeedViewType.Notifications]: new Set<T>(),
+  [FeedViewType.Pictures]: new Set<T>(),
+  [FeedViewType.SocialMedia]: new Set<T>(),
+  [FeedViewType.Videos]: new Set<T>(),
+})
+
+const createCategoryOpenStateByView = (): Record<FeedViewType, Record<string, boolean>> => ({
   [FeedViewType.All]: {},
   [FeedViewType.Articles]: {},
   [FeedViewType.Audios]: {},
@@ -64,16 +66,42 @@ const emptyCategoryOpenStateByView: Record<FeedViewType, Record<string, boolean>
   [FeedViewType.Pictures]: {},
   [FeedViewType.SocialMedia]: {},
   [FeedViewType.Videos]: {},
+})
+
+export const createSubscriptionState = (): SubscriptionState => ({
+  data: {},
+  feedIdByView: createSetByView<FeedId>(),
+  listIdByView: createSetByView<ListId>(),
+  categories: createSetByView<string>(),
+  subscriptionIdSet: new Set(),
+  categoryOpenStateByView: createCategoryOpenStateByView(),
+})
+
+const rebuildSubscriptionIndexes = (state: Draft<SubscriptionState>) => {
+  state.feedIdByView = createSetByView<FeedId>()
+  state.listIdByView = createSetByView<ListId>()
+  state.categories = createSetByView<string>()
+  state.subscriptionIdSet = new Set()
+
+  for (const subscription of Object.values(state.data)) {
+    state.subscriptionIdSet.add(getSubscriptionDBId(subscription))
+
+    if (subscription.type === "feed" && subscription.feedId) {
+      state.feedIdByView[subscription.view].add(subscription.feedId)
+      state.feedIdByView[FeedViewType.All].add(subscription.feedId)
+    }
+    if (subscription.type === "list" && subscription.listId) {
+      state.listIdByView[subscription.view].add(subscription.listId)
+      state.listIdByView[FeedViewType.All].add(subscription.listId)
+    }
+    if (subscription.category) {
+      state.categories[subscription.view].add(subscription.category)
+      state.categories[FeedViewType.All].add(subscription.category)
+    }
+  }
 }
 
-const defaultState: SubscriptionState = {
-  data: {},
-  feedIdByView: { ...emptyDataSetByView },
-  listIdByView: { ...emptyDataSetByView },
-  categories: { ...emptyDataSetByView },
-  subscriptionIdSet: new Set(),
-  categoryOpenStateByView: { ...emptyCategoryOpenStateByView },
-}
+const defaultState = createSubscriptionState()
 
 const invalidateViews = (...views: (FeedViewType | undefined)[]) => {
   const viewSet = new Set<FeedViewType>()
@@ -108,24 +136,11 @@ class SubscriptionActions implements Hydratable, Resetable {
   async upsertManyInSession(subscriptions: SubscriptionModel[]) {
     immerSet((draft) => {
       for (const subscription of subscriptions) {
-        const subscriptionSetId = getSubscriptionDBId(subscription)
         const subscriptionStoreId = getSubscriptionStoreId(subscription)
 
         draft.data[subscriptionStoreId] = subscription
-        draft.subscriptionIdSet.add(subscriptionSetId)
-
-        if (subscription.feedId && subscription.type === "feed") {
-          draft.feedIdByView[subscription.view].add(subscription.feedId)
-          draft.feedIdByView[FeedViewType.All].add(subscription.feedId)
-          if (subscription.category) {
-            draft.categories[subscription.view].add(subscription.category)
-          }
-        }
-        if (subscription.listId && subscription.type === "list") {
-          draft.listIdByView[subscription.view].add(subscription.listId)
-          draft.listIdByView[FeedViewType.All].add(subscription.listId)
-        }
       }
+      rebuildSubscriptionIndexes(draft)
     })
   }
   async upsertMany(
@@ -155,10 +170,15 @@ class SubscriptionActions implements Hydratable, Resetable {
 
   resetByView(view: FeedViewType) {
     immerSet((draft) => {
-      draft.feedIdByView[view] = new Set()
-      draft.listIdByView[view] = new Set()
-      draft.categories[view] = new Set()
-      draft.subscriptionIdSet = new Set()
+      if (view === FeedViewType.All) {
+        Object.assign(draft, omit(createSubscriptionState(), ["categoryOpenStateByView"]))
+        return
+      }
+
+      for (const [id, subscription] of Object.entries(draft.data)) {
+        if (subscription?.view === view) delete draft.data[id]
+      }
+      rebuildSubscriptionIndexes(draft)
     })
   }
 
@@ -187,7 +207,7 @@ class SubscriptionActions implements Hydratable, Resetable {
     tx.store(() => {
       // set(defaultState)
       immerSet((draft) => {
-        Object.assign(draft, omit(defaultState, ["categoryOpenStateByView"]))
+        Object.assign(draft, omit(createSubscriptionState(), ["categoryOpenStateByView"]))
       })
     })
 
@@ -246,6 +266,7 @@ class SubscriptionSyncService {
         }
 
         draft.data[subscriptionId] = subscription
+        rebuildSubscriptionIndexes(draft)
       })
     })
     tx.rollback((current) => {
@@ -260,6 +281,7 @@ class SubscriptionSyncService {
         }
 
         draft.data[subscriptionId] = current
+        rebuildSubscriptionIndexes(draft)
       })
     })
     tx.request(async () => {
@@ -276,7 +298,7 @@ class SubscriptionSyncService {
 
     await tx.run()
 
-    invalidateViews(subscription.view)
+    invalidateViews(current.view, subscription.view)
   }
 
   async subscribe(subscription: SubscriptionForm) {
@@ -356,6 +378,7 @@ class SubscriptionSyncService {
           }
           delete draft.data[id]
         }
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -389,6 +412,7 @@ class SubscriptionSyncService {
             draft.categories[FeedViewType.All].add(subscription.category)
           }
         }
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -440,11 +464,11 @@ class SubscriptionSyncService {
           draft.feedIdByView[newView].add(feedId)
           subscription.view = newView
 
-          if (newCategory) {
-            draft.categories[newView].add(newCategory)
+          if (newCategory !== undefined) {
             subscription.category = newCategory
           }
         }
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -467,11 +491,12 @@ class SubscriptionSyncService {
           draft.feedIdByView[newView].delete(feedId)
           draft.feedIdByView[current[index].view].add(feedId)
 
-          if (newCategory) {
+          if (newCategory !== undefined) {
             const currentCategory = current[index].category
             subscription.category = currentCategory
           }
         }
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -507,6 +532,7 @@ class SubscriptionSyncService {
         draft.data[listId].view = newView
         draft.listIdByView[currentView].delete(listId)
         draft.listIdByView[newView].add(listId)
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -526,6 +552,7 @@ class SubscriptionSyncService {
         draft.data[listId].view = current.view
         draft.listIdByView[newView].delete(listId)
         draft.listIdByView[currentView].add(listId)
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -552,7 +579,7 @@ class SubscriptionSyncService {
           if (!subscription) continue
           subscription.category = null
         }
-        draft.categories[view].delete(category)
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -571,7 +598,7 @@ class SubscriptionSyncService {
           subscription.category = category
         }
 
-        draft.categories[view].add(category)
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -633,6 +660,7 @@ class SubscriptionSyncService {
           draft.categoryOpenStateByView[view][newCategory] = lastCategoryOpenState
           delete draft.categoryOpenStateByView[view][lastCategory]
         }
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
@@ -659,6 +687,7 @@ class SubscriptionSyncService {
           draft.categoryOpenStateByView[view][lastCategory] = lastCategoryOpenState
           delete draft.categoryOpenStateByView[view][newCategory]
         }
+        rebuildSubscriptionIndexes(draft)
       })
     })
 
