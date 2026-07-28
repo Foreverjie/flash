@@ -25,6 +25,7 @@ const errorTypes = [
 export function MobileWebShell() {
   const location = useLocation()
   const isTabRoute = TAB_ROUTES.has(location.pathname)
+  const isTimelineReaderRoute = location.pathname.startsWith("/timeline/")
   const user = useWhoami()
   const activeView = useAtomValue(mobileActiveViewAtom)
   usePrefetchSessionUser()
@@ -33,10 +34,10 @@ export function MobileWebShell() {
 
   return (
     <div
-      className="relative flex h-screen flex-col overflow-hidden bg-background"
+      className="relative flex h-dvh h-screen flex-col overflow-hidden bg-background"
       style={colorVars}
     >
-      <MobileHeader />
+      {!isTimelineReaderRoute && <MobileHeader />}
       <main className="min-h-0 flex-1 overflow-y-auto">
         <EntriesProvider viewOverride={activeView}>
           <AppErrorBoundary errorType={errorTypes}>

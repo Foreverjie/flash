@@ -1,10 +1,11 @@
 import { useDroppable } from "@dnd-kit/core"
-import { ActionButton } from "@follow/components/ui/button/index.js"
+import { useGlobalFocusableScopeSelector } from "@follow/components/common/Focusable/hooks.js"
 import { FeedViewType, getView } from "@follow/constants"
 import { useUnreadByView } from "@follow/store/unread/hooks"
 import { cn } from "@follow/utils/utils"
-import type { FC } from "react"
-import { startTransition, useCallback } from "react"
+import type { FC, ReactNode } from "react"
+import { startTransition, useCallback, useRef } from "react"
+import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
 
 import { MenuItemText, useShowContextMenu } from "~/atoms/context-menu"
@@ -150,16 +151,13 @@ const ViewAllSwitchButton: FC<{
   })
 
   return (
-    <ActionButton
-      shortcutScope={FocusablePresets.isNotFloatingLayerScope}
-      key={item.name}
-      tooltip={t(item.name, { ns: "common" })}
+    <TimelineNavButton
+      label={t(item.name, { ns: "common" })}
+      icon={item.icon}
+      unread={unreadByView}
+      showUnreadCount={showSidebarUnreadCount}
+      isActive={isActive}
       shortcut={shortcut}
-      className={cn(
-        isActive && item.className,
-        "flex h-11 w-8 shrink-0 grow flex-col items-center gap-1 text-[1.375rem]",
-        ELECTRON ? "hover:!bg-theme-item-hover" : "",
-      )}
       {...contextMenuProps}
       onClick={(e) => {
         startTransition(() => {
@@ -167,21 +165,7 @@ const ViewAllSwitchButton: FC<{
         })
         e.stopPropagation()
       }}
-    >
-      {item.icon}
-      {showSidebarUnreadCount ? (
-        <div className="text-[0.625rem] font-medium leading-none">
-          {unreadByView > 99 ? <span className="-mr-0.5">99+</span> : unreadByView}
-        </div>
-      ) : (
-        <i
-          className={cn(
-            "i-mgc-round-cute-fi text-[0.25rem]",
-            unreadByView ? (isActive ? "opacity-100" : "opacity-60") : "opacity-0",
-          )}
-        />
-      )}
-    </ActionButton>
+    />
   )
 }
 
@@ -211,18 +195,15 @@ const ViewSwitchButton: FC<{
   })
 
   return (
-    <ActionButton
-      shortcutScope={FocusablePresets.isNotFloatingLayerScope}
-      ref={setNodeRef}
-      key={item.name}
-      tooltip={t(item.name, { ns: "common" })}
+    <TimelineNavButton
+      nodeRef={setNodeRef}
+      label={t(item.name, { ns: "common" })}
+      icon={item.icon}
+      unread={unreadByView}
+      showUnreadCount={showSidebarUnreadCount}
+      isActive={isActive}
       shortcut={shortcut}
-      className={cn(
-        isActive && item.className,
-        "flex h-11 w-8 shrink-0 grow flex-col items-center gap-1 text-[1.375rem]",
-        ELECTRON ? "hover:!bg-theme-item-hover" : "",
-        isOver && "border-orange-400 bg-orange-400/60",
-      )}
+      className={isOver ? "bg-accent/15 ring-1 ring-inset ring-accent/40" : undefined}
       {...contextMenuProps}
       onClick={(e) => {
         startTransition(() => {
@@ -230,20 +211,90 @@ const ViewSwitchButton: FC<{
         })
         e.stopPropagation()
       }}
+    />
+  )
+}
+
+const TimelineNavButton: FC<{
+  label: string
+  icon: ReactNode
+  unread: number
+  showUnreadCount: boolean
+  isActive: boolean
+  shortcut: string
+  className?: string
+  nodeRef?: (node: HTMLElement | null) => void
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void
+  onContextMenu?: (event: React.MouseEvent<HTMLElement>) => void
+  onTouchStart?: (event: React.TouchEvent<HTMLButtonElement>) => void
+  onTouchMove?: (event: React.TouchEvent<HTMLButtonElement>) => void
+  onTouchEnd?: (event: React.TouchEvent<HTMLButtonElement>) => void
+}> = ({
+  label,
+  icon,
+  unread,
+  showUnreadCount,
+  isActive,
+  shortcut,
+  className,
+  nodeRef,
+  onClick,
+  onContextMenu,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
+}) => {
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  // Keep the timeline number shortcuts alive: ActionButton used to register
+  // them from its `shortcut` prop, and this plain button replaced it.
+  const inScope = useGlobalFocusableScopeSelector(FocusablePresets.isNotFloatingLayerScope)
+  useHotkeys(shortcut, () => buttonRef.current?.click(), {
+    preventDefault: true,
+    enabled: inScope,
+  })
+
+  return (
+    <button
+      ref={(node) => {
+        buttonRef.current = node
+        nodeRef?.(node)
+      }}
+      type="button"
+      title={`${label} (${shortcut})`}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "group flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-text-secondary",
+        "transition-colors duration-150 hover:bg-fill hover:text-text",
+        isActive && "bg-accent/15 text-text",
+        className,
+      )}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
-      {item.icon}
-      {showSidebarUnreadCount ? (
-        <div className="text-[0.625rem] font-medium leading-none">
-          {unreadByView > 99 ? <span className="-mr-0.5">99+</span> : unreadByView}
-        </div>
+      <span
+        className={cn(
+          "flex size-5 shrink-0 items-center justify-center text-base text-text-tertiary",
+          isActive && "text-accent",
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {showUnreadCount ? (
+        <span className="shrink-0 text-[11px] tabular-nums text-text-tertiary">
+          {unread > 99 ? "99+" : unread}
+        </span>
       ) : (
         <i
           className={cn(
-            "i-mgc-round-cute-fi text-[0.25rem]",
-            unreadByView ? (isActive ? "opacity-100" : "opacity-60") : "opacity-0",
+            "i-mgc-round-cute-fi shrink-0 text-[0.3rem] text-accent",
+            unread ? "opacity-80" : "opacity-0",
           )}
         />
       )}
-    </ActionButton>
+    </button>
   )
 }

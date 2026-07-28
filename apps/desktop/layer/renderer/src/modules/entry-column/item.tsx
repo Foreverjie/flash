@@ -7,20 +7,18 @@ import type { FC } from "react"
 import { memo } from "react"
 
 import { useActionLanguage, useGeneralSettingKey } from "~/atoms/settings/general"
+import { COMMUNITY_FEED_SCHEMES } from "~/modules/property/property-utils"
 
 import { getItemComponentByView } from "./Items/getItemComponentByView"
 import { PropertyItem } from "./Items/property-item"
 import { EntryItemWrapper } from "./layouts/EntryItemWrapper"
 import type { EntryListItemFC } from "./types"
 
-// Feed URL schemes whose entries render as Property Feed cards.
-const PROPERTY_FEED_SCHEMES = ["leyoujia_community://", "qfang_community://"]
-
 function useIsPropertyFeedEntry(entryId: string) {
   const feedId = useEntry(entryId, (e) => e.feedId)
   return (
     useFeedById(feedId, (feed) =>
-      PROPERTY_FEED_SCHEMES.some((scheme) => feed.url?.startsWith(scheme)),
+      COMMUNITY_FEED_SCHEMES.some((scheme) => feed.url?.startsWith(scheme)),
     ) ?? false
   )
 }

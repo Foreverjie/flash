@@ -40,11 +40,11 @@ export const computeTimelineTabLists = ({
 
   let nextVisible = [...savedVisible]
 
-  if (!allConfigured && extraVisible.includes(ROUTE_VIEW_ALL)) {
-    nextVisible = [ROUTE_VIEW_ALL, ...nextVisible]
-  }
-
   nextVisible = [...nextVisible, ...extraVisible.filter((id) => id !== ROUTE_VIEW_ALL)]
+
+  if (!allConfigured && extraVisible.includes(ROUTE_VIEW_ALL)) {
+    nextVisible = [...nextVisible, ROUTE_VIEW_ALL]
+  }
 
   const nextHidden = [...savedHidden, ...extraHidden].filter((id) => !nextVisible.includes(id))
 

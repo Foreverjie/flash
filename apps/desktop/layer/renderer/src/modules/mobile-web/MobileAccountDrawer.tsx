@@ -69,7 +69,7 @@ function DrawerContent({ onClose }: { onClose: () => void }) {
         {user?.image ? (
           <img src={user.image} alt="" className="size-10 rounded-full object-cover" />
         ) : (
-          <div className="flex size-10 items-center justify-center rounded-full bg-brand-accent font-semibold text-white">
+          <div className="flex size-10 items-center justify-center rounded-full bg-brand-accent font-semibold text-[var(--fo-accent-fg)]">
             {user?.name?.charAt(0)?.toUpperCase() || "?"}
           </div>
         )}

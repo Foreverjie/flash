@@ -1,78 +1,16 @@
 import type { PropertyListing } from "@follow/database/schemas/types"
 import { useEntry } from "@follow/store/entry/hooks"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 
 import { RelativeTime } from "~/components/ui/datetime"
 import { Media } from "~/components/ui/media/Media"
 
-/** Feed URL schemes whose entries are community property listings. */
-export const COMMUNITY_FEED_SCHEMES = ["leyoujia_community://", "qfang_community://"]
-
-const EMPTY_PROPERTY: PropertyListing = {
-  community: "",
-  title: "",
-  city: "",
-  hood: "",
-  beds: 0,
-  halls: 0,
-  baths: 0,
-  area: 0,
-  total: "",
-  total_num: 0,
-  unit: "",
-  unit_num: 0,
-  floor: "",
-  orientation: "",
-  reno: "",
-  tags: [],
-  badge: "",
-  reduced_by: "",
-  orig: "",
-  sold: false,
-  image: "",
-}
-
-/**
- * Minimal PropertyListing parsed from the post title ("price · area · layout"),
- * used as a fallback when the structured `property` field hasn't synced yet — so
- * community listings still render a native card, never the raw content HTML.
- */
-export function parseListingTitle(title: string, community: string): PropertyListing | null {
-  const body = title.includes(" | ") ? title.slice(title.indexOf(" | ") + 3) : title
-  const parts = body
-    .split(" · ")
-    .map((s) => s.trim())
-    .filter(Boolean)
-  const total = parts[0]
-  if (!total) return null
-
-  let area = 0
-  let beds = 0
-  let halls = 0
-  for (const part of parts.slice(1)) {
-    const areaMatch = part.match(/([\d.]+)\s*㎡/)
-    if (areaMatch) area = Number(areaMatch[1])
-    const layoutMatch = part.match(/(\d+)室(?:(\d+)厅)?/)
-    if (layoutMatch) {
-      beds = Number(layoutMatch[1])
-      halls = layoutMatch[2] ? Number(layoutMatch[2]) : 0
-    }
-  }
-  return { ...EMPTY_PROPERTY, community, total, area, beds, halls }
-}
-
-const layoutLabel = (p: PropertyListing) =>
-  [p.beds ? `${p.beds}室` : "", p.halls ? `${p.halls}厅` : "", p.baths ? `${p.baths}卫` : ""]
-    .filter(Boolean)
-    .join(" · ") || "—"
-
 function SpecCell({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="bg-background p-4 sm:p-5">
-      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-text-tertiary">
-        {label}
-      </div>
-      <div className="text-sm font-medium text-text sm:text-[15px]">{value || "—"}</div>
+    <div className="min-w-0 bg-background p-3 sm:p-4">
+      <div className="mb-1 text-[10px] font-semibold uppercase text-text-tertiary">{label}</div>
+      <div className="truncate text-[13px] font-medium text-text sm:text-sm">{value || "—"}</div>
     </div>
   )
 }
@@ -89,58 +27,64 @@ export function PropertyDetail({
   entryId: string
   property: PropertyListing
 }) {
+  const { t } = useTranslation()
   const entry = useEntry(entryId, (e) => ({
-    media: e.media?.[0],
+    media: e.media?.find((media) => media.type === "photo"),
     publishedAt: e.publishedAt,
     url: e.url,
   }))
   const image = entry?.media
+  const imageUrl = image?.url || p.image
+  const layout =
+    [
+      p.beds ? t("property_detail.beds", { count: p.beds }) : "",
+      p.halls ? t("property_detail.halls", { count: p.halls }) : "",
+      p.baths ? t("property_detail.baths", { count: p.baths }) : "",
+    ]
+      .filter(Boolean)
+      .join(" · ") || "—"
 
   return (
-    <div className="mx-auto mb-32 mt-10 max-w-full">
-      {/* Eyebrow */}
-      <div className="mb-3.5 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
-        <span>房源</span>
+    <div className="mx-auto mb-16 max-w-full sm:mb-32">
+      <div className="mb-2.5 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase text-[var(--fo-accent-ink)] sm:mb-3">
+        <span>{t("property_detail.property")}</span>
         {!!entry?.publishedAt && (
           <>
             <span className="opacity-40">·</span>
+            <span>{t("property_detail.updated")}</span>
             <RelativeTime date={entry.publishedAt} />
-            <span className="-ml-1">更新</span>
           </>
         )}
         {p.badge === "new" && (
-          <span className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold tracking-normal text-black">
-            新上
+          <span className="rounded bg-folo px-2 py-0.5 text-[10px] font-bold text-[#1a1207]">
+            {t("property_detail.new")}
           </span>
         )}
         {p.badge === "reduced" && (
-          <span className="rounded bg-red px-2 py-0.5 text-[10px] font-bold tracking-normal text-white">
-            降价{p.reduced_by ? ` ${p.reduced_by}` : ""}
+          <span className="rounded bg-red px-2 py-0.5 text-[10px] font-bold text-white">
+            {t("property_detail.reduced", { amount: p.reduced_by })}
           </span>
         )}
         {p.sold && (
-          <span className="rounded bg-black/70 px-2 py-0.5 text-[10px] font-bold tracking-normal text-white">
-            已售
+          <span className="rounded bg-text/75 px-2 py-0.5 text-[10px] font-bold text-background">
+            {t("property_detail.sold")}
           </span>
         )}
       </div>
 
-      {/* Title */}
-      <h1 className="text-[1.9rem] font-bold leading-[1.12] tracking-tight text-text sm:text-[2.5rem]">
+      <h1 className="text-[1.625rem] font-bold leading-tight text-text sm:text-[2rem]">
         {p.community}
       </h1>
 
-      {/* Location */}
       {(p.hood || p.city) && (
-        <div className="mt-3 flex items-center gap-1.5 text-sm text-text-secondary">
-          <i className="i-mgc-location-cute-re shrink-0 text-text-tertiary" />
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
+          <i className="i-mingcute-location-line shrink-0 text-text-tertiary" />
           {[p.hood, p.city].filter(Boolean).join(" · ")}
         </div>
       )}
 
-      {/* Price */}
-      <div className="mt-6 flex flex-wrap items-baseline gap-3">
-        <span className="text-[2.1rem] font-extrabold leading-none tracking-tight text-text sm:text-[2.75rem]">
+      <div className="mt-4 flex flex-wrap items-baseline gap-2.5 sm:mt-5 sm:gap-3">
+        <span className="text-[1.875rem] font-extrabold leading-none text-text sm:text-[2.25rem]">
           {p.total}
         </span>
         {!!p.unit && <span className="text-sm text-text-tertiary">{p.unit}</span>}
@@ -149,35 +93,38 @@ export function PropertyDetail({
         )}
       </div>
 
-      {/* Hero */}
-      {image && (
-        <Media
-          src={image.url}
-          type={image.type}
-          previewImageUrl={image.preview_image_url}
-          className="mt-7 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border"
-          mediaContainerClassName="w-full h-full object-cover"
-          proxy={{ width: 1080, height: 608 }}
-          blurhash={image.blurhash}
-        />
-      )}
+      <div className="relative mt-5 aspect-[4/3] w-full overflow-hidden rounded-md border border-border bg-fill sm:mt-6 sm:aspect-video">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-text-tertiary">
+          <i className="i-mgc-pic-cute-re size-5" />
+          <span className="text-xs">{t("property_detail.photo_unavailable")}</span>
+        </div>
+        {imageUrl && (
+          <Media
+            src={imageUrl}
+            type={image?.type ?? "photo"}
+            previewImageUrl={image?.preview_image_url}
+            className="absolute inset-0 size-full"
+            mediaContainerClassName="size-full object-cover"
+            proxy={{ width: 1080, height: 608 }}
+            blurhash={image?.blurhash}
+          />
+        )}
+      </div>
 
-      {/* Spec grid */}
-      <div className="mt-7 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-3">
-        <SpecCell label="户型" value={layoutLabel(p)} />
-        <SpecCell label="面积" value={p.area ? `${p.area}㎡` : "—"} />
-        <SpecCell label="楼层" value={p.floor} />
-        <SpecCell label="朝向" value={p.orientation ? `${p.orientation}向` : "—"} />
-        <SpecCell label="装修" value={p.reno} />
+      <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:mt-4 sm:grid-cols-3">
+        <SpecCell label={t("property_detail.layout")} value={layout} />
+        <SpecCell label={t("property_detail.floor_area")} value={p.area ? `${p.area}㎡` : "—"} />
+        <SpecCell label={t("property_detail.floor")} value={p.floor} />
+        <SpecCell label={t("property_detail.orientation")} value={p.orientation || "—"} />
+        <SpecCell label={t("property_detail.renovation")} value={p.reno} />
         <SpecCell
-          label="挂牌"
+          label={t("property_detail.listed")}
           value={entry?.publishedAt ? <RelativeTime date={entry.publishedAt} /> : "—"}
         />
       </div>
 
-      {/* Tags */}
       {p.tags?.length > 0 && (
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           {p.tags.map((tag) => (
             <span
               key={tag}
@@ -189,20 +136,16 @@ export function PropertyDetail({
         </div>
       )}
 
-      {/* Blurb */}
-      {!!p.title && (
-        <p className="mt-6 text-[0.95rem] leading-relaxed text-text-secondary">{p.title}</p>
-      )}
+      {!!p.title && <p className="mt-5 text-sm leading-relaxed text-text-secondary">{p.title}</p>}
 
-      {/* CTA */}
       {!!entry?.url && (
         <a
           href={entry.url}
           target="_blank"
           rel="noreferrer"
-          className="mt-7 inline-flex h-11 items-center gap-1.5 rounded-xl bg-accent px-6 text-sm font-semibold text-black no-underline transition-colors hover:bg-accent/90"
+          className="mt-6 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-md bg-folo px-5 text-sm font-semibold text-[#1a1207] no-underline transition-colors active:bg-[var(--fo-accent-press)] sm:h-10 sm:w-auto"
         >
-          查看房源
+          {t("property_detail.view_listing")}
           <i className="i-mgc-arrow-right-up-cute-re" />
         </a>
       )}

@@ -17,12 +17,14 @@ import { useModalStack } from "~/components/ui/modal/stacked/hooks"
 import { LoginModalContent } from "~/modules/auth/LoginModalContent"
 import { useEntriesActions, useEntriesState } from "~/modules/entry-column/context/EntriesContext"
 import { FeedIcon } from "~/modules/feed/feed-icon"
+import { resolvePropertyListing } from "~/modules/property/property-utils"
 
 import { mobileActiveViewAtom, mobileReaderEntryIdAtom } from "../atoms"
 import { ArticleCardContent } from "../cards/ArticleCard"
 import { getCardType } from "../cards/getCardType"
 import { ImageCardContent } from "../cards/ImageCard"
 import { PodcastCardContent } from "../cards/PodcastCard"
+import { PropertyCard } from "../cards/PropertyCard"
 import { VideoCardContent } from "../cards/VideoCard"
 
 const ALL_VIEW_DEFS = getViewList({ includeAll: true })
@@ -62,7 +64,7 @@ function PublicHomeFeed() {
       />
       <button
         type="button"
-        className="mt-6 rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-white transition-opacity active:opacity-80"
+        className="mt-6 rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-[var(--fo-accent-fg)] transition-opacity active:opacity-80"
         onClick={openLogin}
       >
         {t("words.login")}
@@ -221,6 +223,7 @@ const EntryCard = memo(function EntryCard({ entryId }: { entryId: string }) {
     feedId: e.feedId,
     media: e.media,
     attachments: e.attachments,
+    property: e.extra?.property,
     url: e.url,
     read: e.read,
   }))
@@ -254,6 +257,28 @@ const EntryCard = memo(function EntryCard({ entryId }: { entryId: string }) {
 
   const handleOpen = () => {
     setReaderEntryId(entryId)
+  }
+
+  const property = resolvePropertyListing({
+    property: entry.property,
+    feedUrl: feed?.url,
+    feedTitle: feed?.title,
+    entryTitle: entry.title,
+  })
+
+  if (property) {
+    const imageUrl =
+      entry.media?.find((media) => media.type === "photo")?.url || property.image || undefined
+    return (
+      <PropertyCard
+        property={property}
+        fallbackTitle={entry.title ?? undefined}
+        imageUrl={imageUrl}
+        isRead={!!entry.read}
+        publishedAt={entry.publishedAt}
+        onOpen={handleOpen}
+      />
+    )
   }
 
   const { cardType, thumbnailUrl, videoThumbnail, images, duration } = derived

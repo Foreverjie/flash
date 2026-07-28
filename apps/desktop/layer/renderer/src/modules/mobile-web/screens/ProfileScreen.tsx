@@ -54,7 +54,7 @@ export function ProfileScreen() {
         />
         <button
           type="button"
-          className="mt-2 rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-white transition-opacity active:opacity-80"
+          className="mt-2 rounded-full bg-brand-accent px-6 py-2.5 text-sm font-semibold text-[var(--fo-accent-fg)] transition-opacity active:opacity-80"
           onClick={() => {
             present({
               CustomModalComponent: PlainModal,
@@ -98,7 +98,7 @@ export function ProfileScreen() {
               className="size-20 shrink-0 rounded-[22px] border-4 border-background object-cover"
             />
           ) : (
-            <div className="flex size-20 shrink-0 items-center justify-center rounded-[22px] border-4 border-background bg-accent text-[34px] font-bold text-white">
+            <div className="flex size-20 shrink-0 items-center justify-center rounded-[22px] border-4 border-background bg-accent text-[34px] font-bold text-[var(--fo-accent-fg)]">
               {initial}
             </div>
           )}
@@ -110,9 +110,7 @@ export function ProfileScreen() {
             {t("me.actions.edit_profile")}
           </button>
         </div>
-        <h1 className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-text">
-          {user.name || user.handle}
-        </h1>
+        <h1 className="mt-3 text-2xl font-semibold text-text">{user.name || user.handle}</h1>
         <div className="text-[13px] text-text-tertiary">
           {[user.handle ? `@${user.handle}` : null, formatJoined(user.createdAt, t)]
             .filter(Boolean)
@@ -138,7 +136,7 @@ export function ProfileScreen() {
           />
           <i className="i-mgc-fire-cute-fi text-3xl text-accent" />
           <div className="relative">
-            <div className="text-2xl font-bold tracking-[-0.02em]">
+            <div className="text-2xl font-bold">
               {t("me.streak.title", { count: streak.current })}
             </div>
             <div className="text-[12.5px] text-white/70">
@@ -207,7 +205,7 @@ function StatCard({ stat }: { stat: MeStat }) {
     <div className="border-border-secondary bg-secondary-system-background rounded-xl border px-1.5 py-3 text-center">
       <div
         className={cn(
-          "text-[22px] font-bold tabular-nums tracking-[-0.02em]",
+          "text-[22px] font-bold tabular-nums",
           stat.accent ? "text-accent" : "text-text",
         )}
       >
@@ -222,7 +220,7 @@ function MobHead({ title }: { title: string }) {
   const { t } = useTranslation()
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-[19px] font-bold tracking-[-0.015em] text-text">{title}</h2>
+      <h2 className="text-[19px] font-bold text-text">{title}</h2>
       <button
         type="button"
         className="flex items-center gap-0.5 text-[12.5px] font-semibold text-text-tertiary"

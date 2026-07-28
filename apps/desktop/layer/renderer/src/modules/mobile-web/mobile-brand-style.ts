@@ -1,6 +1,4 @@
-import { brandColors } from "@follow/constants"
 import { useIsDark } from "@follow/hooks"
-import { useMemo } from "react"
 
 /**
  * Brand-color CSS variables that `text-brand-accent` and friends rely on.
@@ -10,20 +8,12 @@ import { useMemo } from "react"
  */
 export function useMobileBrandStyle(): React.CSSProperties {
   const isDark = useIsDark()
-  return useMemo(
-    () =>
-      ({
-        "--fo-brand-accent": isDark ? brandColors.accent.dark : brandColors.accent.light,
-        "--fo-brand-accent-pressed": isDark
-          ? brandColors.accentPressed.dark
-          : brandColors.accentPressed.light,
-        "--fo-brand-accent-tint": isDark
-          ? brandColors.accentTint.dark
-          : brandColors.accentTint.light,
-        "--fo-brand-accent-muted": isDark
-          ? brandColors.accentMuted.dark
-          : brandColors.accentMuted.light,
-      }) as React.CSSProperties,
-    [isDark],
-  )
+
+  return {
+    "--fo-accent-ink": isDark ? "#fde047" : "#8a5d00",
+    "--fo-brand-accent": "var(--fo-accent)",
+    "--fo-brand-accent-pressed": "var(--fo-accent-press)",
+    "--fo-brand-accent-tint": "var(--accent-20)",
+    "--fo-brand-accent-muted": "var(--accent-60)",
+  } as React.CSSProperties
 }

@@ -11,4 +11,9 @@ import { defineWorkspace } from "vitest/config"
 // repo root executes them directly; without POSTGRES_URL/DATABASE_URL they will
 // fail. CI keeps using `pnpm --recursive run test`, where `apps/api`'s own
 // runner (`src/scripts/run-tests.mjs`) skips cleanly when no database is set.
-export default defineWorkspace(["apps/api", "packages/internal/utils"])
+export default defineWorkspace([
+  "apps/api",
+  "apps/desktop/layer/renderer",
+  "packages/internal/store",
+  "packages/internal/utils",
+])

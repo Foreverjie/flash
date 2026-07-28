@@ -9,7 +9,7 @@
     "dev": "cd ../.. && pnpm dev:web",
     "dev:ssl": "cd ../.. && SSL=true pnpm dev:web",
     "generate-pwa-assets": "pwa-assets-generator public/icon.svg",
-    "test": "vitest --typecheck",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

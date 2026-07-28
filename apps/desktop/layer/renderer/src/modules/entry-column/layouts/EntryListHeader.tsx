@@ -17,8 +17,9 @@ import { useNavigate } from "react-router"
 import { previewBackPath } from "~/atoms/preview"
 import { useGeneralSettingKey } from "~/atoms/settings/general"
 import { useSubscriptionColumnShow } from "~/atoms/sidebar"
-import { ROUTE_ENTRY_PENDING } from "~/constants"
+import { FEED_COLLECTION_LIST, ROUTE_ENTRY_PENDING } from "~/constants"
 import { useFollow } from "~/hooks/biz/useFollow"
+import { useNavigateEntry } from "~/hooks/biz/useNavigateEntry"
 import { getRouteParams, useRouteParams } from "~/hooks/biz/useRouteParams"
 import { COMMAND_ID } from "~/modules/command/commands/id"
 import { useRunCommandFn } from "~/modules/command/hooks/use-command"
@@ -70,37 +71,38 @@ export const EntryListHeader: FC<{
 
   const feed = useFeedById(feedId)
 
-  const titleStyleBasedView = {
-    [FeedViewType.All]: "pl-7",
-    [FeedViewType.Articles]: "pl-7",
-    [FeedViewType.Pictures]: "pl-7",
-    [FeedViewType.Videos]: "pl-7",
-    [FeedViewType.SocialMedia]: "px-5",
-    [FeedViewType.Audios]: "pl-6",
-    [FeedViewType.Notifications]: "pl-6",
-  }
-
   const feedColumnShow = useSubscriptionColumnShow()
   const toggleUnreadOnlyShortcut = useCommandShortcut(COMMAND_ID.timeline.unreadOnly)
   const runCmdFn = useRunCommandFn()
+  const navigateEntry = useNavigateEntry()
+
+  const selectTimelineFilter = (nextUnreadOnly: boolean) => {
+    if (isCollection) {
+      navigateEntry({
+        entryId: null,
+        feedId: null,
+        view,
+      })
+    }
+    if (unreadOnly !== nextUnreadOnly) {
+      runCmdFn(COMMAND_ID.timeline.unreadOnly, [nextUnreadOnly])()
+    }
+  }
 
   const { isScrolledBeyondThreshold } = useEntryRootState()
   const isScrolledBeyondThresholdValue = useAtomValue(isScrolledBeyondThreshold)
   return (
     <div
       className={cn(
-        "flex w-full flex-col pr-2.5 pt-2 @[700px]:pr-3 @[1024px]:pr-4",
+        "flex w-full flex-col px-4 pt-2",
         !feedColumnShow && "macos:mt-4 macos:pt-margin-macos-traffic-light-y",
-        titleStyleBasedView[view],
         isPreview
           ? "h-top-header-in-preview-with-border-b px-2.5 @[700px]:px-3 @[1024px]:px-4"
-          : "h-top-header-with-border-b",
-        view === FeedViewType.All &&
-          "border-b border-transparent data-[scrolled-beyond-threshold=true]:border-b-border",
+          : "h-[76px] border-b border-border",
       )}
       data-scrolled-beyond-threshold={isScrolledBeyondThresholdValue}
     >
-      <div className={"flex w-full justify-between"}>
+      <div className="flex h-8 w-full items-start justify-between">
         {isPreview ? <PreviewHeaderInfoWrapper>{titleInfo}</PreviewHeaderInfoWrapper> : titleInfo}
         {!isPreview && (
           <div
@@ -152,32 +154,65 @@ export const EntryListHeader: FC<{
                   />
                 </ActionButton>
               ))}
-            {!isCollection && (
-              <>
-                <ActionButton
-                  tooltip={
-                    !unreadOnly
-                      ? t("entry_list_header.show_unread_only")
-                      : t("entry_list_header.show_all")
-                  }
-                  shortcut={toggleUnreadOnlyShortcut}
-                  onClick={() => runCmdFn(COMMAND_ID.timeline.unreadOnly, [!unreadOnly])()}
-                >
-                  {unreadOnly ? (
-                    <i className="i-mgc-round-cute-fi" />
-                  ) : (
-                    <i className="i-mgc-round-cute-re" />
-                  )}
-                </ActionButton>
-                <MarkAllReadButton shortcut />
-              </>
-            )}
+            {!isCollection && <MarkAllReadButton shortcut />}
           </div>
         )}
       </div>
+      {!isPreview && (
+        <div className="flex h-8 items-end gap-4" onClick={stopPropagation}>
+          <TimelineFilterButton
+            active={!isCollection && unreadOnly}
+            label={t("words.unread")}
+            title={`${t("entry_list_header.show_unread_only")} (${toggleUnreadOnlyShortcut})`}
+            onClick={() => selectTimelineFilter(true)}
+          />
+          <TimelineFilterButton
+            active={!isCollection && !unreadOnly}
+            label={t("words.all")}
+            title={t("entry_list_header.show_all")}
+            onClick={() => selectTimelineFilter(false)}
+          />
+          <TimelineFilterButton
+            active={isCollection}
+            label={t("words.starred")}
+            onClick={() =>
+              navigateEntry({
+                entryId: null,
+                feedId: FEED_COLLECTION_LIST,
+                view,
+              })
+            }
+          />
+        </div>
+      )}
     </div>
   )
 }
+
+const TimelineFilterButton = ({
+  active,
+  label,
+  title,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  title?: string
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    title={title}
+    className={cn(
+      "relative flex h-8 items-center px-0.5 text-xs font-medium text-text-tertiary transition-colors hover:text-text",
+      active &&
+        "text-text after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-accent",
+    )}
+    onClick={onClick}
+  >
+    {label}
+  </button>
+)
 
 const PreviewHeaderInfoWrapper: Component = ({ children }) => {
   const { t: tCommon } = useTranslation("common")

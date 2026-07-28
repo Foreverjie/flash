@@ -46,9 +46,7 @@ const TabComponent: Record<string, React.FC<{ type?: string; isInit?: boolean }>
 function SectionHead({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-        {eyebrow}
-      </div>
+      <div className="text-[11px] font-semibold uppercase text-accent">{eyebrow}</div>
       <h2 className="mt-1 text-[15px] font-semibold text-text">{title}</h2>
     </div>
   )
@@ -67,10 +65,10 @@ export function MobileDiscoverScreen() {
   return (
     <div className="flex flex-col gap-8 px-4 pb-10 pt-3">
       <header>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
+        <div className="text-[11px] font-semibold uppercase text-accent">
           {t("mobile.discover.eyebrow")}
         </div>
-        <h1 className="mt-1.5 text-balance text-[28px] font-semibold leading-[1.05] tracking-[-0.02em] text-text">
+        <h1 className="mt-1.5 text-balance text-[28px] font-semibold leading-[1.05] text-text">
           {t("mobile.discover.title")}
         </h1>
         <p className="mt-2 text-sm leading-snug text-text-secondary">{t("mobile.discover.body")}</p>
@@ -264,7 +262,7 @@ function TrendingRow({ item, rank }: { item: TrendingFeedItem; rank: number }) {
         className={cn(
           "h-7 shrink-0 rounded-full px-3.5 text-xs font-semibold transition-colors",
           isSubscribed
-            ? "bg-brand-accent text-white"
+            ? "bg-brand-accent text-[var(--fo-accent-fg)]"
             : "border border-border bg-background text-text active:bg-fill",
         )}
       >
@@ -380,7 +378,7 @@ function StarterPackCard({ pack, isLive }: { pack: StarterPack; isLive: boolean 
             className={cn(
               "h-7 rounded-full px-3.5 text-xs font-bold transition-colors",
               followed
-                ? "bg-brand-accent text-white"
+                ? "bg-brand-accent text-[var(--fo-accent-fg)]"
                 : "bg-fill text-text active:bg-fill-secondary",
             )}
           >

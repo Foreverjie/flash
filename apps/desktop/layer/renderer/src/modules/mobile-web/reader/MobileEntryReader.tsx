@@ -9,8 +9,10 @@ import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
 import { RelativeTime } from "~/components/ui/datetime"
+import { PropertyDetail } from "~/modules/entry-content/components/PropertyDetail"
 import { useEntryContent } from "~/modules/entry-content/hooks"
 import { FeedIcon } from "~/modules/feed/feed-icon"
+import { resolvePropertyListing } from "~/modules/property/property-utils"
 import { EntryContentHTMLRenderer } from "~/modules/renderer/html"
 
 import { mobileReaderEntryIdAtom } from "../atoms"
@@ -44,10 +46,17 @@ function MobileEntryReader({ entryId, onClose }: { entryId: string; onClose: () 
     feedId: e.feedId,
     publishedAt: e.publishedAt,
     author: e.author,
+    property: e.extra?.property,
   }))
   const feed = useFeedById(entry?.feedId)
   const subscription = useSubscriptionByFeedId(entry?.feedId)
   const { content, isPending, error } = useEntryContent(entryId)
+  const property = resolvePropertyListing({
+    property: entry?.property,
+    feedUrl: feed?.url,
+    feedTitle: feed?.title,
+    entryTitle: entry?.title,
+  })
 
   useEffect(() => {
     if (!entry?.feedId) return
@@ -110,45 +119,51 @@ function MobileEntryReader({ entryId, onClose }: { entryId: string; onClose: () 
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto pb-safe-area-bottom">
-        <article className="mx-auto max-w-2xl px-5 py-6">
-          {entry?.title && (
-            <h1 className="mb-3 text-balance text-[22px] font-bold leading-tight text-text">
-              {entry.title}
-            </h1>
-          )}
-          <div className="mb-5 flex items-center gap-2 text-[12px] text-text-tertiary">
-            {entry?.author && <span className="truncate">{entry.author}</span>}
-            {entry?.author && entry?.publishedAt && <span aria-hidden>·</span>}
-            {entry?.publishedAt && <RelativeTime date={entry.publishedAt} />}
-          </div>
+        {property ? (
+          <article className="mx-auto max-w-2xl px-4 pb-8 pt-5 sm:px-5 sm:pt-6">
+            <PropertyDetail entryId={entryId} property={property} />
+          </article>
+        ) : (
+          <article className="mx-auto max-w-2xl px-5 py-6">
+            {entry?.title && (
+              <h1 className="mb-3 text-balance text-[22px] font-bold leading-tight text-text">
+                {entry.title}
+              </h1>
+            )}
+            <div className="mb-5 flex items-center gap-2 text-[12px] text-text-tertiary">
+              {entry?.author && <span className="truncate">{entry.author}</span>}
+              {entry?.author && entry?.publishedAt && <span aria-hidden>·</span>}
+              {entry?.publishedAt && <RelativeTime date={entry.publishedAt} />}
+            </div>
 
-          {error ? (
-            <div className="rounded-lg border border-border bg-fill-tertiary px-4 py-3 text-sm text-text-secondary">
-              {String((error as Error)?.message ?? error)}
-            </div>
-          ) : isPending && !content ? (
-            <div className="space-y-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  // eslint-disable-next-line @eslint-react/no-array-index-key
-                  key={i}
-                  className="h-3 animate-pulse rounded bg-fill-tertiary"
-                  style={{ width: `${70 + ((i * 13) % 30)}%` }}
-                />
-              ))}
-            </div>
-          ) : content ? (
-            <EntryContentHTMLRenderer
-              view={subscription?.view ?? 0}
-              feedId={entry?.feedId ?? ""}
-              entryId={entryId}
-              as="div"
-              className="prose prose-sm max-w-none dark:prose-invert"
-            >
-              {content}
-            </EntryContentHTMLRenderer>
-          ) : null}
-        </article>
+            {error ? (
+              <div className="rounded-lg border border-border bg-fill-tertiary px-4 py-3 text-sm text-text-secondary">
+                {String((error as Error)?.message ?? error)}
+              </div>
+            ) : isPending && !content ? (
+              <div className="space-y-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    // eslint-disable-next-line @eslint-react/no-array-index-key
+                    key={i}
+                    className="h-3 animate-pulse rounded bg-fill-tertiary"
+                    style={{ width: `${70 + ((i * 13) % 30)}%` }}
+                  />
+                ))}
+              </div>
+            ) : content ? (
+              <EntryContentHTMLRenderer
+                view={subscription?.view ?? 0}
+                feedId={entry?.feedId ?? ""}
+                entryId={entryId}
+                as="div"
+                className="prose prose-sm max-w-none dark:prose-invert"
+              >
+                {content}
+              </EntryContentHTMLRenderer>
+            ) : null}
+          </article>
+        )}
       </main>
     </>
   )

@@ -7,6 +7,7 @@ import {
 import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
 import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { FeedViewType } from "@follow/constants"
+import { useFeedStore } from "@follow/store/feed/store"
 import { useInboxList } from "@follow/store/inbox/hooks"
 import { useListById } from "@follow/store/list/hooks"
 import {
@@ -49,6 +50,7 @@ import type { SubscriptionProps } from "./SubscriptionListGuard"
 const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: SubscriptionProps) => {
   const autoGroup = useGeneralSettingKey("autoGroup")
   const feedsData = useFeedsGroupedData(view, autoGroup)
+  const feeds = useFeedStore((state) => state.feeds)
   const listSubIds = useSubscriptionListIds(view)
   const inboxSubIds = useInboxList(
     useCallback(
@@ -59,10 +61,30 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
 
   const categoryOpenStateData = useCategoryOpenStateByView(view)
 
-  const hasData =
-    Object.keys(feedsData).length > 0 || listSubIds.length > 0 || inboxSubIds.length > 0
-
   const { t } = useTranslation()
+  const [searchQuery, setSearchQuery] = useState("")
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase()
+  const isSearching = normalizedSearchQuery.length > 0
+  const visibleFeedsData = useMemo(() => {
+    if (!isSearching) return feedsData
+
+    return Object.fromEntries(
+      Object.entries(feedsData).flatMap(([category, ids]) => {
+        if (category.toLocaleLowerCase().includes(normalizedSearchQuery)) {
+          return [[category, ids]]
+        }
+
+        const matchingIds = ids.filter((feedId) =>
+          feeds[feedId]?.title?.toLocaleLowerCase().includes(normalizedSearchQuery),
+        )
+        return matchingIds.length > 0 ? [[category, matchingIds]] : []
+      }),
+    )
+  }, [feeds, feedsData, isSearching, normalizedSearchQuery])
+
+  const hasData =
+    Object.keys(visibleFeedsData).length > 0 ||
+    (!isSearching && (listSubIds.length > 0 || inboxSubIds.length > 0))
 
   // Data prefetch
   // useAuthQuery(Queries.lists.list())
@@ -150,6 +172,29 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
   return (
     <div className={cn(className, "font-medium")}>
       <ListHeader view={view} />
+      <label
+        className="mx-3 mb-2 flex h-8 items-center gap-2 rounded-md bg-fill px-2.5 text-text-tertiary ring-1 ring-inset ring-transparent transition-colors focus-within:bg-background focus-within:ring-border"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <i className="i-mgc-search-2-cute-re size-3.5 shrink-0" />
+        <input
+          type="search"
+          value={searchQuery}
+          placeholder={t("discover.import.search_feeds_placeholder")}
+          className="min-w-0 flex-1 bg-transparent text-xs text-text outline-none placeholder:text-text-tertiary"
+          onChange={(event) => setSearchQuery(event.target.value)}
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            aria-label={t("sidebar.search.clear")}
+            className="flex size-5 shrink-0 items-center justify-center text-text-tertiary hover:text-text"
+            onClick={() => setSearchQuery("")}
+          >
+            <i className="i-mgc-close-cute-re size-3.5" />
+          </button>
+        )}
+      </label>
       <Selecto
         className="!border-orange-400 !bg-orange-400/60"
         ref={selectoRef}
@@ -247,8 +292,8 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
         viewportClassName={cn("!px-1", shouldFreeUpSpace && "!overflow-visible")}
         rootClassName={cn("h-full", shouldFreeUpSpace && "overflow-visible")}
       >
-        <StarredItem view={view} />
-        {(hasListData || (isListPreview && listId)) && (
+        {!isSearching && <StarredItem view={view} />}
+        {!isSearching && (hasListData || (isListPreview && listId)) && (
           <>
             <div className="mt-1 flex h-6 w-full shrink-0 items-center rounded-md px-2.5 text-xs font-semibold text-text-secondary transition-colors">
               {t("words.lists")}
@@ -264,7 +309,7 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
             <SortByAlphabeticalList view={view} data={listSubIds} />
           </>
         )}
-        {hasInboxData && (
+        {!isSearching && hasInboxData && (
           <>
             <div className="mt-1 flex h-6 w-full shrink-0 items-center rounded-md px-2.5 text-xs font-semibold text-text-secondary transition-colors">
               {t("words.inbox")}
@@ -273,7 +318,7 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
           </>
         )}
 
-        {(hasListData || hasInboxData) && (
+        {!isSearching && (hasListData || hasInboxData) && (
           <div
             className={cn(
               "mb-1 flex h-6 w-full shrink-0 items-center rounded-md px-2.5 text-xs font-semibold text-text-secondary transition-colors",
@@ -283,7 +328,7 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
             {t("words.feeds")}
           </div>
         )}
-        {isFeedPreview && feedId && (
+        {!isSearching && isFeedPreview && feedId && (
           <FeedItem feedId={feedId} view={view} className="pl-2.5 pr-0.5" isPreview />
         )}
         <DraggableContext value={draggableContextValue}>
@@ -291,9 +336,14 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
             {hasData ? (
               <SortableFeedList
                 view={view}
-                data={feedsData}
+                data={visibleFeedsData}
                 categoryOpenStateData={categoryOpenStateData}
               />
+            ) : isSearching ? (
+              <div className="flex flex-col items-center gap-2 px-4 py-10 text-center text-xs text-text-tertiary">
+                <i className="i-mgc-search-2-cute-re size-5" />
+                <span>{t("search.empty.no_results")}</span>
+              </div>
             ) : isSubscriptionLoading ? (
               <SubscriptionListSkeleton />
             ) : (

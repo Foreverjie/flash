@@ -14,6 +14,7 @@ import { Lethargy } from "lethargy"
 import { AnimatePresence, m } from "motion/react"
 import type { FC, PropsWithChildren } from "react"
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 import { useRootContainerElement } from "~/atoms/dom"
 import { useUISettingKey } from "~/atoms/settings/ui"
@@ -142,7 +143,7 @@ export function SubscriptionColumn({
         </RootPortal>
       )}
 
-      <div className="relative mb-2 mt-3">
+      <div className="relative mb-1 mt-3 px-3">
         <TabsRow />
       </div>
       <div
@@ -241,12 +242,22 @@ const SwipeWrapper: FC<{ active: string; children: React.JSX.Element[] }> = memo
 
 const TabsRow: FC = () => {
   const timelineList = useTimelineList({ withAll: true, visible: true })
+  const { t } = useTranslation()
 
   return (
-    <div className="flex h-11 items-center px-1 text-xl text-text-secondary">
-      {timelineList.map((timelineId, index) => (
-        <SubscriptionTabButton key={timelineId} timelineId={timelineId} shortcut={`${index + 1}`} />
-      ))}
+    <div>
+      <div className="mb-1 px-2 text-[10px] font-semibold uppercase text-text-tertiary">
+        {t("words.feeds")}
+      </div>
+      <div className="space-y-px">
+        {timelineList.map((timelineId, index) => (
+          <SubscriptionTabButton
+            key={timelineId}
+            timelineId={timelineId}
+            shortcut={`${index + 1}`}
+          />
+        ))}
+      </div>
     </div>
   )
 }

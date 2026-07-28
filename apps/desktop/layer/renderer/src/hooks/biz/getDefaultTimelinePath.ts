@@ -2,7 +2,12 @@ import { FeedViewType } from "@follow/constants"
 import { useSubscriptionStore } from "@follow/store/subscription/store"
 
 import { getUISettings } from "~/atoms/settings/ui"
-import { ROUTE_ENTRY_PENDING, ROUTE_FEED_PENDING, ROUTE_VIEW_ALL } from "~/constants"
+import {
+  ROUTE_ENTRY_PENDING,
+  ROUTE_FEED_PENDING,
+  ROUTE_TIMELINE_OF_VIEW,
+  ROUTE_VIEW_ALL,
+} from "~/constants"
 
 import { computeTimelineTabLists } from "./useTimelineList"
 
@@ -24,6 +29,11 @@ export const getDefaultTimelinePath = () => {
     hasNotificationsSubscription,
   })
 
-  const firstTimeline = visible[0] ?? ROUTE_VIEW_ALL
+  const articlesTimeline = `${ROUTE_TIMELINE_OF_VIEW}${FeedViewType.Articles}`
+  const firstTimeline = visible.includes(articlesTimeline)
+    ? articlesTimeline
+    : (visible.find((timelineId) => timelineId !== ROUTE_VIEW_ALL) ??
+      visible[0] ??
+      articlesTimeline)
   return `/timeline/${firstTimeline}/${ROUTE_FEED_PENDING}/${ROUTE_ENTRY_PENDING}`
 }

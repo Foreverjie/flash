@@ -48,10 +48,10 @@ export function MobileHeader() {
     return (
       <header className="flex shrink-0 items-end gap-2.5 px-4 pb-1.5 pt-safe-area-top">
         <div className="min-w-0 flex-1 pt-2">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--fo-accent-ink)]">
+          <div className="text-[10px] font-semibold uppercase text-[var(--fo-accent-ink)]">
             {heading.eyebrow}
           </div>
-          <div className="mt-0.5 text-[28px] font-semibold leading-tight tracking-[-0.02em] text-text">
+          <div className="mt-0.5 text-[28px] font-semibold leading-tight text-text">
             {heading.title}
           </div>
         </div>
@@ -72,7 +72,7 @@ export function MobileHeader() {
           {user?.image ? (
             <img src={user.image} alt="" className="size-7 rounded-full object-cover" />
           ) : (
-            <div className="flex size-7 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-white">
+            <div className="flex size-7 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-[var(--fo-accent-fg)]">
               {user?.name?.charAt(0)?.toUpperCase() || "?"}
             </div>
           )}

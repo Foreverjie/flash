@@ -16,6 +16,7 @@ import { useRenderStyle } from "~/hooks/biz/useRenderStyle"
 import type { TextSelectionEvent } from "~/lib/simple-text-selection"
 import { useBlockActions } from "~/modules/ai-chat/store/hooks"
 import { BlockSliceAction } from "~/modules/ai-chat/store/slices/block.slice"
+import { resolvePropertyListing } from "~/modules/property/property-utils"
 import { EntryContentHTMLRenderer } from "~/modules/renderer/html"
 import { WrappedElementProvider } from "~/providers/wrapped-element-provider"
 
@@ -26,7 +27,7 @@ import { EntryRenderError } from "../entry-content/EntryRenderError"
 import { ReadabilityNotice } from "../entry-content/ReadabilityNotice"
 import { EntryAttachments } from "../EntryAttachments"
 import { EntryTitle } from "../EntryTitle"
-import { COMMUNITY_FEED_SCHEMES, parseListingTitle, PropertyDetail } from "../PropertyDetail"
+import { PropertyDetail } from "../PropertyDetail"
 import { MediaTranscript, TranscriptToggle, useTranscription } from "./shared"
 import { ArticleAudioPlayer } from "./shared/AudioPlayer"
 import type { EntryLayoutProps } from "./types"
@@ -69,20 +70,18 @@ export const ArticleLayout: React.FC<EntryLayoutProps> = ({
 
   if (!entry) return null
 
-  // Community listing entries render as a native Property Feed detail card. Detect
-  // by feed URL scheme so it works even before the structured field has synced;
-  // prefer the structured `property`, else parse the title so it's never the raw HTML.
-  const isCommunityFeed =
-    !!feed?.url && COMMUNITY_FEED_SCHEMES.some((scheme) => feed.url!.startsWith(scheme))
-  if (isCommunityFeed || property) {
-    const resolved = property ?? parseListingTitle(entry.title ?? "", feed?.title ?? "")
-    if (resolved) {
-      return (
-        <div className={cn(readableContentMaxWidthClassName, "mx-auto mt-1 px-4")}>
-          <PropertyDetail entryId={entryId} property={resolved} />
-        </div>
-      )
-    }
+  const resolvedProperty = resolvePropertyListing({
+    property,
+    feedUrl: feed?.url,
+    feedTitle: feed?.title,
+    entryTitle: entry.title,
+  })
+  if (resolvedProperty) {
+    return (
+      <div className={cn(readableContentMaxWidthClassName, "mx-auto mt-1 px-4")}>
+        <PropertyDetail entryId={entryId} property={resolvedProperty} />
+      </div>
+    )
   }
 
   return (
