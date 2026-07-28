@@ -17,7 +17,7 @@ import { useNavigate } from "react-router"
 import { previewBackPath } from "~/atoms/preview"
 import { useGeneralSettingKey } from "~/atoms/settings/general"
 import { useSubscriptionColumnShow } from "~/atoms/sidebar"
-import { FEED_COLLECTION_LIST, ROUTE_ENTRY_PENDING } from "~/constants"
+import { FEED_COLLECTION_LIST, isScraperBackedFeedUrl, ROUTE_ENTRY_PENDING } from "~/constants"
 import { useFollow } from "~/hooks/biz/useFollow"
 import { useNavigateEntry } from "~/hooks/biz/useNavigateEntry"
 import { getRouteParams, useRouteParams } from "~/hooks/biz/useRouteParams"
@@ -70,6 +70,13 @@ export const EntryListHeader: FC<{
   const isOnline = useIsOnline()
 
   const feed = useFeedById(feedId)
+
+  // Scraper-backed feeds have no fetchable URL — refreshing one asks the scraper
+  // to re-scrape, which any subscriber may do. Owned feeds keep the old rule.
+  const canRefreshFeed =
+    isBizId(routerParams.feedId!) &&
+    feed?.type === "feed" &&
+    (feed?.ownerUserId === user?.id || isScraperBackedFeedUrl(feed?.url))
 
   const feedColumnShow = useSubscriptionColumnShow()
   const toggleUnreadOnlyShortcut = useCommandShortcut(COMMAND_ID.timeline.unreadOnly)
@@ -126,13 +133,16 @@ export const EntryListHeader: FC<{
             </AppendTaildingDivider>
 
             {isOnline &&
-              (feed?.ownerUserId === user?.id &&
-              isBizId(routerParams.feedId!) &&
-              feed?.type === "feed" ? (
+              (canRefreshFeed ? (
                 <ActionButton
                   tooltip="Refresh"
                   onClick={() => {
+                    // The scrape inserts server-side, so pull the new entries in
+                    // afterwards. Errors already surface via the mutation's
+                    // onError toast — swallow the rejection so it isn't unhandled.
                     refreshFeed()
+                      .then(() => refetch())
+                      .catch(() => {})
                   }}
                 >
                   <RotatingRefreshIcon isRefreshing={isPending} />

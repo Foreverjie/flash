@@ -4,10 +4,11 @@
  * Fetches all RSS feeds from the database and inserts new posts.
  * Designed to be called from a cron job or manually via CLI.
  */
-import { eq, isNull, lt, or } from "drizzle-orm"
+import { and, eq, inArray, isNull, lt, not, or } from "drizzle-orm"
 
 import { db, feeds, posts } from "../db/index.js"
 import { rssManager } from "../lib/rss/index.js"
+import { isScraplingAdapterType, SCRAPLING_ADAPTER_TYPES } from "../lib/scraping-client.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
 
@@ -18,12 +19,15 @@ export interface SyncResult {
   success: boolean
   newPosts: number
   error?: string
+  /** Scraper-backed feed — not fetched here; the Python scraper owns it. */
+  skipped?: boolean
 }
 
 export interface SyncSummary {
   totalFeeds: number
   successCount: number
   errorCount: number
+  skippedCount: number
   newPostsTotal: number
   results: SyncResult[]
   durationMs: number
@@ -39,6 +43,16 @@ async function syncFeed(feed: typeof feeds.$inferSelect): Promise<SyncResult> {
     url: feed.url,
     success: false,
     newPosts: 0,
+  }
+
+  // Scraper-backed feeds have custom-scheme URLs (`leyoujia_community://850254`)
+  // that the RSS fetcher cannot resolve a host from — it falls back to
+  // localhost:80 and stamps a bogus ECONNREFUSED on the feed, masking the real
+  // scraper state. They are refreshed by the Python scraper, not from here.
+  if (isScraplingAdapterType(feed.adapterType)) {
+    result.success = true
+    result.skipped = true
+    return result
   }
 
   try {
@@ -150,13 +164,22 @@ export async function syncAllFeeds(
   // Build the query — optionally filter to stale feeds only
   let feedList: (typeof feeds.$inferSelect)[]
 
+  // Scraper-backed feeds are owned by the Python scraper — never RSS-fetch them.
+  const notScraperBacked = or(
+    isNull(feeds.adapterType),
+    not(inArray(feeds.adapterType, [...SCRAPLING_ADAPTER_TYPES])),
+  )
+
   if (staleMinutes > 0) {
     const staleThreshold = new Date(Date.now() - staleMinutes * 60 * 1000)
     feedList = await db.query.feeds.findMany({
-      where: or(isNull(feeds.lastFetchedAt), lt(feeds.lastFetchedAt, staleThreshold)),
+      where: and(
+        or(isNull(feeds.lastFetchedAt), lt(feeds.lastFetchedAt, staleThreshold)),
+        notScraperBacked,
+      ),
     })
   } else {
-    feedList = await db.query.feeds.findMany()
+    feedList = await db.query.feeds.findMany({ where: notScraperBacked })
   }
 
   logger.info(`[FeedSync] Starting sync for ${feedList.length} feeds (concurrency=${concurrency})`)
@@ -170,16 +193,21 @@ export async function syncAllFeeds(
 
     for (const r of batchResults) {
       results.push(r)
-      const icon = r.success ? "✅" : "❌"
-      const detail = r.success ? `${r.newPosts} new posts` : r.error
+      const icon = r.skipped ? "⏭️" : r.success ? "✅" : "❌"
+      const detail = r.skipped
+        ? "scraper-backed, skipped"
+        : r.success
+          ? `${r.newPosts} new posts`
+          : r.error
       logger.info(`[FeedSync] ${icon} ${r.feedTitle || r.url} — ${detail}`)
     }
   }
 
   const summary: SyncSummary = {
     totalFeeds: feedList.length,
-    successCount: results.filter((r) => r.success).length,
+    successCount: results.filter((r) => r.success && !r.skipped).length,
     errorCount: results.filter((r) => !r.success).length,
+    skippedCount: results.filter((r) => r.skipped).length,
     newPostsTotal: results.reduce((sum, r) => sum + r.newPosts, 0),
     results,
     durationMs: Date.now() - startTime,
