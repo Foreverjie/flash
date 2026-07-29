@@ -1,7 +1,6 @@
 import { createWithEqualityFn } from "zustand/traditional"
 
 import type { ChatSession } from "../ai-chat/types/ChatSession"
-import { AIChatSessionService } from "./service"
 
 export interface AIChatSessionSyncStats {
   sessions: number
@@ -72,6 +71,7 @@ export const aiChatSessionStoreActions = {
   // syncing
   fetchRemoteSessions: async () => {
     try {
+      const { AIChatSessionService } = await import("./service")
       await AIChatSessionService.syncSessionsAndMessagesFromServer()
     } catch (error) {
       console.error("fetchRemoteSessionsAndMessages: failed", error)
@@ -89,11 +89,10 @@ export const subscribeAIChatSessionStore = subscribe
 
 export const hydrateSessionsFromLocalDb = async () => {
   try {
+    const { AIChatSessionService } = await import("./service")
     await AIChatSessionService.loadSessionsFromDb()
   } catch (error) {
     console.error("hydrateSessionsFromLocalDb: failed", error)
     aiChatSessionStoreActions.setError(error instanceof Error ? error.message : "hydrate_failed")
   }
 }
-
-void hydrateSessionsFromLocalDb()

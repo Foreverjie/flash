@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import type { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy"
 import { drizzle } from "drizzle-orm/sqlite-proxy"
 // @ts-expect-error
@@ -15,6 +16,7 @@ import { resourceLock } from "./ResourceLock"
 import * as schema from "./schemas"
 
 let db: SqliteRemoteDatabase<typeof schema>
+let closeDatabase: (() => Promise<void>) | undefined
 
 const IDB_NAME = "WA_SQLITE"
 
@@ -24,6 +26,14 @@ export async function initializeDB() {
   const vfs = await MyVFS.create(IDB_NAME, module)
   sqlite3.vfs_register(vfs, true)
   const dbSqlite3 = await sqlite3.open_v2(SQLITE_DB_NAME)
+
+  closeDatabase = async () => {
+    try {
+      await sqlite3.close(dbSqlite3)
+    } finally {
+      vfs.close()
+    }
+  }
 
   db = drizzle(
     async (sql, params, method) => {
@@ -57,9 +67,6 @@ export async function initializeDB() {
         }
 
         return { rows }
-      } catch (error) {
-        console.error(`Error executing SQL: ${sql} with params:${params}`, error)
-        return { rows: [] }
       } finally {
         releaseLock && releaseLock()
       }
@@ -75,10 +82,10 @@ export { db }
 export async function migrateDB() {
   try {
     await migrate(db, migrations)
-  } catch (error) {
-    console.error("Failed to migrate database:", error)
-
+    await db.run(sql`SELECT chat_id, role, message_parts FROM ai_chat_messages LIMIT 0`)
+  } catch {
     await deleteDB()
+    await initializeDB()
     await migrate(db, migrations)
   }
 }
@@ -113,5 +120,13 @@ export async function exportDB() {
 }
 
 export async function deleteDB() {
-  indexedDB.deleteDatabase(IDB_NAME)
+  await closeDatabase?.()
+  closeDatabase = undefined
+
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(IDB_NAME)
+    request.onsuccess = () => resolve()
+    request.onerror = () => reject(request.error ?? new Error("Failed to delete database"))
+    request.onblocked = () => reject(new Error("Database deletion was blocked"))
+  })
 }

@@ -29,9 +29,6 @@ class TrackManager extends TrackerManager {
   }
 
   getTrackFn(): Tracker {
-    if (this.trackFns.length === 0 && this.getEnabledAdapters().length === 0) {
-      console.error("[Tracker warn]: Track function not set")
-    }
     return (code, properties) => {
       const legacyPromises = this.trackFns.map((fn) => fn(code, properties))
       const modernPromise = this.track(code as TrackerMapper, properties)

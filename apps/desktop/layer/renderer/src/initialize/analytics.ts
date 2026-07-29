@@ -6,27 +6,37 @@ import posthog from "posthog-js"
 import { QUERY_PERSIST_KEY } from "~/constants/app"
 
 export const initAnalytics = async () => {
-  tracker.manager.appendUserProperties({
-    build: ELECTRON ? "electron" : "web",
-    version: APP_VERSION,
-    hash: GIT_COMMIT_SHA,
-    language: navigator.language,
-  })
+  const postHogKey = env.VITE_POSTHOG_KEY?.trim()
+  if (!postHogKey) return
 
   setPostHogTracker(
-    posthog.init(env.VITE_POSTHOG_KEY, {
+    posthog.init(postHogKey, {
       api_host: env.VITE_POSTHOG_HOST,
       person_profiles: "identified_only",
       defaults: "2025-05-24",
     }),
   )
 
+  await tracker.manager.appendUserProperties({
+    build: ELECTRON ? "electron" : "web",
+    version: APP_VERSION,
+    hash: GIT_COMMIT_SHA,
+    language: navigator.language,
+  })
+
   let session: AuthSessionResponse | undefined
   try {
-    const queryData = JSON.parse(window.localStorage.getItem(QUERY_PERSIST_KEY) ?? "{}")
-    session = queryData.clientState.queries.find(
-      (query: any) => query.queryHash === JSON.stringify(["auth", "session"]),
-    )?.state.data.data
+    const queryData = JSON.parse(window.localStorage.getItem(QUERY_PERSIST_KEY) ?? "{}") as {
+      clientState?: {
+        queries?: Array<{
+          queryHash?: string
+          state?: { data?: { data?: AuthSessionResponse } }
+        }>
+      }
+    }
+    session = queryData.clientState?.queries?.find(
+      (query) => query.queryHash === JSON.stringify(["auth", "session"]),
+    )?.state?.data?.data
   } catch {
     // do nothing
   }

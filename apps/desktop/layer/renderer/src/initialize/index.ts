@@ -57,7 +57,7 @@ export const initializeApp = async () => {
   initializeDayjs()
   registerHistoryStack()
 
-  hydrateSessionsFromLocalDb()
+  await apm("hydrate chat sessions", hydrateSessionsFromLocalDb)
   // Set Environment
   document.documentElement.dataset.buildType = ELECTRON_BUILD ? "electron" : "web"
 

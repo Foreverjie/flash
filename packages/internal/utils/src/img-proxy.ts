@@ -45,6 +45,13 @@ export const getImageProxyUrl = ({
   width?: number
   height?: number
 }) => {
+  if (
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ) {
+    return url
+  }
+
   return `${IMAGE_PROXY_URL}?url=${encodeURIComponent(url)}&width=${width ? Math.round(width) : ""}&height=${height ? Math.round(height) : ""}`
 }
 

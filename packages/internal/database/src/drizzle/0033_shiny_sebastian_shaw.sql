@@ -16,7 +16,26 @@ CREATE TABLE `__new_ai_chat_messages` (
 	FOREIGN KEY (`chat_id`) REFERENCES `ai_chat_sessions`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-INSERT INTO `__new_ai_chat_messages`("id", "chat_id", "role", "rich_text_schema", "created_at", "metadata", "status", "finished_at", "message_parts") SELECT "id", "chat_id", "role", "rich_text_schema", "created_at", "metadata", "status", "finished_at", "message_parts" FROM `ai_chat_messages`;--> statement-breakpoint
+INSERT INTO `__new_ai_chat_messages`("id", "chat_id", "role", "rich_text_schema", "created_at", "metadata", "status", "finished_at", "message_parts")
+SELECT
+	"id",
+	"room_id",
+	CASE
+		WHEN json_valid("message") AND json_extract("message", '$.role') IN ('user', 'assistant', 'system')
+			THEN json_extract("message", '$.role')
+		ELSE 'user'
+	END,
+	NULL,
+	"created_at",
+	CASE WHEN json_valid("message") THEN json_extract("message", '$.metadata') ELSE NULL END,
+	'completed',
+	CASE WHEN json_valid("message") THEN json_extract("message", '$.metadata.finishTime') ELSE NULL END,
+	CASE
+		WHEN json_valid("message") AND json_type("message", '$.parts') = 'array'
+			THEN json_extract("message", '$.parts')
+		ELSE json_array(json_object('type', 'text', 'text', CAST("message" AS TEXT)))
+	END
+FROM `ai_chat_messages`;--> statement-breakpoint
 DROP TABLE `ai_chat_messages`;--> statement-breakpoint
 ALTER TABLE `__new_ai_chat_messages` RENAME TO `ai_chat_messages`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint
