@@ -15,7 +15,7 @@ class XTimelineScraper(BaseScraper):
     def __init__(self) -> None:
         self._fetcher = StealthyFetcher()
 
-    async def scrape(self, handle: str) -> list[ScrapedPost]:
+    async def scrape(self, handle: str, force: bool = False) -> list[ScrapedPost]:
         normalized_handle = handle.replace("@", "").strip()
         try:
             return await self._fetch_timeline(normalized_handle)

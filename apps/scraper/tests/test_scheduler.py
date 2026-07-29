@@ -22,8 +22,9 @@ async def test_sync_all_feeds_calls_scrape_for_each_feed():
         await sync_all_feeds()
 
     assert fake_scraper.scrape.call_count == 2
-    fake_scraper.scrape.assert_any_call("elonmusk")
-    fake_scraper.scrape.assert_any_call("sama")
+    # Scheduled sweeps must not force — that would defeat per-adapter throttles.
+    fake_scraper.scrape.assert_any_call("elonmusk", force=False)
+    fake_scraper.scrape.assert_any_call("sama", force=False)
 
 
 @pytest.mark.asyncio

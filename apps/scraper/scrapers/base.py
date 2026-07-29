@@ -9,6 +9,9 @@ class BaseScraper(ABC):
     needs_existing_guids: bool = False
 
     @abstractmethod
-    async def scrape(self, source: str) -> list[ScrapedPost]:
-        """Scrape content for the given source identifier. Returns empty list on failure."""
+    async def scrape(self, source: str, force: bool = False) -> list[ScrapedPost]:
+        """Scrape content for the given source identifier. Returns empty list on failure.
+
+        `force` bypasses any politeness throttle — set for manual refresh,
+        left False for scheduled sweeps."""
         ...

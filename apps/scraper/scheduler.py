@@ -34,7 +34,7 @@ async def run_scraper(
     """Run a scraper, providing feed context (existing guids, force) to adapters
     that diff against already-ingested posts."""
     if not scraper.needs_existing_guids:
-        return await scraper.scrape(source)
+        return await scraper.scrape(source, force=force)
 
     try:
         existing_guids = await client.get_feed_guids(feed_id)

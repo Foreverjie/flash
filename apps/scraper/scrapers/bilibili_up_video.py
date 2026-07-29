@@ -233,12 +233,22 @@ async def _get_render_data(uid: str) -> str:
     if cached is not None:
         return cached
 
-    async with httpx.AsyncClient(timeout=settings.scrape_timeout_seconds) as http:
-        resp = await http.get(
-            f"https://space.bilibili.com/{uid}",
+    # w_webid is optional in _build_wbi_params, so a blocked space page must not
+    # abort the whole WBI path — it used to raise here and force every request
+    # onto the legacy endpoint, which is rate-limited far more aggressively.
+    try:
+        async with AsyncSession(
+            impersonate=IMPERSONATE,
             headers=_bilibili_headers("https://www.bilibili.com/"),
-        )
-        resp.raise_for_status()
+            timeout=settings.scrape_timeout_seconds,
+        ) as session:
+            resp = await session.get(f"https://space.bilibili.com/{uid}")
+
+        if resp.status_code != 200:
+            raise RuntimeError(f"space page returned HTTP {resp.status_code}")
+    except Exception as exc:
+        logger.warning("Bilibili render data unavailable for uid=%s (%s); continuing without w_webid", uid, exc)
+        return _cache_set(_RENDER_DATA_CACHE, uid, "", 10 * 60)
 
     match = re.search(
         r'<script id="__RENDER_DATA__" type="application/json">(.*?)</script>',
@@ -250,6 +260,16 @@ async def _get_render_data(uid: str) -> str:
     render_data = json.loads(urllib.parse.unquote(match.group(1)))
     access_id = render_data.get("access_id") or ""
     return _cache_set(_RENDER_DATA_CACHE, uid, access_id, 60 * 60)
+
+
+#: API codes and HTTP statuses that mean "risk control rejected us", as opposed
+#: to a transient network error. -799 = 请求过于频繁, -412/412 = request banned.
+_RISK_CONTROL_MARKERS = ("-799", "-412", "412")
+
+
+def _is_risk_control(exc: Exception) -> bool:
+    message = str(exc)
+    return any(marker in message for marker in _RISK_CONTROL_MARKERS)
 
 
 async def _impersonated_get_json(url: str, referer: str) -> dict:
@@ -304,12 +324,60 @@ async def _fetch_legacy_payload(uid: str) -> dict:
 
 
 class BilibiliUpVideoScraper(BaseScraper):
-    async def scrape(self, source: str) -> list[ScrapedPost]:
+    def __init__(self) -> None:
+        self._last_run: dict[str, float] = {}
+        self._blocked_until: dict[str, float] = {}
+
+    def _is_backing_off(self, uid: str) -> bool:
+        """True while risk control has rejected us recently."""
+        remaining = self._blocked_until.get(uid, 0) - time.time()
+        if remaining <= 0:
+            return False
+
+        logger.info(
+            "BilibiliUpVideoScraper: skipping %s (risk-control backoff, %d min left)",
+            uid,
+            int(remaining / 60),
+        )
+        return True
+
+    def _should_run(self, uid: str) -> bool:
+        """Politeness throttle. Bilibili bans an IP after a couple of rapid
+        requests, so a 15-minute scheduler tick must not mean a 15-minute
+        scrape."""
+        min_interval = settings.bilibili_min_scrape_interval_minutes * 60
+        if time.time() - self._last_run.get(uid, 0) < min_interval:
+            logger.info("BilibiliUpVideoScraper: skipping %s (recently scraped)", uid)
+            return False
+
+        self._last_run[uid] = time.time()
+        return True
+
+    def _note_rejection(self, uid: str) -> None:
+        self._blocked_until[uid] = time.time() + settings.bilibili_backoff_minutes * 60
+
+    async def scrape(self, source: str, force: bool = False) -> list[ScrapedPost]:
         uid = source.strip()
+        # The risk-control backoff binds even a manual refresh: requesting again
+        # while banned just renews the ban. Only the politeness throttle yields.
+        if self._is_backing_off(uid):
+            return []
+        if not force and not self._should_run(uid):
+            return []
+
         try:
             return await self._fetch_videos(uid)
         except Exception as exc:
-            logger.error("BilibiliUpVideoScraper failed for uid=%s: %s", uid, exc)
+            if _is_risk_control(exc):
+                self._note_rejection(uid)
+                logger.error(
+                    "BilibiliUpVideoScraper: %s rejected by risk control, backing off %d minutes: %s",
+                    uid,
+                    settings.bilibili_backoff_minutes,
+                    exc,
+                )
+            else:
+                logger.error("BilibiliUpVideoScraper failed for uid=%s: %s", uid, exc)
             return []
 
     async def _fetch_videos(self, uid: str) -> list[ScrapedPost]:

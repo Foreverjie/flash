@@ -1,6 +1,7 @@
 import json
+import time
 import urllib.parse
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -9,10 +10,12 @@ from scraper.scrapers.bilibili_up_video import (
     _build_wbi_params,
     _fetch_legacy_payload,
     _impersonated_get_json,
+    _is_risk_control,
     _mixin_key,
     _parse_bilibili_duration,
     _sign_wbi_params,
 )
+from scraper.config import settings
 from scraper.scrapers.community_base import IMPERSONATE
 
 
@@ -235,3 +238,63 @@ async def test_impersonated_fetch_raises_on_http_error():
     with patch("scraper.scrapers.bilibili_up_video.AsyncSession", _FakeSession):
         with pytest.raises(RuntimeError, match="412"):
             await _impersonated_get_json("https://api.bilibili.com/x", "https://ref")
+
+
+@pytest.mark.asyncio
+async def test_scheduled_scrape_is_throttled_between_runs():
+    """The scheduler ticks every 15 min; Bilibili must not be hit that often."""
+    scraper = BilibiliUpVideoScraper()
+
+    with patch.object(
+        BilibiliUpVideoScraper, "_fetch_videos", new=AsyncMock(return_value=[])
+    ) as fetch:
+        await scraper.scrape("946974")
+        await scraper.scrape("946974")
+
+    assert fetch.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_force_bypasses_the_throttle():
+    """Manual refresh must still scrape immediately."""
+    scraper = BilibiliUpVideoScraper()
+
+    with patch.object(
+        BilibiliUpVideoScraper, "_fetch_videos", new=AsyncMock(return_value=[])
+    ) as fetch:
+        await scraper.scrape("946974")
+        await scraper.scrape("946974", force=True)
+
+    assert fetch.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_risk_control_rejection_triggers_a_longer_backoff():
+    """A -799/-412 must park the uid for bilibili_backoff_minutes, not retry
+    at the normal interval — retrying while banned renews the ban."""
+    scraper = BilibiliUpVideoScraper()
+
+    with patch.object(
+        BilibiliUpVideoScraper,
+        "_fetch_videos",
+        new=AsyncMock(side_effect=RuntimeError("Bilibili API error -799: too frequent")),
+    ):
+        assert await scraper.scrape("946974") == []
+
+    blocked_until = scraper._blocked_until["946974"]
+    remaining_minutes = (blocked_until - time.time()) / 60
+    assert remaining_minutes > settings.bilibili_min_scrape_interval_minutes
+
+    # The backoff binds even force=True: re-requesting while banned renews it.
+    with patch.object(
+        BilibiliUpVideoScraper, "_fetch_videos", new=AsyncMock(return_value=[])
+    ) as fetch:
+        await scraper.scrape("946974")
+        await scraper.scrape("946974", force=True)
+        assert fetch.await_count == 0
+
+
+def test_risk_control_classifier():
+    assert _is_risk_control(RuntimeError("Bilibili API error -799: x"))
+    assert _is_risk_control(RuntimeError("returned HTTP 412 for url"))
+    assert not _is_risk_control(RuntimeError("Connection reset by peer"))
