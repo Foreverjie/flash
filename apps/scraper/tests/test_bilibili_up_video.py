@@ -298,3 +298,18 @@ def test_risk_control_classifier():
     assert _is_risk_control(RuntimeError("Bilibili API error -799: x"))
     assert _is_risk_control(RuntimeError("returned HTTP 412 for url"))
     assert not _is_risk_control(RuntimeError("Connection reset by peer"))
+
+
+@pytest.mark.asyncio
+async def test_forced_scrape_still_resets_the_throttle_clock():
+    """-799 triggers after two rapid requests, so a manual refresh must not be
+    followed moments later by a scheduled sweep."""
+    scraper = BilibiliUpVideoScraper()
+
+    with patch.object(
+        BilibiliUpVideoScraper, "_fetch_videos", new=AsyncMock(return_value=[])
+    ) as fetch:
+        await scraper.scrape("946974", force=True)
+        await scraper.scrape("946974")  # scheduled tick right after
+
+    assert fetch.await_count == 1

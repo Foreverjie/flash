@@ -364,6 +364,10 @@ class BilibiliUpVideoScraper(BaseScraper):
             return []
         if not force and not self._should_run(uid):
             return []
+        # A forced run still counts against the throttle: -799 triggers after
+        # two rapid requests, so a manual refresh must not be followed moments
+        # later by a scheduled sweep.
+        self._last_run[uid] = time.time()
 
         try:
             return await self._fetch_videos(uid)
