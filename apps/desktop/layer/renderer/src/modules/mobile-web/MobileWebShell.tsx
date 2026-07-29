@@ -39,16 +39,22 @@ export function MobileWebShell() {
     >
       {!isTimelineReaderRoute && <MobileHeader />}
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <EntriesProvider viewOverride={activeView}>
+        {user ? (
+          <EntriesProvider viewOverride={activeView}>
+            <AppErrorBoundary errorType={errorTypes}>
+              <Outlet />
+            </AppErrorBoundary>
+          </EntriesProvider>
+        ) : (
           <AppErrorBoundary errorType={errorTypes}>
             <Outlet />
           </AppErrorBoundary>
-        </EntriesProvider>
+        )}
       </main>
       {isTabRoute && <MobileTabBar />}
       <CornerPlayer hideControls />
       {user && <MobileAccountDrawer />}
-      <MobileEntryReaderHost />
+      {user && <MobileEntryReaderHost />}
       <OnboardingCoach />
     </div>
   )

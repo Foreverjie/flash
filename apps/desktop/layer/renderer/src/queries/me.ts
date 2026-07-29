@@ -1,4 +1,5 @@
 import { env } from "@follow/shared/env.desktop"
+import { useWhoami } from "@follow/store/user/hooks"
 import { useQuery } from "@tanstack/react-query"
 
 export interface MeStatsData {
@@ -22,10 +23,12 @@ async function fetchMeStats(): Promise<MeStatsData> {
 }
 
 export function useMeStatsQuery(enabled = true) {
+  const user = useWhoami()
+
   return useQuery({
     queryKey: ["me", "stats"],
     queryFn: fetchMeStats,
-    enabled,
+    enabled: enabled && !!user,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   })

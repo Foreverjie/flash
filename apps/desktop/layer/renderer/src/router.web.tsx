@@ -17,6 +17,7 @@ export const router = routerCreator([
   {
     path: "/",
     lazy: () => import("./App"),
+    hydrateFallbackElement: <div className="size-full bg-background" />,
     children: tree,
     errorElement: <ErrorElement />,
   },

@@ -142,15 +142,14 @@ export function MainDestopLayout() {
   const user = useWhoami()
   const sessionQuery = usePrefetchSessionUser()
 
-  // Logged-out (session settled with no user, or an explicit 401): send the
-  // visitor to the single canonical onboarding mount at `/onboarding` rather
-  // than rendering the flow inline here. `/onboarding` lives outside this
-  // layout, so there's no redirect loop.
-  const showOnboardingLanding = (sessionQuery.isFetched && !user) || (isAuthFail && !user)
-
   const containerRef = useRef<HTMLDivElement | null>(null)
 
-  if (showOnboardingLanding) {
+  if (!sessionQuery.isFetched) {
+    return <div className="size-full bg-background" />
+  }
+
+  // `/onboarding` lives outside this layout, so there's no redirect loop.
+  if (!user || isAuthFail) {
     return <Navigate to="/onboarding" replace />
   }
 
