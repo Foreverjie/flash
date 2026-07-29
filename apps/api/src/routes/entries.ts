@@ -2,7 +2,7 @@
  * Entries Routes
  * Returns entries with feed data in the format expected by the client SDK (EntryWithFeed).
  */
-import { and, desc, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm"
+import { and, desc, eq, gt, inArray, isNotNull, isNull, lt } from "drizzle-orm"
 import { Hono } from "hono"
 
 import type { User } from "../auth/index.js"
@@ -17,6 +17,73 @@ type EntriesVariables = {
 }
 
 const entriesRouter = new Hono<{ Variables: EntriesVariables }>()
+
+/**
+ * GET /entries/check-new
+ * Checks whether the current timeline has entries inserted after the client snapshot.
+ */
+entriesRouter.get("/check-new", requireAuth, async (c) => {
+  const user = c.get("user")
+  if (!user) {
+    return c.json({ code: 401, message: "Unauthorized" }, 401)
+  }
+
+  const insertedAfter = Number(c.req.query("insertedAfter"))
+  if (!Number.isFinite(insertedAfter)) {
+    return c.json({ code: 400, message: "Invalid insertedAfter" }, 400)
+  }
+
+  const viewParam = c.req.query("view")
+  const view = viewParam === undefined ? undefined : Number(viewParam)
+  if (view !== undefined && view !== -1 && !isFeedView(view)) {
+    return c.json({ code: 400, message: "Invalid feed view" }, 400)
+  }
+
+  const feedId = c.req.query("feedId")
+  const feedIdList = c.req.queries("feedIdList") ?? []
+  const requestedFeedIds = feedId
+    ? [feedId]
+    : feedIdList.length > 0
+      ? [...new Set(feedIdList)]
+      : undefined
+  const viewByFeedId = await resolveRequestedFeedViews({
+    userId: user.id,
+    view: view === undefined || view === -1 ? undefined : view,
+    feedIds: requestedFeedIds,
+  })
+  const targetFeedIds = [...viewByFeedId.keys()]
+
+  if (targetFeedIds.length === 0) {
+    return c.json({ code: 0, data: { has_new: false } })
+  }
+
+  const conditions = [
+    inArray(posts.feedId, targetFeedIds),
+    gt(posts.insertedAt, new Date(insertedAfter)),
+  ]
+  const readParam = c.req.query("read")
+  if (readParam === "true") conditions.push(isNotNull(readStatus.id))
+  if (readParam === "false") conditions.push(isNull(readStatus.id))
+
+  const [latest] = await db
+    .select({ id: posts.id, insertedAt: posts.insertedAt })
+    .from(posts)
+    .leftJoin(readStatus, and(eq(readStatus.postId, posts.id), eq(readStatus.userId, user.id)))
+    .where(and(...conditions))
+    .orderBy(desc(posts.insertedAt))
+    .limit(1)
+
+  return c.json({
+    code: 0,
+    data: latest
+      ? {
+          has_new: true,
+          lastest_at: latest.insertedAt.toISOString(),
+          entry_id: latest.id,
+        }
+      : { has_new: false },
+  })
+})
 
 /**
  * Transform a post + feed row into the EntryWithFeed shape expected by apiMorph.toEntryList.

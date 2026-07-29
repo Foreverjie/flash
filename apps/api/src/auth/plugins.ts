@@ -3,7 +3,7 @@
  * Implements endpoints expected by @follow-app/client-sdk
  */
 import type { BetterAuthPlugin } from "better-auth"
-import { createAuthEndpoint } from "better-auth/api"
+import { createAuthEndpoint, sessionMiddleware } from "better-auth/api"
 import { z } from "zod"
 
 interface AuthProvider {
@@ -89,7 +89,7 @@ export const getAccountInfoPlugin = (): BetterAuthPlugin => ({
       "/get-account-info",
       {
         method: "GET",
-        use: [(ctx) => (ctx.context.session ? ctx : Promise.reject(new Error("Unauthorized")))],
+        use: [sessionMiddleware],
       },
       async (ctx) => {
         const { session } = ctx.context
@@ -102,12 +102,19 @@ export const getAccountInfoPlugin = (): BetterAuthPlugin => ({
           where: [{ field: "userId", value: session.user.id }],
         })
 
-        const result = accounts.map((account) => ({
-          id: account.id as string,
-          accountId: account.accountId as string,
-          provider: account.providerId as string,
-          profile: undefined,
-        }))
+        const result = accounts.map((account) => {
+          const typedAccount = account as {
+            id: string
+            accountId: string
+            providerId: string
+          }
+          return {
+            id: typedAccount.id,
+            accountId: typedAccount.accountId,
+            provider: typedAccount.providerId,
+            profile: undefined,
+          }
+        })
 
         return ctx.json(result)
       },
@@ -129,7 +136,7 @@ export const deleteUserCustomPlugin = (): BetterAuthPlugin => ({
         body: z.object({
           TOTPCode: z.string().length(6),
         }),
-        use: [(ctx) => (ctx.context.session ? ctx : Promise.reject(new Error("Unauthorized")))],
+        use: [sessionMiddleware],
       },
       async (ctx) => {
         const { session } = ctx.context
@@ -160,6 +167,11 @@ export const deleteUserCustomPlugin = (): BetterAuthPlugin => ({
           where: [{ field: "userId", value: session.user.id }],
         })
 
+        await ctx.context.adapter.deleteMany({
+          model: "verification",
+          where: [{ field: "identifier", value: session.user.id }],
+        })
+
         // Delete user
         await ctx.context.adapter.delete({
           model: "user",
@@ -183,7 +195,7 @@ export const oneTimeTokenPlugin = (): BetterAuthPlugin => ({
       "/one-time-token/generate",
       {
         method: "GET",
-        use: [(ctx) => (ctx.context.session ? ctx : Promise.reject(new Error("Unauthorized")))],
+        use: [sessionMiddleware],
       },
       async (ctx) => {
         const { session } = ctx.context
