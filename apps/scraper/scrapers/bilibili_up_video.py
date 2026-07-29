@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import hashlib
 import html
@@ -12,10 +11,12 @@ from datetime import datetime, timezone
 from typing import TypeVar
 
 import httpx
+from curl_cffi.requests import AsyncSession
 
 from scraper.config import settings
 from scraper.models import ScrapedPost
 from scraper.scrapers.base import BaseScraper
+from scraper.scrapers.community_base import IMPERSONATE
 
 logger = logging.getLogger(__name__)
 
@@ -251,20 +252,31 @@ async def _get_render_data(uid: str) -> str:
     return _cache_set(_RENDER_DATA_CACHE, uid, access_id, 60 * 60)
 
 
-async def _curl_get_json(url: str, referer: str) -> dict:
-    """Use subprocess curl to avoid TLS fingerprint detection by Bilibili WAF."""
-    proc = await asyncio.create_subprocess_exec(
-        "curl", "-s", "--max-time", "30",
-        "-H", f"referer: {referer}",
-        "-H", f"user-agent: {_UA}",
-        url,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        raise RuntimeError(f"curl failed (rc={proc.returncode}): {stderr.decode()}")
-    return json.loads(stdout)
+async def _impersonated_get_json(url: str, referer: str) -> dict:
+    """Fetch with a browser TLS fingerprint, bypassing Bilibili's WAF.
+
+    Bilibili answers httpx with 412, so this is the fallback path. It uses
+    curl_cffi impersonation rather than shelling out to the curl binary: the
+    binary is not in the runtime image, and a plain-curl TLS fingerprint is
+    itself WAF-detectable (see the note in community_base).
+    """
+    async with AsyncSession(
+        impersonate=IMPERSONATE,
+        headers=_bilibili_headers(referer),
+        timeout=settings.scrape_timeout_seconds,
+    ) as session:
+        resp = await session.get(url)
+
+    if resp.status_code != 200:
+        raise RuntimeError(f"Bilibili returned HTTP {resp.status_code} for {url}")
+
+    payload = json.loads(resp.text)
+    # Bilibili answers 200 with an error code for rate limiting (-799) and
+    # anonymous access (-101); surface those instead of returning an empty list.
+    code = payload.get("code")
+    if code not in (0, None):
+        raise RuntimeError(f"Bilibili API error {code}: {payload.get('message')}")
+    return payload
 
 
 async def _fetch_wbi_payload(uid: str) -> dict:
@@ -288,7 +300,7 @@ async def _fetch_legacy_payload(uid: str) -> dict:
     })
     url = f"{BILIBILI_UP_API_URL}?{params}"
     referer = f"https://space.bilibili.com/{uid}/video"
-    return await _curl_get_json(url, referer)
+    return await _impersonated_get_json(url, referer)
 
 
 class BilibiliUpVideoScraper(BaseScraper):

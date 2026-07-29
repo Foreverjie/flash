@@ -1,3 +1,4 @@
+import json
 import urllib.parse
 from unittest.mock import patch
 
@@ -7,10 +8,12 @@ from scraper.scrapers.bilibili_up_video import (
     BilibiliUpVideoScraper,
     _build_wbi_params,
     _fetch_legacy_payload,
+    _impersonated_get_json,
     _mixin_key,
     _parse_bilibili_duration,
     _sign_wbi_params,
 )
+from scraper.scrapers.community_base import IMPERSONATE
 
 
 VIDEO_PAYLOAD = {
@@ -160,7 +163,7 @@ async def test_legacy_payload_uses_old_arc_search_endpoint():
         assert referer == "https://space.bilibili.com/12345/video"
         return VIDEO_PAYLOAD
 
-    with patch("scraper.scrapers.bilibili_up_video._curl_get_json", new=mock_get_json):
+    with patch("scraper.scrapers.bilibili_up_video._impersonated_get_json", new=mock_get_json):
         payload = await _fetch_legacy_payload("12345")
 
     assert payload == VIDEO_PAYLOAD
@@ -172,3 +175,63 @@ def test_parse_bilibili_duration():
     assert _parse_bilibili_duration("0:05") == 5
     assert _parse_bilibili_duration("") is None
     assert _parse_bilibili_duration("invalid") is None
+
+
+class _FakeResponse:
+    def __init__(self, status_code, text):
+        self.status_code = status_code
+        self.text = text
+
+
+class _FakeSession:
+    """Stands in for curl_cffi AsyncSession, recording how it was constructed."""
+
+    last_kwargs: dict = {}
+
+    def __init__(self, **kwargs):
+        _FakeSession.last_kwargs = kwargs
+        self._response = _FakeSession.response
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get(self, url):
+        return self._response
+
+
+@pytest.mark.asyncio
+async def test_impersonated_fetch_uses_browser_fingerprint_not_the_curl_binary():
+    """Regression: the fallback used to shell out to `curl`, which is absent
+    from the runtime image, so every Bilibili scrape died on FileNotFoundError."""
+    _FakeSession.response = _FakeResponse(200, json.dumps(VIDEO_PAYLOAD))
+
+    with patch("scraper.scrapers.bilibili_up_video.AsyncSession", _FakeSession):
+        payload = await _impersonated_get_json("https://api.bilibili.com/x", "https://ref")
+
+    assert payload == VIDEO_PAYLOAD
+    assert _FakeSession.last_kwargs["impersonate"] == IMPERSONATE
+    assert _FakeSession.last_kwargs["headers"]["referer"] == "https://ref"
+
+
+@pytest.mark.asyncio
+async def test_impersonated_fetch_raises_on_bilibili_error_code():
+    """A 200 carrying code -799 (rate limited) must not look like success."""
+    _FakeSession.response = _FakeResponse(
+        200, json.dumps({"code": -799, "message": "\u8bf7\u6c42\u8fc7\u4e8e\u9891\u7e41"})
+    )
+
+    with patch("scraper.scrapers.bilibili_up_video.AsyncSession", _FakeSession):
+        with pytest.raises(RuntimeError, match="-799"):
+            await _impersonated_get_json("https://api.bilibili.com/x", "https://ref")
+
+
+@pytest.mark.asyncio
+async def test_impersonated_fetch_raises_on_http_error():
+    _FakeSession.response = _FakeResponse(412, "")
+
+    with patch("scraper.scrapers.bilibili_up_video.AsyncSession", _FakeSession):
+        with pytest.raises(RuntimeError, match="412"):
+            await _impersonated_get_json("https://api.bilibili.com/x", "https://ref")
