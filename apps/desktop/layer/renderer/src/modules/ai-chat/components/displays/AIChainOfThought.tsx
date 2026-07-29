@@ -80,7 +80,7 @@ export const AIChainOfThought: React.FC<AIChainOfThoughtProps> = React.memo(
                       <span className="flex items-center gap-2">
                         Thinking:{" "}
                         <span className="min-w-0 truncate">
-                          <AnimatePresence initial={false} mode="popLayout">
+                          <AnimatePresence initial={false} mode="sync">
                             <m.span
                               key={currentReasoningTitle ?? "empty"}
                               initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}

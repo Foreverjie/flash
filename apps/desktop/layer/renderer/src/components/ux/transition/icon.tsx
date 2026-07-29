@@ -34,7 +34,7 @@ const createIconTransition =
     const { exit } = transitionType
 
     return (
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="sync">
         {status === "init" ? (
           typeof icon1 === "string" ? (
             <m.i
@@ -103,7 +103,7 @@ export const IconTransition = (
 ) => {
   const preset = Presets[props.preset ?? "fade"]
   return (
-    <AnimatePresence mode="popLayout">
+    <AnimatePresence mode="sync">
       <m.span
         key={props.animatedKey}
         initial={props.initial ?? preset.initial}

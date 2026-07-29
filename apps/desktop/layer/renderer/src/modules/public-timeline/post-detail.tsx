@@ -35,7 +35,7 @@ export function PostDetailPanel({
   const { t } = useTranslation()
 
   return (
-    <AnimatePresence mode="popLayout">
+    <AnimatePresence mode="sync">
       {postId ? (
         <m.div
           key={postId}

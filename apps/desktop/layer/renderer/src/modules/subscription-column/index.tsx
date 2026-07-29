@@ -221,7 +221,7 @@ const SwipeWrapper: FC<{ active: string; children: React.JSX.Element[] }> = memo
     }
 
     return (
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="sync">
         <m.div
           className="grow"
           key={currentAnimtedActive}

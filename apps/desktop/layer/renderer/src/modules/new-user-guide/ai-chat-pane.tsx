@@ -172,7 +172,7 @@ function AIChatPaneImpl() {
         </div>
       </header>
 
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="sync">
         {!hasMessages && <Welcome onSuggestionClick={appendSuggestionToInput} />}
       </AnimatePresence>
 

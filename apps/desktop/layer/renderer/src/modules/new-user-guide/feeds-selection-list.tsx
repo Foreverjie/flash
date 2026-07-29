@@ -40,7 +40,7 @@ export function FeedsSelectionList() {
 
   return (
     <div className="col-span-4 h-full overflow-hidden">
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="sync">
         {hasFeedsSelection ? <FeedSelectionOperationScreen /> : <FeedSelectionFirstScreen />}
       </AnimatePresence>
     </div>
@@ -103,7 +103,7 @@ function FeedSelectionOperationScreen() {
   return (
     <ScrollArea flex rootClassName="h-full" viewportClassName="px-3 flex min-h-0 grow">
       <div className="flex flex-col gap-5 py-5">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="sync">
           {items.map(({ atom, id }) => (
             <m.div
               key={id}

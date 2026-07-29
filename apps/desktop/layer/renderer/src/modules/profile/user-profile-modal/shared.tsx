@@ -99,7 +99,7 @@ export const SubscriptionGroup: FC<{
         </div>
       </button>
       <AutoResizeHeight>
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="sync">
           {isOpened && (
             <div>
               {subscriptions.map((subscription) => (
