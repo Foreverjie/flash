@@ -28,6 +28,16 @@ class NodeApiClient:
             resp.raise_for_status()
             return resp.json().get("data", {}).get("guids", [])
 
+    async def get_feed_snapshots(self, feed_id: str) -> list[dict]:
+        """Existing structured posts for a feed, newest first."""
+        async with httpx.AsyncClient(timeout=self._timeout) as http:
+            resp = await http.get(
+                f"{self._base_url}/internal/scrapling/feeds/{feed_id}/guids",
+                headers=self._headers,
+            )
+            resp.raise_for_status()
+            return resp.json().get("data", {}).get("snapshots", [])
+
     async def ingest_posts(self, feed_id: str, posts: list[ScrapedPost]) -> int:
         payload = {
             "feedId": feed_id,

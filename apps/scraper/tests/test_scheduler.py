@@ -51,3 +51,24 @@ async def test_sync_all_feeds_skips_failed_feed_and_continues():
     ):
         # Should not raise — failure on one feed must not abort others
         await sync_all_feeds()
+
+
+@pytest.mark.asyncio
+async def test_run_scraper_passes_structured_history_to_community_adapter():
+    from scraper.scheduler import run_scraper
+
+    snapshots = [{"guid": "AAA111@243", "property": {"total": "243万"}}]
+    fake_client = MagicMock()
+    fake_client.get_feed_snapshots = AsyncMock(return_value=snapshots)
+    fake_scraper = MagicMock()
+    fake_scraper.needs_existing_posts = True
+    fake_scraper.scrape = AsyncMock(return_value=[])
+
+    await run_scraper(fake_scraper, fake_client, "feed-1", "9575")
+
+    fake_scraper.scrape.assert_awaited_once_with(
+        "9575",
+        existing_guids=["AAA111@243"],
+        existing_posts=snapshots,
+        force=False,
+    )

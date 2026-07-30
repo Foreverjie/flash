@@ -5,6 +5,7 @@ export const COMMUNITY_FEED_SCHEMES = ["leyoujia_community://", "qfang_community
 
 const EMPTY_PROPERTY: PropertyListing = {
   community: "",
+  listing_id: "",
   title: "",
   city: "",
   hood: "",
@@ -23,6 +24,11 @@ const EMPTY_PROPERTY: PropertyListing = {
   badge: "",
   reduced_by: "",
   orig: "",
+  event: "",
+  changes: [],
+  price_change_num: 0,
+  price_change_percent: 0,
+  price_history: [],
   sold: false,
   image: "",
 }

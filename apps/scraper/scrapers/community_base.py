@@ -1,3 +1,5 @@
+import hashlib
+import json
 import logging
 import re
 import time
@@ -5,7 +7,7 @@ from abc import abstractmethod
 from datetime import datetime, timezone
 
 from scraper.config import settings
-from scraper.models import PropertyInfo, ScrapedPost
+from scraper.models import PropertyChange, PropertyInfo, PropertyPricePoint, ScrapedPost
 from scraper.scrapers.base import BaseScraper
 
 logger = logging.getLogger(__name__)
@@ -34,9 +36,9 @@ def _latest_price_by_listing(existing_guids: list[str]) -> dict[str, str]:
     ordered newest first, so the first occurrence per listing wins."""
     latest: dict[str, str] = {}
     for guid in existing_guids:
-        listing_id, sep, price = guid.partition("@")
-        if sep and listing_id not in latest:
-            latest[listing_id] = price
+        parts = guid.split("@", 2)
+        if len(parts) >= 2 and parts[0] not in latest:
+            latest[parts[0]] = parts[1]
     return latest
 
 
@@ -114,6 +116,7 @@ def _build_property(
 
     return PropertyInfo(
         community=listing.get("community") or "",
+        listing_id=listing["id"],
         title=listing.get("title", ""),
         city=_CITY_NAMES.get(city, city),
         hood=hood,
@@ -163,6 +166,8 @@ _CTA = (
 )
 _BADGE_NEW = "font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:#facc15;color:#1a1207"
 _BADGE_RED = "font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:#e5484d;color:#fff"
+_BADGE_GREEN = "font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:#30a46c;color:#fff"
+_BADGE_BLUE = "font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:7px;background:#3e63dd;color:#fff"
 _BADGE_SOLD = "font-size:11.5px;font-weight:700;letter-spacing:0.08em;padding:3px 9px;border-radius:7px;background:rgba(20,25,25,0.72);color:#fff"
 
 
@@ -182,6 +187,10 @@ def _card_html(pr: PropertyInfo, url: str, updated: str, source_label: str) -> s
     if pr.badge == "reduced":
         drop = f" {pr.reduced_by}" if pr.reduced_by else ""
         badges.append(f'<span style="{_BADGE_RED}">降价{drop}</span>')
+    if pr.badge == "increased":
+        badges.append(f'<span style="{_BADGE_GREEN}">涨价</span>')
+    if pr.badge == "updated":
+        badges.append(f'<span style="{_BADGE_BLUE}">信息更新</span>')
     if badges:
         parts.append(f'<div style="display:flex;gap:6px;margin-bottom:10px">{"".join(badges)}</div>')
 
@@ -234,6 +243,10 @@ def _card_html(pr: PropertyInfo, url: str, updated: str, source_label: str) -> s
         chips = "".join(f'<span style="{_CHIP}">{t}</span>' for t in pr.tags)
         parts.append(f'<div style="{_CHIPS}">{chips}</div>')
 
+    if pr.changes:
+        changes = "；".join(f"{change.old or '—'} → {change.new or '—'}" for change in pr.changes[:3])
+        parts.append(f'<div style="{_DETAIL};margin-top:12px">本次更新：{changes}</div>')
+
     # CTA
     label = "已售出" if pr.sold else "查看详情"
     parts.append(f'<a href="{url}" style="{_CTA}">在{source_label}{label} →</a>')
@@ -250,8 +263,11 @@ def _build_post(
     badge: str = "",
     reduced_by: str = "",
     orig: str = "",
+    property_info: PropertyInfo | None = None,
+    guid: str | None = None,
+    published_at: str | None = None,
 ) -> ScrapedPost:
-    pr = _build_property(listing, city, badge, reduced_by, orig)
+    pr = property_info or _build_property(listing, city, badge, reduced_by, orig)
 
     # Scannable title leads with what buyers compare: price · area · layout.
     facts = [pr.total]
@@ -265,11 +281,11 @@ def _build_post(
     media = [{"url": pr.image, "type": "photo"}] if pr.image else []
 
     return ScrapedPost(
-        guid=f"{listing['id']}@{listing['price']}",
+        guid=guid or f"{listing['id']}@{listing['price']}",
         title=title,
         url=listing["url"],
-        content=_card_html(pr, listing["url"], "刚刚更新", source_label),
-        published_at=datetime.now(timezone.utc).isoformat(),
+        content=_card_html(pr, listing["url"], "刚刚监测", source_label),
+        published_at=published_at or datetime.now(timezone.utc).isoformat(),
         author=pr.community or source_label,
         media=media,
         property=pr,
@@ -286,6 +302,7 @@ class CommunityListingScraper(BaseScraper):
     """
 
     needs_existing_guids = True
+    needs_existing_posts = True
     source_label = "来源"
 
     def __init__(self) -> None:
@@ -295,6 +312,7 @@ class CommunityListingScraper(BaseScraper):
         self,
         source: str,
         existing_guids: list[str] | None = None,
+        existing_posts: list[dict] | None = None,
         force: bool = False,
     ) -> list[ScrapedPost]:
         try:
@@ -311,7 +329,7 @@ class CommunityListingScraper(BaseScraper):
         except Exception as exc:
             logger.error("%s failed for %s: %s", type(self).__name__, source, exc)
             return []
-        return self._build_posts(listings, existing_guids, city)
+        return self._build_posts(listings, existing_guids, city, existing_posts)
 
     @abstractmethod
     async def _fetch_listings(self, city: str, community_id: str) -> list[dict]:
@@ -335,31 +353,253 @@ class CommunityListingScraper(BaseScraper):
         listings: list[dict],
         existing_guids: list[str] | None,
         city: str = _DEFAULT_CITY,
+        existing_posts: list[dict] | None = None,
     ) -> list[ScrapedPost]:
         # Without guid context (endpoint failure) labels are unknowable; with an
         # empty guid list this is a brand-new feed backfill. Neutral titles both ways.
         can_label = bool(existing_guids)
         latest_price = _latest_price_by_listing(existing_guids or [])
 
+        history_by_listing: dict[str, list[dict]] = {}
+        for post in existing_posts or []:
+            guid = post.get("guid", "")
+            listing_id = guid.split("@", 1)[0]
+            if listing_id and post.get("property"):
+                history_by_listing.setdefault(listing_id, []).append(post)
+
+        # Every listing in one response was observed in the same scrape. Using
+        # one timestamp avoids inventing a microsecond ordering within the page.
+        observed_at = datetime.now(timezone.utc).isoformat()
         posts: list[ScrapedPost] = []
         for listing in listings:
+            listing_id = listing["id"]
             prefix = ""
             badge = ""
             reduced_by = ""
             orig = ""
-            if can_label and listing["id"] not in latest_price:
+            property_info = _build_property(listing, city, badge, reduced_by, orig)
+            listing_history = history_by_listing.get(listing_id, [])
+            previous_post = listing_history[0] if listing_history else None
+            previous_property = previous_post.get("property") if previous_post else None
+            property_info.first_seen_at = _first_seen_at(listing_history, observed_at)
+            property_info.observed_at = observed_at
+            changes = _property_changes(property_info, previous_property)
+
+            if can_label and listing_id not in latest_price:
                 prefix = "🆕 新上"
                 badge = "new"
-            elif can_label and latest_price[listing["id"]] != listing["price"]:
-                old, new = latest_price[listing["id"]], listing["price"]
+                property_info.event = "new"
+            elif can_label and latest_price[listing_id] != listing["price"]:
+                old, new = latest_price[listing_id], listing["price"]
                 down = _as_number(new) < _as_number(old)
                 direction = "📉 降价" if down else "📈 涨价"
                 prefix = f"{direction} {old}万→{new}万"
+                property_info.event = "price_down" if down else "price_up"
+                property_info.price_change_num = (_as_number(new) - _as_number(old)) * 10000
+                property_info.price_change_percent = (
+                    (_as_number(new) - _as_number(old)) / _as_number(old) * 100
+                    if _as_number(old)
+                    else 0
+                )
+                orig = f"{old}万"
                 if down:
                     badge = "reduced"
                     reduced_by = f"{_as_number(old) - _as_number(new):g}万"
-                    orig = f"{old}万"
+                else:
+                    badge = "increased"
+            elif changes:
+                fields = "、".join(_CHANGE_LABELS[change.field] for change in changes[:3])
+                prefix = f"📝 信息更新 {fields}"
+                badge = "updated"
+                property_info.event = "details_changed"
+
+            if previous_property and any(change.field == "price" for change in changes):
+                old_num = float(previous_property.get("total_num") or 0)
+                property_info.price_change_num = property_info.total_num - old_num
+                property_info.price_change_percent = (
+                    property_info.price_change_num / old_num * 100 if old_num else 0
+                )
+                property_info.event = (
+                    "price_down" if property_info.price_change_num < 0 else "price_up"
+                )
+                badge = "reduced" if property_info.price_change_num < 0 else "increased"
+                orig = previous_property.get("total", "")
+                if property_info.price_change_num < 0:
+                    reduced_by = f"{abs(property_info.price_change_num) / 10000:g}万"
+
+            property_info.badge = badge
+            property_info.reduced_by = reduced_by
+            property_info.orig = orig
+            property_info.changes = changes
+            property_info.price_history = _price_history(
+                property_info, listing_history, observed_at
+            )
+
+            guid = f"{listing_id}@{listing['price']}"
+            if previous_post:
+                if not changes:
+                    guid = previous_post["guid"]
+                else:
+                    fingerprint = _property_fingerprint(property_info)
+                    previous_version = hashlib.sha256(previous_post["guid"].encode()).hexdigest()[:8]
+                    guid = f"{listing_id}@{listing['price']}@{fingerprint}@{previous_version}"
             posts.append(
-                _build_post(listing, self.source_label, prefix, city, badge, reduced_by, orig)
+                _build_post(
+                    listing,
+                    self.source_label,
+                    prefix,
+                    city,
+                    badge,
+                    reduced_by,
+                    orig,
+                    property_info=property_info,
+                    guid=guid,
+                    published_at=observed_at,
+                )
             )
         return posts
+
+
+_CHANGE_LABELS = {
+    "price": "总价",
+    "unit_price": "单价",
+    "title": "标题",
+    "area": "面积",
+    "layout": "户型",
+    "floor": "楼层",
+    "orientation": "朝向",
+    "renovation": "装修",
+    "tags": "标签",
+}
+
+
+def _layout_value(property_info: PropertyInfo | dict) -> str:
+    def value(key: str):
+        if isinstance(property_info, dict):
+            return property_info.get(key, 0)
+        return getattr(property_info, key)
+
+    return "".join(
+        part
+        for part in [
+            f"{value('beds')}室" if value("beds") else "",
+            f"{value('halls')}厅" if value("halls") else "",
+            f"{value('baths')}卫" if value("baths") else "",
+        ]
+        if part
+    )
+
+
+def _display_value(property_info: PropertyInfo | dict, field: str) -> str:
+    def value(key: str):
+        if isinstance(property_info, dict):
+            return property_info.get(key)
+        return getattr(property_info, key)
+
+    if field == "layout":
+        return _layout_value(property_info)
+    if field == "area":
+        area = float(value("area") or 0)
+        return f"{area:g}㎡" if area else ""
+    if field == "tags":
+        return "、".join(sorted(value("tags") or []))
+    key = {
+        "price": "total",
+        "unit_price": "unit",
+        "renovation": "reno",
+    }.get(field, field)
+    return str(value(key) or "")
+
+
+def _property_changes(current: PropertyInfo, previous: dict | None) -> list[PropertyChange]:
+    if not previous:
+        return []
+    changes = []
+    fields = [
+        "price",
+        "unit_price",
+        "title",
+        "area",
+        "layout",
+        "floor",
+        "orientation",
+        "renovation",
+        "tags",
+    ]
+    for field in fields:
+        old = _display_value(previous, field)
+        new = _display_value(current, field)
+        if old != new:
+            changes.append(PropertyChange(field=field, old=old, new=new))
+    return changes
+
+
+def _property_fingerprint(property_info: PropertyInfo) -> str:
+    tracked = {
+        field: _display_value(property_info, field)
+        for field in _CHANGE_LABELS
+    }
+    payload = json.dumps(tracked, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()[:12]
+
+
+def _first_seen_at(listing_history: list[dict], observed_at: str) -> str:
+    candidates = []
+    for post in listing_history:
+        first_seen_at = (post.get("property") or {}).get("first_seen_at")
+        if first_seen_at:
+            candidates.append(first_seen_at)
+        if post.get("published_at"):
+            candidates.append(post["published_at"])
+
+    if not candidates:
+        return observed_at
+    return min(
+        candidates,
+        key=lambda value: datetime.fromisoformat(value.replace("Z", "+00:00")),
+    )
+
+
+def _price_history(
+    current: PropertyInfo,
+    listing_history: list[dict],
+    published_at: str,
+) -> list[PropertyPricePoint]:
+    points = [
+        PropertyPricePoint(
+            total=current.total,
+            total_num=current.total_num,
+            changed_at=published_at,
+        )
+    ]
+    candidates = []
+    for post in listing_history:
+        previous = post.get("property") or {}
+        candidates.append(
+            {
+                "total": previous.get("total"),
+                "total_num": previous.get("total_num"),
+                "changed_at": post.get("published_at"),
+            }
+        )
+        embedded_history = previous.get("price_history") or []
+        if embedded_history and float(embedded_history[0].get("total_num") or 0) == float(
+            previous.get("total_num") or 0
+        ):
+            candidates.extend(embedded_history)
+
+    for candidate in candidates:
+        total_num = float(candidate.get("total_num") or 0)
+        changed_at = candidate.get("changed_at")
+        if not total_num or not changed_at or total_num == points[-1].total_num:
+            continue
+        points.append(
+            PropertyPricePoint(
+                total=candidate.get("total") or f"{total_num / 10000:g}万",
+                total_num=total_num,
+                changed_at=changed_at,
+            )
+        )
+        if len(points) == 50:
+            break
+    return points

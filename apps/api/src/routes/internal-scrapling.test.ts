@@ -90,6 +90,33 @@ describe("GET /internal/scrapling/feeds/:feedId/guids", () => {
     const body = (await res.json()) as { data: { guids: string[] } }
     expect(body.data.guids).toEqual(["AAA111@250", "AAA111@243"])
   })
+
+  it("returns structured snapshots for field-level comparisons", async () => {
+    vi.spyOn(db.query.feeds, "findFirst").mockResolvedValueOnce({ id: "feed-1" } as never)
+    vi.spyOn(db.query.posts, "findMany").mockResolvedValueOnce([
+      {
+        guid: "AAA111@250",
+        property: { listing_id: "AAA111", total: "250万" },
+        publishedAt: new Date("2026-07-01T08:00:00Z"),
+      },
+    ] as never)
+
+    const app = makeApp()
+    const res = await app.request("/internal/scrapling/feeds/feed-1/guids", {
+      headers: { "x-internal-key": "test-key" },
+    })
+    const body = (await res.json()) as {
+      data: { snapshots: Array<{ guid: string; property: unknown; published_at: string }> }
+    }
+
+    expect(body.data.snapshots).toEqual([
+      {
+        guid: "AAA111@250",
+        property: { listing_id: "AAA111", total: "250万" },
+        published_at: "2026-07-01T08:00:00.000Z",
+      },
+    ])
+  })
 })
 
 describe("POST /internal/scrapling/ingest", () => {

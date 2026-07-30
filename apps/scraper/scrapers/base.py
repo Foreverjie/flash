@@ -7,6 +7,7 @@ class BaseScraper(ABC):
     # Adapters that diff against already-ingested posts set this to True and
     # accept scrape(source, existing_guids=..., force=...).
     needs_existing_guids: bool = False
+    needs_existing_posts: bool = False
 
     @abstractmethod
     async def scrape(self, source: str, force: bool = False) -> list[ScrapedPost]:

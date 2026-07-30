@@ -5,6 +5,7 @@ import { resolvePropertyListing } from "./property-utils"
 
 const property: PropertyListing = {
   community: "Sunshine Garden",
+  listing_id: "listing-1",
   title: "South-facing renovated apartment",
   city: "Shenzhen",
   hood: "Nanshan",
@@ -23,6 +24,11 @@ const property: PropertyListing = {
   badge: "new",
   reduced_by: "",
   orig: "",
+  event: "new",
+  changes: [],
+  price_change_num: 0,
+  price_change_percent: 0,
+  price_history: [],
   sold: false,
   image: "",
 }

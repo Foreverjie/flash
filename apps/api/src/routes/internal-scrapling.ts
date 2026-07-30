@@ -26,6 +26,7 @@ const COMMUNITY_ADAPTER_TYPES = ["leyoujia_community", "qfang_community"] as con
 
 const propertySchema = z.object({
   community: z.string(),
+  listing_id: z.string().default(""),
   title: z.string().default(""),
   city: z.string().default(""),
   hood: z.string().default(""),
@@ -41,9 +42,42 @@ const propertySchema = z.object({
   orientation: z.string().default(""),
   reno: z.string().default(""),
   tags: z.array(z.string()).default([]),
-  badge: z.enum(["new", "reduced", ""]).default(""),
+  badge: z.enum(["new", "reduced", "increased", "updated", ""]).default(""),
   reduced_by: z.string().default(""),
   orig: z.string().default(""),
+  event: z.enum(["new", "price_down", "price_up", "details_changed", ""]).default(""),
+  changes: z
+    .array(
+      z.object({
+        field: z.enum([
+          "price",
+          "unit_price",
+          "title",
+          "area",
+          "layout",
+          "floor",
+          "orientation",
+          "renovation",
+          "tags",
+        ]),
+        old: z.string(),
+        new: z.string(),
+      }),
+    )
+    .default([]),
+  price_change_num: z.number().default(0),
+  price_change_percent: z.number().default(0),
+  price_history: z
+    .array(
+      z.object({
+        total: z.string(),
+        total_num: z.number(),
+        changed_at: z.string().datetime({ offset: true }),
+      }),
+    )
+    .default([]),
+  first_seen_at: z.string().datetime({ offset: true }).or(z.literal("")).default(""),
+  observed_at: z.string().datetime({ offset: true }).or(z.literal("")).default(""),
   sold: z.boolean().default(false),
   image: z.string().default(""),
 })
@@ -98,8 +132,8 @@ router.get("/feeds", async (c) => {
 
 /**
  * GET /internal/scrapling/feeds/:feedId/guids
- * Existing post guids for a feed, newest first. Used by adapters that diff
- * against already-ingested posts (e.g. community listings labeling price changes).
+ * Existing post guids and structured snapshots for a feed, newest first. The
+ * guids field remains for backwards compatibility with older scraper workers.
  */
 router.get(
   "/feeds/:feedId/guids",
@@ -118,12 +152,21 @@ router.get(
 
     const feedPosts = await db.query.posts.findMany({
       where: eq(posts.feedId, feedId),
-      columns: { guid: true },
+      columns: { guid: true, property: true, publishedAt: true },
       orderBy: [desc(posts.publishedAt)],
       limit: 5000,
     })
 
-    return c.json(structuredSuccess({ guids: feedPosts.map((p) => p.guid) }))
+    return c.json(
+      structuredSuccess({
+        guids: feedPosts.map((p) => p.guid),
+        snapshots: feedPosts.map((post) => ({
+          guid: post.guid,
+          property: post.property,
+          published_at: post.publishedAt?.toISOString() ?? null,
+        })),
+      }),
+    )
   },
 )
 

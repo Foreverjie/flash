@@ -102,6 +102,9 @@ async def test_scrape_parses_listings_and_skips_sidebar():
     assert pr.total == "243万" and pr.total_num == 2430000
     assert pr.unit_num == 27306 and pr.orientation == "西南" and pr.reno == "精装"
     assert pr.city == "深圳"
+    assert pr.first_seen_at == first.published_at
+    assert pr.observed_at == first.published_at
+    assert posts[1].published_at == first.published_at
 
 
 @pytest.mark.asyncio
@@ -133,6 +136,75 @@ async def test_scrape_unchanged_price_keeps_neutral_title():
     posts = await scraper.scrape("9575", existing_guids=["AAA111@243", "BBB222@510"], force=True)
     assert posts[0].title == "243万 · 88.99㎡ · 3室2厅"
     assert posts[1].title == "510万 · 120.5㎡ · 4室2厅"
+
+
+@pytest.mark.asyncio
+async def test_scrape_emits_same_price_detail_changes_from_snapshot():
+    scraper = _scraper_with_fixture()
+    baseline = await scraper.scrape("9575", existing_guids=[], existing_posts=[], force=True)
+    previous = baseline[1].property.model_dump()
+    previous["title"] = "旧房源描述"
+    previous_post = {
+        "guid": baseline[1].guid,
+        "published_at": "2026-07-01T08:00:00Z",
+        "property": previous,
+    }
+
+    posts = await scraper.scrape(
+        "9575",
+        existing_guids=[baseline[1].guid],
+        existing_posts=[previous_post],
+        force=True,
+    )
+
+    update = posts[1]
+    assert update.guid.startswith("BBB222@510@")
+    assert update.property.event == "details_changed"
+    assert update.property.badge == "updated"
+    assert [(change.field, change.old, change.new) for change in update.property.changes] == [
+        ("title", "旧房源描述", "中海康城花园4室2厅，高楼层")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_scrape_builds_price_history_and_reuses_unchanged_snapshot_guid():
+    scraper = _scraper_with_fixture()
+    baseline = await scraper.scrape("9575", existing_guids=[], existing_posts=[], force=True)
+    previous = baseline[1].property.model_dump()
+    previous.update(total="530万", total_num=5_300_000, unit="单价43983元/㎡", unit_num=43983)
+    previous_post = {
+        "guid": "BBB222@530",
+        "published_at": "2026-07-01T08:00:00Z",
+        "property": previous,
+    }
+
+    changed = await scraper.scrape(
+        "9575",
+        existing_guids=["BBB222@530"],
+        existing_posts=[previous_post],
+        force=True,
+    )
+    update = changed[1]
+    assert update.property.event == "price_down"
+    assert update.property.first_seen_at == "2026-07-01T08:00:00Z"
+    assert update.property.observed_at == update.published_at
+    assert update.property.price_change_num == -200_000
+    assert round(update.property.price_change_percent, 2) == -3.77
+    assert [point.total for point in update.property.price_history] == ["510万", "530万"]
+
+    latest_post = {
+        "guid": update.guid,
+        "published_at": update.published_at,
+        "property": update.property.model_dump(),
+    }
+    unchanged = await scraper.scrape(
+        "9575",
+        existing_guids=[update.guid, "BBB222@530"],
+        existing_posts=[latest_post, previous_post],
+        force=True,
+    )
+    assert unchanged[1].guid == update.guid
+    assert unchanged[1].property.changes == []
 
 
 @pytest.mark.asyncio

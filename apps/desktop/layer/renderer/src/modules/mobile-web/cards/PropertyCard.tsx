@@ -34,6 +34,23 @@ export function PropertyCard({
     { id: "layout", value: layout },
     { id: "orientation", value: property.orientation },
   ].filter((spec) => spec.value)
+  const priceChangeAmount = Math.abs(property.price_change_num || 0) / 10000
+  const priceChangeDisplay = priceChangeAmount.toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  })
+  const eventLabel = property.sold
+    ? t("property_detail.sold")
+    : property.event === "price_up" || property.badge === "increased"
+      ? t("property_detail.increased", { amount: priceChangeDisplay })
+      : property.event === "price_down" || property.badge === "reduced"
+        ? t("property_detail.reduced", {
+            amount: property.reduced_by || `${priceChangeDisplay}万`,
+          })
+        : property.event === "details_changed" || property.badge === "updated"
+          ? t("property_detail.details_changed")
+          : property.badge === "new"
+            ? t("property_detail.new")
+            : ""
 
   return (
     <article
@@ -56,25 +73,27 @@ export function PropertyCard({
         <span className="shrink-0 text-[10px] font-bold uppercase text-[var(--fo-accent-ink)]">
           {t("property_detail.property")}
         </span>
-        {(property.badge || property.sold) && (
+        {!!eventLabel && (
           <span
             className={cn(
               "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold",
               property.sold
                 ? "bg-fill-secondary text-text-secondary"
                 : "bg-brand-accent text-[var(--fo-accent-fg)]",
-              !property.sold && property.badge === "reduced" && "bg-red text-white",
+              !property.sold &&
+                (property.event === "price_down" || property.badge === "reduced") &&
+                "bg-red text-white",
+              !property.sold &&
+                (property.event === "price_up" || property.badge === "increased") &&
+                "bg-green text-white",
             )}
           >
-            {property.sold
-              ? t("property_detail.sold")
-              : property.badge === "new"
-                ? t("property_detail.new")
-                : t("property_detail.reduced", { amount: property.reduced_by })}
+            {eventLabel}
           </span>
         )}
         {publishedAt && (
-          <span className="ml-auto shrink-0 text-[11px] text-text-tertiary">
+          <span className="ml-auto flex shrink-0 items-center gap-1 text-[11px] text-text-tertiary">
+            <span>{t("property_detail.observed_at")}</span>
             <RelativeTime date={publishedAt} />
           </span>
         )}
@@ -108,6 +127,26 @@ export function PropertyCard({
               <span className="truncate text-[11px] text-text-tertiary">{property.unit}</span>
             )}
           </div>
+
+          {!!property.price_change_num && (
+            <div
+              className={cn(
+                "mt-1.5 flex items-center gap-1 text-[11px] font-semibold",
+                property.price_change_num < 0 ? "text-red" : "text-green",
+              )}
+            >
+              <span>{property.price_change_num < 0 ? "↓" : "↑"}</span>
+              <span>{priceChangeDisplay}万</span>
+              <span className="font-normal opacity-75">
+                ({Math.abs(property.price_change_percent).toFixed(1)}%)
+              </span>
+              {!!property.orig && (
+                <span className="ml-1 font-normal text-text-tertiary line-through">
+                  {property.orig}
+                </span>
+              )}
+            </div>
+          )}
 
           {specs.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[12px] font-medium text-text-secondary">

@@ -54,6 +54,7 @@ export type AttachmentsModel = {
 /** Structured second-hand property listing behind the Property Feed card. */
 export type PropertyListing = {
   community: string
+  listing_id: string
   title: string
   city: string
   hood: string
@@ -69,9 +70,33 @@ export type PropertyListing = {
   orientation: string
   reno: string
   tags: string[]
-  badge: "new" | "reduced" | ""
+  badge: "new" | "reduced" | "increased" | "updated" | ""
   reduced_by: string
   orig: string
+  event: "new" | "price_down" | "price_up" | "details_changed" | ""
+  changes: Array<{
+    field:
+      | "price"
+      | "unit_price"
+      | "title"
+      | "area"
+      | "layout"
+      | "floor"
+      | "orientation"
+      | "renovation"
+      | "tags"
+    old: string
+    new: string
+  }>
+  price_change_num: number
+  price_change_percent: number
+  price_history: Array<{
+    total: string
+    total_num: number
+    changed_at: string
+  }>
+  first_seen_at?: string
+  observed_at?: string
   sold: boolean
   image: string
 }

@@ -33,6 +33,24 @@ async def run_scraper(
 ):
     """Run a scraper, providing feed context (existing guids, force) to adapters
     that diff against already-ingested posts."""
+    if getattr(scraper, "needs_existing_posts", False) is True:
+        try:
+            existing_posts = await client.get_feed_snapshots(feed_id)
+        except Exception as exc:
+            logger.warning("Could not fetch existing snapshots for feedId=%s: %s", feed_id, exc)
+            existing_posts = None
+        existing_guids = (
+            [post["guid"] for post in existing_posts if post.get("guid")]
+            if existing_posts is not None
+            else None
+        )
+        return await scraper.scrape(
+            source,
+            existing_guids=existing_guids,
+            existing_posts=existing_posts,
+            force=force,
+        )
+
     if not scraper.needs_existing_guids:
         return await scraper.scrape(source, force=force)
 

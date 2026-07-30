@@ -50,3 +50,20 @@ async def test_get_scrapling_feeds_sends_auth_header(client):
     )
     await client.get_scrapling_feeds()
     assert route.calls[0].request.headers["x-internal-key"] == "test-key"
+
+
+@respx.mock
+@pytest.mark.asyncio
+async def test_get_feed_snapshots_returns_structured_history(client):
+    snapshots = [
+        {
+            "guid": "AAA111@243",
+            "published_at": "2026-07-01T08:00:00.000Z",
+            "property": {"listing_id": "AAA111", "total": "243万"},
+        }
+    ]
+    respx.get("http://test-api/internal/scrapling/feeds/feed-1/guids").mock(
+        return_value=httpx.Response(200, json={"data": {"snapshots": snapshots}})
+    )
+
+    assert await client.get_feed_snapshots("feed-1") == snapshots

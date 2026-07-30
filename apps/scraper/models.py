@@ -12,6 +12,7 @@ class PropertyInfo(BaseModel):
     """
 
     community: str
+    listing_id: str = ""
     title: str = ""          # listing headline, e.g. "南向精装三房，近地铁"
     city: str = ""
     hood: str = ""
@@ -27,11 +28,40 @@ class PropertyInfo(BaseModel):
     orientation: str = ""
     reno: str = ""
     tags: list[str] = []
-    badge: str = ""          # "new" | "reduced" | ""
+    badge: str = ""          # "new" | "reduced" | "increased" | "updated" | ""
     reduced_by: str = ""
     orig: str = ""
+    event: Literal["new", "price_down", "price_up", "details_changed", ""] = ""
+    changes: list["PropertyChange"] = []
+    price_change_num: float = 0
+    price_change_percent: float = 0
+    price_history: list["PropertyPricePoint"] = []
+    first_seen_at: str = ""   # first time this scraper observed the listing
+    observed_at: str = ""     # time this snapshot/change was observed
     sold: bool = False
     image: str = ""
+
+
+class PropertyChange(BaseModel):
+    field: Literal[
+        "price",
+        "unit_price",
+        "title",
+        "area",
+        "layout",
+        "floor",
+        "orientation",
+        "renovation",
+        "tags",
+    ]
+    old: str
+    new: str
+
+
+class PropertyPricePoint(BaseModel):
+    total: str
+    total_num: float
+    changed_at: str
 
 
 class ScrapedPost(BaseModel):
