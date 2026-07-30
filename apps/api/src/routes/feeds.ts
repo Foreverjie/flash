@@ -13,6 +13,10 @@ import { resolveFeedView, resolveSubscriptionView } from "../lib/feed-view.js"
 import { rssManager } from "../lib/rss/index.js"
 import { isScraplingAdapterType, scrapingClient } from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
+import {
+  assertSubscriptionCapacity,
+  isSubscriptionQuotaError,
+} from "../services/subscription-service.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
 import { sendError, sendNotFound, structuredSuccess } from "../utils/response.js"
@@ -623,6 +627,15 @@ feedsRouter.post("/subscribe", requireAuth, zValidator("json", subscribeSchema),
 
     if (existingSubscription) {
       return c.json(structuredSuccess({ subscription: existingSubscription, existed: true }))
+    }
+
+    try {
+      await assertSubscriptionCapacity(user.id)
+    } catch (error) {
+      if (isSubscriptionQuotaError(error)) {
+        return sendError(c, error.message, 403, 403)
+      }
+      throw error
     }
 
     // Create subscription

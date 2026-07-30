@@ -32,6 +32,7 @@ import { COMMAND_ID } from "../command/commands/id"
 import { useCommandBinding } from "../command/hooks/use-command-binding"
 import { getSelectedFeedIds, resetSelectedFeedIds, setSelectedFeedIds } from "./atom"
 import { useShouldFreeUpSpace } from "./hook"
+import { QuotaFooter } from "./subscription-list/QuotaFooter"
 import { SubscriptionListGuard } from "./subscription-list/SubscriptionListGuard"
 import { SubscriptionColumnHeader } from "./SubscriptionColumnHeader"
 import { SubscriptionTabButton } from "./SubscriptionTabButton"
@@ -47,7 +48,7 @@ export function SubscriptionColumn({
 
   const carouselRef = useRef<HTMLDivElement>(null)
   const timelineList = useTimelineList({
-    withAll: true,
+    withAll: false,
     visible: true,
   })
 
@@ -176,6 +177,8 @@ export function SubscriptionColumn({
         </SwipeWrapper>
       </div>
 
+      <QuotaFooter />
+
       <SubscriptionColumnDock />
 
       {children}
@@ -186,7 +189,7 @@ export function SubscriptionColumn({
 const SwipeWrapper: FC<{ active: string; children: React.JSX.Element[] }> = memo(
   ({ children, active }) => {
     const reduceMotion = useReduceMotion()
-    const timelineList = useTimelineList({ withAll: true, visible: true })
+    const timelineList = useTimelineList({ withAll: false, visible: true })
     const viewIndex = timelineList.indexOf(active)
 
     const feedColumnWidth = useUISettingKey("feedColWidth")
@@ -241,15 +244,20 @@ const SwipeWrapper: FC<{ active: string; children: React.JSX.Element[] }> = memo
 )
 
 const TabsRow: FC = () => {
-  const timelineList = useTimelineList({ withAll: true, visible: true })
+  const timelineList = useTimelineList({ withAll: false, visible: true })
   const { t } = useTranslation()
 
   return (
     <div>
-      <div className="mb-1 px-2 text-[10px] font-semibold uppercase text-text-tertiary">
-        {t("words.feeds")}
+      <div className="mb-[7px] px-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-tertiary">
+        {t("words.views")}
       </div>
-      <div className="space-y-px">
+      {/* Equal-width columns so the row stays balanced however many timelines
+          the user has left visible. */}
+      <div
+        className="grid gap-1"
+        style={{ gridTemplateColumns: `repeat(${timelineList.length}, minmax(0, 1fr))` }}
+      >
         {timelineList.map((timelineId, index) => (
           <SubscriptionTabButton
             key={timelineId}

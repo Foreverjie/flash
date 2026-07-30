@@ -48,9 +48,17 @@ const twConfig = {
 
       colors: {
         border: "hsl(var(--border) / <alpha-value>)",
+        // Subtler hairline for separators inside a pane. `border-border-secondary`
+        // was already used in a dozen places before this token existed, so those
+        // borders were rendering as nothing.
+        "border-secondary": "hsl(var(--border-secondary) / <alpha-value>)",
         background: "hsl(var(--background) / <alpha-value>)",
 
         accent: "hsl(var(--fo-a) / <alpha-value>)",
+        // Readable foreground for content sitting *on* the accent fill.
+        "accent-fg": "var(--fo-accent-fg)",
+        // Accent used as *text* on a normal surface — the raw yellow fails contrast.
+        "accent-ink": "var(--fo-accent-ink)",
         folo: "#FACC15",
 
         theme: {

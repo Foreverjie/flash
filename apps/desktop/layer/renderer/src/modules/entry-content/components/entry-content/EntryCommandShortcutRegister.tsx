@@ -13,7 +13,6 @@ import { useCommandBinding } from "~/modules/command/hooks/use-command-binding"
  */
 export const EntryCommandShortcutRegister = ({
   entryId,
-  view,
 }: {
   entryId: string
   view: FeedViewType
@@ -40,12 +39,6 @@ export const EntryCommandShortcutRegister = ({
     when: baseCondition,
     commandId: COMMAND_ID.entry.read,
     args: [{ entryId }],
-  })
-
-  useCommandBinding({
-    when: baseCondition,
-    commandId: COMMAND_ID.entry.star,
-    args: [{ entryId, view }],
   })
 
   useCommandBinding({

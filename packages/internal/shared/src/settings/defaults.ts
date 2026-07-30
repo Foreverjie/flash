@@ -23,7 +23,6 @@ export const defaultGeneralSettings: GeneralSettings = {
   unreadOnly: false,
   // mark unread
   scrollMarkUnread: true,
-  hoverMarkUnread: true,
   renderMarkUnread: false,
   // timeline
   groupByDate: true,

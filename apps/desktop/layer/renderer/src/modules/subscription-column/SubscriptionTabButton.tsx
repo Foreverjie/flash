@@ -1,7 +1,6 @@
 import { useDroppable } from "@dnd-kit/core"
 import { useGlobalFocusableScopeSelector } from "@follow/components/common/Focusable/hooks.js"
 import { FeedViewType, getView } from "@follow/constants"
-import { useUnreadByView } from "@follow/store/unread/hooks"
 import { cn } from "@follow/utils/utils"
 import type { FC, ReactNode } from "react"
 import { startTransition, useCallback, useRef } from "react"
@@ -9,7 +8,7 @@ import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
 
 import { MenuItemText, useShowContextMenu } from "~/atoms/context-menu"
-import { setUISetting, useUISettingKey } from "~/atoms/settings/ui"
+import { setUISetting } from "~/atoms/settings/ui"
 import { FocusablePresets } from "~/components/common/Focusable"
 import { useNavigateEntry } from "~/hooks/biz/useNavigateEntry"
 import { parseView, useRouteParamsSelector } from "~/hooks/biz/useRouteParams"
@@ -18,6 +17,13 @@ import { useContextMenu } from "~/hooks/common/useContextMenu"
 
 import { resetSelectedFeedIds } from "./atom"
 import { useShowTimelineTabsSettingsModal } from "./TimelineTabsSettingsModal"
+
+/**
+ * The Views grid gives each tab ~48px, where "Social Media" and "Notifications"
+ * truncate. Map to the short variants; the full name stays in the tooltip.
+ */
+const shortViewLabelKey = (name: string) =>
+  name.replace("feed_view_type.", "feed_view_type_short.") as "feed_view_type_short.all"
 
 export function SubscriptionTabButton({
   timelineId,
@@ -83,8 +89,8 @@ const useSubscriptionTabContextMenu = ({
   const { t } = useTranslation()
   const showContextMenu = useShowContextMenu()
   const showTimelineTabsSettingsModal = useShowTimelineTabsSettingsModal()
-  const visibleTimelineList = useTimelineList({ withAll: true, visible: true })
-  const hiddenTimelineList = useTimelineList({ withAll: true, hidden: true })
+  const visibleTimelineList = useTimelineList({ withAll: false, visible: true })
+  const hiddenTimelineList = useTimelineList({ withAll: false, hidden: true })
 
   const canHide = visibleTimelineList.filter((id) => id !== timelineId).length > 0
 
@@ -140,9 +146,7 @@ const ViewAllSwitchButton: FC<{
   shortcut: string
   navigateToTimeline: (timelineId: string) => void
 }> = ({ timelineId, isActive, setActive, shortcut, navigateToTimeline }) => {
-  const unreadByView = useUnreadByView(FeedViewType.All)
   const { t } = useTranslation()
-  const showSidebarUnreadCount = useUISettingKey("sidebarShowUnreadCount")
   const item = getView(FeedViewType.All)
   const contextMenuProps = useSubscriptionTabContextMenu({
     timelineId,
@@ -152,10 +156,9 @@ const ViewAllSwitchButton: FC<{
 
   return (
     <TimelineNavButton
-      label={t(item.name, { ns: "common" })}
+      label={t(shortViewLabelKey(item.name), { ns: "common" })}
+      fullLabel={t(item.name, { ns: "common" })}
       icon={item.icon}
-      unread={unreadByView}
-      showUnreadCount={showSidebarUnreadCount}
       isActive={isActive}
       shortcut={shortcut}
       {...contextMenuProps}
@@ -177,9 +180,7 @@ const ViewSwitchButton: FC<{
   shortcut: string
   navigateToTimeline: (timelineId: string) => void
 }> = ({ view, timelineId, isActive, setActive, shortcut, navigateToTimeline }) => {
-  const unreadByView = useUnreadByView(view)
   const { t } = useTranslation()
-  const showSidebarUnreadCount = useUISettingKey("sidebarShowUnreadCount")
   const item = getView(view)
 
   const { isOver, setNodeRef } = useDroppable({
@@ -197,10 +198,9 @@ const ViewSwitchButton: FC<{
   return (
     <TimelineNavButton
       nodeRef={setNodeRef}
-      label={t(item.name, { ns: "common" })}
+      label={t(shortViewLabelKey(item.name), { ns: "common" })}
+      fullLabel={t(item.name, { ns: "common" })}
       icon={item.icon}
-      unread={unreadByView}
-      showUnreadCount={showSidebarUnreadCount}
       isActive={isActive}
       shortcut={shortcut}
       className={isOver ? "bg-accent/15 ring-1 ring-inset ring-accent/40" : undefined}
@@ -217,9 +217,9 @@ const ViewSwitchButton: FC<{
 
 const TimelineNavButton: FC<{
   label: string
+  /** Full, untruncated view name for the tooltip. */
+  fullLabel: string
   icon: ReactNode
-  unread: number
-  showUnreadCount: boolean
   isActive: boolean
   shortcut: string
   className?: string
@@ -231,9 +231,8 @@ const TimelineNavButton: FC<{
   onTouchEnd?: (event: React.TouchEvent<HTMLButtonElement>) => void
 }> = ({
   label,
+  fullLabel,
   icon,
-  unread,
-  showUnreadCount,
   isActive,
   shortcut,
   className,
@@ -260,12 +259,12 @@ const TimelineNavButton: FC<{
         nodeRef?.(node)
       }}
       type="button"
-      title={`${label} (${shortcut})`}
+      title={`${fullLabel} (${shortcut})`}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "group flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm font-medium text-text-secondary",
-        "transition-colors duration-150 hover:bg-fill hover:text-text",
-        isActive && "bg-accent/15 text-text",
+        "group relative flex min-w-0 flex-col items-center gap-1 rounded-lg px-0.5 pb-1.5 pt-2",
+        "text-[1.05rem] transition-colors duration-150",
+        isActive ? "bg-accent text-accent-fg" : "text-text-secondary hover:bg-fill hover:text-text",
         className,
       )}
       onClick={onClick}
@@ -274,27 +273,10 @@ const TimelineNavButton: FC<{
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <span
-        className={cn(
-          "flex size-5 shrink-0 items-center justify-center text-base text-text-tertiary",
-          isActive && "text-accent",
-        )}
-      >
-        {icon}
+      <span className="flex size-[17px] items-center justify-center">{icon}</span>
+      <span className="w-full truncate text-center text-[9.5px] font-semibold leading-none tracking-tight">
+        {label}
       </span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      {showUnreadCount ? (
-        <span className="shrink-0 text-[11px] tabular-nums text-text-tertiary">
-          {unread > 99 ? "99+" : unread}
-        </span>
-      ) : (
-        <i
-          className={cn(
-            "i-mgc-round-cute-fi shrink-0 text-[0.3rem] text-accent",
-            unread ? "opacity-80" : "opacity-0",
-          )}
-        />
-      )}
     </button>
   )
 }

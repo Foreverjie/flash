@@ -4,6 +4,7 @@ import { useInboxById } from "@follow/store/inbox/hooks"
 import { useEntryTranslation } from "@follow/store/translation/hooks"
 import { cn, formatEstimatedMins, formatTimeToSeconds } from "@follow/utils"
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { titleCase } from "title-case"
 import { useShallow } from "zustand/shallow"
 
@@ -96,6 +97,8 @@ export const EntryTitle = ({
     [entry?.authorUrl],
   )
 
+  const { t } = useTranslation()
+
   if (!entry) return null
 
   return compact ? (
@@ -113,11 +116,21 @@ export const EntryTitle = ({
   ) : (
     <div className={cn("group relative block min-w-0", containerClassName)}>
       <div className="flex flex-col gap-3">
+        {/* Eyebrow: kind + read time, above the headline. */}
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent-ink">
+          <span>{t("words.article")}</span>
+          {!!entry.estimatedMins && (
+            <>
+              <span className="opacity-40">·</span>
+              <span className="tabular-nums tracking-normal">{entry.estimatedMins}</span>
+            </>
+          )}
+        </div>
         <a
           href={populatedFullHref ?? "#"}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block cursor-link select-text break-words text-[1.7rem] font-bold leading-normal duration-200 hover:multi-[scale-[1.01];opacity-95]"
+          className="inline-block cursor-link select-text break-words text-[2.05rem] font-semibold leading-[1.12] -tracking-wide duration-200 hover:multi-[scale-[1.01];opacity-95]"
         >
           <EntryTranslation
             source={titleCase(entry.title ?? "")}

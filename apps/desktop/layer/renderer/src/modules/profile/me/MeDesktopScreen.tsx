@@ -153,7 +153,7 @@ export function MeDesktopScreen() {
           </p>
 
           {/* Big stats */}
-          <div className="border-border-secondary bg-secondary-system-background mt-7 grid grid-cols-4 overflow-hidden rounded-2xl border">
+          <div className="mt-7 grid grid-cols-4 overflow-hidden rounded-2xl border border-border-secondary bg-fill-secondary">
             {stats.map((stat, i) => (
               <StatCell key={stat.id} stat={stat} first={i === 0} />
             ))}
@@ -162,9 +162,9 @@ export function MeDesktopScreen() {
           {/* Year in reading */}
           <section className="mt-11">
             <BoldSection kicker={t("me.year.kicker")} title={t("me.year.title")} />
-            <div className="border-border-secondary grid grid-cols-[1fr_280px] gap-7 rounded-2xl border bg-background p-[22px]">
+            <div className="grid grid-cols-[1fr_280px] gap-7 rounded-2xl border border-border-secondary bg-background p-[22px]">
               <ReadingHeatmap />
-              <div className="border-border-secondary flex flex-col gap-3.5 border-l pl-6">
+              <div className="flex flex-col gap-3.5 border-l border-border-secondary pl-6">
                 {highlights.map((h) => (
                   <div key={h.id}>
                     <div className="text-[19px] font-bold tracking-[-0.01em] text-text">
@@ -199,7 +199,7 @@ export function MeDesktopScreen() {
                 title={t("me.subscriptions.title")}
                 action={t("me.subscriptions.see_all", { count: feedCount })}
               />
-              <div className="border-border-secondary overflow-hidden rounded-[14px] border bg-background">
+              <div className="overflow-hidden rounded-[14px] border border-border-secondary bg-background">
                 {subscriptionIds.length === 0 ? (
                   <div className="px-4 py-6 text-center text-sm text-text-tertiary">
                     {t("me.subscriptions.empty")}
@@ -213,7 +213,7 @@ export function MeDesktopScreen() {
             </div>
             <div>
               <BoldSection kicker={t("me.settings.kicker")} title={t("me.settings.title")} />
-              <div className="border-border-secondary overflow-hidden rounded-[14px] border bg-background">
+              <div className="overflow-hidden rounded-[14px] border border-border-secondary bg-background">
                 {settings.map((item, i) => (
                   <SettingsRow
                     key={item.id}
@@ -241,7 +241,7 @@ export function MeDesktopScreen() {
 
 function StatCell({ stat, first }: { stat: MeStat; first: boolean }) {
   return (
-    <div className={cn("px-[22px] py-5", !first && "border-border-secondary border-l")}>
+    <div className={cn("px-[22px] py-5", !first && "border-l border-border-secondary")}>
       <div
         className={cn(
           "flex items-center gap-2 text-[38px] font-bold tabular-nums leading-none tracking-[-0.03em]",
@@ -333,7 +333,7 @@ function AchievementCard({ ach }: { ach: MeAchievement }) {
   return (
     <div
       className={cn(
-        "border-border-secondary bg-secondary-system-background relative flex items-center gap-3.5 overflow-hidden rounded-[14px] border px-4 py-3.5",
+        "relative flex items-center gap-3.5 overflow-hidden rounded-[14px] border border-border-secondary bg-fill-secondary px-4 py-3.5",
         locked && "opacity-95",
       )}
     >
@@ -372,7 +372,7 @@ function SubscriptionRow({ feedId, first }: { feedId: string; first: boolean }) 
     <div
       className={cn(
         "flex items-center gap-3 px-4 py-3",
-        !first && "border-border-secondary border-t",
+        !first && "border-t border-border-secondary",
       )}
     >
       <FeedIcon target={feed} size={34} className="shrink-0 rounded-lg" noMargin />
@@ -408,7 +408,7 @@ function SettingsRow({
       onClick={onClick}
       className={cn(
         "flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-fill-secondary",
-        !first && "border-border-secondary border-t",
+        !first && "border-t border-border-secondary",
       )}
     >
       <i className={cn(item.icon, "text-lg text-text-tertiary")} />

@@ -331,9 +331,14 @@ export const useFeedsGroupedData = (view: FeedViewType, autoGroup: boolean) => {
     const groupFolder = {} as Record<string, string[]>
 
     for (const subscription of data.filter((s) => !!s)) {
+      // getDefaultCategory derives a group from the feed's siteUrl, which
+      // scraper-backed feeds (leyoujia://, bilibili://, x_timeline://) do not
+      // have. Without the feedId fallback those subscriptions produced a null
+      // category and were dropped from the sidebar entirely.
       const category =
         subscription.category ||
-        (autoGroup ? getDefaultCategory(subscription) : subscription.feedId)
+        (autoGroup ? getDefaultCategory(subscription) : null) ||
+        subscription.feedId
 
       if (category) {
         if (!groupFolder[category]) {

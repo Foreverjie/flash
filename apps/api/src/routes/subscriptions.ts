@@ -13,7 +13,10 @@ import { isFeedView, resolveSubscriptionView } from "../lib/feed-view.js"
 import { SCRAPLING_ADAPTER_TYPES } from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
 import {
+  assertSubscriptionCapacity,
   deleteUserFeedSubscriptions,
+  getSubscriptionUsage,
+  isSubscriptionQuotaError,
   normalizeCategory,
   updateUserFeedSubscriptions,
 } from "../services/subscription-service.js"
@@ -104,6 +107,18 @@ const toUpdateData = ({
   ...(title !== undefined && { title }),
 })
 
+/**
+ * GET /subscriptions/usage
+ * Feeds subscribed vs. the account's cap — drives the sidebar quota meter.
+ * Declared before GET "/" so it is not shadowed by the list route.
+ */
+subscriptionsRouter.get("/usage", requireAuth, async (c) => {
+  const user = c.get("user")
+  if (!user) return c.json({ code: 401, message: "Unauthorized" }, 401)
+
+  return c.json({ code: 0, data: await getSubscriptionUsage(user.id) })
+})
+
 subscriptionsRouter.get("/", requireAuth, async (c) => {
   const user = c.get("user")
   if (!user) return c.json({ code: 0, data: [] })
@@ -142,6 +157,10 @@ subscriptionsRouter.get("/", requireAuth, async (c) => {
       errorAt: sub.feed.errorAt?.toISOString() ?? null,
       errorMessage: sub.feed.errorMessage ?? null,
       ownerUserId: sub.feed.ownerUserId ?? null,
+      // The client already stores and morphs these; they were simply never sent,
+      // so the reader count in the timeline header had nothing to render.
+      subscriptionCount: sub.feed.subscriptionCount ?? null,
+      updatesPerWeek: sub.feed.updatesPerWeek ?? null,
     },
   }))
 
@@ -207,6 +226,20 @@ subscriptionsRouter.post(
       where: and(eq(subscriptions.userId, user.id), eq(subscriptions.feedId, feed.id)),
     })
     if (existing) return c.json({ code: 0, feed, list: null, unread: {} })
+
+    // Only a genuinely new row counts against the quota — re-subscribing to an
+    // existing feed returns above without reaching here.
+    try {
+      await assertSubscriptionCapacity(user.id)
+    } catch (error) {
+      if (isSubscriptionQuotaError(error)) {
+        return c.json(
+          { code: 403, message: error.message, data: { used: error.used, limit: error.limit } },
+          403,
+        )
+      }
+      throw error
+    }
 
     await db.insert(subscriptions).values({
       id: generateSnowflakeId(),

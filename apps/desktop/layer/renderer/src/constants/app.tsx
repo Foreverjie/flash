@@ -2,6 +2,15 @@ import { getStorageNS } from "@follow/utils/ns"
 
 /// Feed
 export const FEED_COLLECTION_LIST = "collections"
+/**
+ * Smart view pinned above the folder tree: everything published since local
+ * midnight. Filtered client-side off the already-fetched view entries, so it
+ * needs no extra request.
+ */
+export const FEED_TODAY_LIST = "today"
+
+/** Local midnight, as an epoch ms — the cut-off for the Today smart view. */
+export const startOfToday = () => new Date().setHours(0, 0, 0, 0)
 
 /**
  * Feed URL schemes served by the Python scraping service rather than RSS.

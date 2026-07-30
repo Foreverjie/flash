@@ -8,7 +8,6 @@ export interface GeneralSettings {
   sendAnonymousData: boolean
   unreadOnly: boolean
   scrollMarkUnread: boolean
-  hoverMarkUnread: boolean
   renderMarkUnread: boolean
   groupByDate: boolean
   jumpOutLinkWarn: boolean

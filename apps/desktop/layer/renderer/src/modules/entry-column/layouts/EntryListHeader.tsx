@@ -8,16 +8,17 @@ import { getFeedById } from "@follow/store/feed/getter"
 import { useFeedById } from "@follow/store/feed/hooks"
 import { useWhoami } from "@follow/store/user/hooks"
 import { stopPropagation } from "@follow/utils/dom"
-import { clsx, cn, isBizId } from "@follow/utils/utils"
+import { cn, isBizId } from "@follow/utils/utils"
 import { useAtomValue } from "jotai"
 import type { FC } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 
 import { previewBackPath } from "~/atoms/preview"
 import { useGeneralSettingKey } from "~/atoms/settings/general"
 import { useSubscriptionColumnShow } from "~/atoms/sidebar"
-import { FEED_COLLECTION_LIST, isScraperBackedFeedUrl, ROUTE_ENTRY_PENDING } from "~/constants"
+import { FEED_TODAY_LIST, isScraperBackedFeedUrl, ROUTE_ENTRY_PENDING } from "~/constants"
 import { useFollow } from "~/hooks/biz/useFollow"
 import { useNavigateEntry } from "~/hooks/biz/useNavigateEntry"
 import { getRouteParams, useRouteParams } from "~/hooks/biz/useRouteParams"
@@ -35,6 +36,15 @@ import { useEntryRootState } from "../store/EntryColumnContext"
 import { AppendTaildingDivider } from "./AppendTaildingDivider"
 import { SwitchToMasonryButton } from "./buttons/SwitchToMasonryButton"
 
+/** Bare hostname for the timeline sub-line; returns null for non-URL feed ids. */
+const safeHostname = (value: string) => {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "")
+  } catch {
+    return null
+  }
+}
+
 export const EntryListHeader: FC<{
   refetch: () => void
   isRefreshing: boolean
@@ -46,30 +56,45 @@ export const EntryListHeader: FC<{
   const unreadOnly = useGeneralSettingKey("unreadOnly")
 
   const { feedId, entryId, view, isCollection } = routerParams
+  const isToday = feedId === FEED_TODAY_LIST
   const isPreview = useIsPreviewFeed()
 
   const headerTitle = useFeedHeaderTitle()
   const feedIcon = useFeedHeaderIcon()
 
-  const titleInfo = !!headerTitle && (
-    <div
-      className={clsx(
-        "flex min-w-0 items-center break-all text-lg font-bold leading-tight",
-        feedIcon && "-ml-3",
-      )}
-    >
-      {feedIcon && <FeedIcon target={feedIcon} fallback size={20} className="mr-4" />}
-      <EllipsisHorizontalTextWithTooltip className="inline-block !w-auto max-w-full">
-        {headerTitle}
-      </EllipsisHorizontalTextWithTooltip>
-    </div>
-  )
-  const { mutateAsync: refreshFeed, isPending } = useRefreshFeedMutation(feedId)
-
   const user = useWhoami()
   const isOnline = useIsOnline()
 
   const feed = useFeedById(feedId)
+
+  // `{host} · {N} readers` under the title. subscriptionCount only arrives for
+  // real feeds (lists/inboxes have no host), so both halves are optional.
+  const headerSubtitle = useMemo(() => {
+    if (feed?.type !== "feed") return null
+    const host = feed.siteUrl || feed.url ? safeHostname(feed.siteUrl || feed.url) : null
+    const readers =
+      typeof feed.subscriptionCount === "number" && feed.subscriptionCount > 0
+        ? t("feed.readers", { count: feed.subscriptionCount })
+        : null
+    return [host, readers].filter(Boolean).join(" · ") || null
+  }, [feed, t])
+
+  const titleInfo = !!headerTitle && (
+    <div className="flex min-w-0 items-center gap-2.5">
+      {feedIcon && <FeedIcon target={feedIcon} fallback size={28} noMargin />}
+      <div className="min-w-0 flex-1">
+        <EllipsisHorizontalTextWithTooltip className="inline-block !w-auto max-w-full text-sm font-semibold leading-tight text-text">
+          {headerTitle}
+        </EllipsisHorizontalTextWithTooltip>
+        {!!headerSubtitle && (
+          <div className="truncate font-mono text-[11px] leading-tight text-text-tertiary">
+            {headerSubtitle}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+  const { mutateAsync: refreshFeed, isPending } = useRefreshFeedMutation(feedId)
 
   // Scraper-backed feeds have no fetchable URL — refreshing one asks the scraper
   // to re-scrape, which any subscriber may do. Owned feeds keep the old rule.
@@ -168,6 +193,16 @@ export const EntryListHeader: FC<{
           </div>
         )}
       </div>
+      {/* Indeterminate progress while a refresh is in flight. */}
+      <div
+        aria-hidden
+        className={cn(
+          "relative -mt-px h-0.5 overflow-hidden rounded-full transition-opacity duration-200",
+          isPending || isRefreshing ? "opacity-100" : "opacity-0",
+        )}
+      >
+        <span className="absolute inset-y-0 left-0 w-2/5 animate-[entry-refresh-slide_1s_cubic-bezier(0.4,0,0.2,1)_infinite] rounded-full bg-gradient-to-r from-transparent via-accent to-transparent" />
+      </div>
       {!isPreview && (
         <div className="flex h-8 items-end gap-4" onClick={stopPropagation}>
           <TimelineFilterButton
@@ -182,15 +217,14 @@ export const EntryListHeader: FC<{
             title={t("entry_list_header.show_all")}
             onClick={() => selectTimelineFilter(false)}
           />
+          {/* Today is a date filter, so it belongs with the other filters here
+              rather than pinned above the subscription tree. */}
           <TimelineFilterButton
-            active={isCollection}
-            label={t("words.starred")}
+            active={isToday}
+            label={t("words.today")}
+            title={t("entry_list_header.show_today")}
             onClick={() =>
-              navigateEntry({
-                entryId: null,
-                feedId: FEED_COLLECTION_LIST,
-                view,
-              })
+              navigateEntry({ entryId: null, feedId: isToday ? null : FEED_TODAY_LIST, view })
             }
           />
         </div>

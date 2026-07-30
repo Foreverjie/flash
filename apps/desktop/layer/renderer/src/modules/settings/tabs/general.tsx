@@ -151,10 +151,6 @@ export const SettingGeneral = () => {
             description: t("general.mark_as_read.scroll.description"),
           }),
 
-          defineSettingItem("hoverMarkUnread", {
-            label: t("general.mark_as_read.hover.label"),
-            description: t("general.mark_as_read.hover.description"),
-          }),
           defineSettingItem("renderMarkUnread", {
             label: t("general.mark_as_read.render.label"),
             description: t("general.mark_as_read.render.description"),

@@ -22,7 +22,6 @@ import { FeedIcon } from "~/modules/feed/feed-icon"
 import { FeedTitle } from "~/modules/feed/feed-title"
 
 import { socialMediaContentWidthAtom } from "../atoms/social-media-content-width"
-import { StarIcon } from "../star-icon"
 import { readableContentMaxWidth } from "../styles"
 import type { EntryItemStatelessProps, EntryListItemFC } from "../types"
 import { MediaGallery } from "./media-gallery"
@@ -142,7 +141,6 @@ export const SocialMediaItem: EntryListItemFC = ({ entryId, translation }) => {
                 {translation?.content || content}
               </HTML>
             </EntryContentWrapper>
-            {isInCollection && <StarIcon className="absolute right-0 top-0" />}
           </div>
         </div>
         <MediaGallery entryId={entryId} />

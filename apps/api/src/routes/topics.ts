@@ -11,6 +11,7 @@ import type { User } from "../auth/index.js"
 import { db, feeds, feedTopics, subscriptions, topics, users } from "../db/index.js"
 import { resolveFeedView } from "../lib/feed-view.js"
 import { requireAuth } from "../middleware/auth.js"
+import { getRemainingSubscriptionCapacity } from "../services/subscription-service.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
 
@@ -128,8 +129,12 @@ topicsRouter.post(
       .where(and(eq(subscriptions.userId, user.id), inArray(subscriptions.feedId, validIds)))
     const alreadySet = new Set(alreadySubbed.map((s) => s.feedId))
 
+    // Clamp to the remaining quota rather than rejecting the whole batch — a
+    // topic can hold more feeds than the user has room for.
+    const remaining = await getRemainingSubscriptionCapacity(user.id)
     const toInsert = validIds
       .filter((id) => !alreadySet.has(id))
+      .slice(0, remaining)
       .map((feedId) => ({
         id: generateSnowflakeId(),
         userId: user.id,

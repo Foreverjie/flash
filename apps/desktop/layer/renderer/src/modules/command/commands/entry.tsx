@@ -1,8 +1,6 @@
 import { getMousePosition } from "@follow/components/hooks/useMouse.js"
 import { FeedViewType, UserRole } from "@follow/constants"
 import { IN_ELECTRON } from "@follow/shared/constants"
-import { isEntryStarred } from "@follow/store/collection/getter"
-import { collectionSyncService } from "@follow/store/collection/store"
 import { getEntry } from "@follow/store/entry/getter"
 import { entrySyncServices } from "@follow/store/entry/store"
 import { unreadSyncService } from "@follow/store/unread/store"
@@ -39,41 +37,6 @@ import { COMMAND_ID } from "./id"
 
 const category: CommandCategory = "category.entry"
 
-const useCollect = () => {
-  const { t } = useTranslation()
-  return useMutation({
-    mutationFn: async ({ entryId, view }: { entryId: string; view: FeedViewType }) => {
-      const { isCollection } = getRouteParams()
-      return collectionSyncService.starEntry({
-        entryId,
-        view,
-        invalidate: !isCollection,
-      })
-    },
-    onSuccess: () => {
-      toast.success(t("entry_actions.starred"), {
-        duration: 1000,
-      })
-    },
-  })
-}
-
-const useUnCollect = () => {
-  const { t } = useTranslation()
-  return useMutation({
-    mutationFn: async (entryId: string) => {
-      const { isCollection } = getRouteParams()
-      return collectionSyncService.unstarEntry({ entryId, invalidate: !isCollection })
-    },
-
-    onSuccess: () => {
-      toast.success(t("entry_actions.unstarred"), {
-        duration: 1000,
-      })
-    },
-  })
-}
-
 const useDeleteInboxEntry = () => {
   const { t } = useTranslation()
   return useMutation({
@@ -103,8 +66,6 @@ export const useUnread = () =>
 
 export const useRegisterEntryCommands = () => {
   const { t } = useTranslation()
-  const collect = useCollect()
-  const uncollect = useUnCollect()
   const deleteInboxEntry = useDeleteInboxEntry()
   const showSourceContentModal = useSourceContentModal()
   const openGalleryModal = useGalleryModal()
@@ -118,32 +79,6 @@ export const useRegisterEntryCommands = () => {
 
   useRegisterFollowCommand(
     [
-      {
-        id: COMMAND_ID.entry.star,
-        label: t("entry_actions.star"),
-        category,
-        icon: (props) => (
-          <i
-            className={cn(
-              props?.isActive ? "i-mgc-star-cute-fi text-orange-500" : "i-mgc-star-cute-re",
-            )}
-          />
-        ),
-        run: ({ entryId, view }) => {
-          const entry = getEntry(entryId)
-          const isStarred = isEntryStarred(entryId)
-          if (!entry) {
-            toast.error("Failed to star: entry is not available", { duration: 3000 })
-            return
-          }
-
-          if (isStarred) {
-            uncollect.mutate(entry.id)
-          } else {
-            collect.mutate({ entryId, view })
-          }
-        },
-      },
       {
         id: COMMAND_ID.entry.delete,
         label: t("entry_actions.delete"),

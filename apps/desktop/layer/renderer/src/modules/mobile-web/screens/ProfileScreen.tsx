@@ -161,7 +161,7 @@ export function ProfileScreen() {
       {/* Subscriptions */}
       <div className="px-[18px] pt-[22px]">
         <MobHead title={t("me.subscriptions.title")} />
-        <div className="border-border-secondary mt-2.5 overflow-hidden rounded-[14px] border bg-background">
+        <div className="mt-2.5 overflow-hidden rounded-[14px] border border-border-secondary bg-background">
           {subscriptionIds.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-text-tertiary">
               {t("me.subscriptions.empty")}
@@ -177,7 +177,7 @@ export function ProfileScreen() {
       {/* Settings */}
       <div className="px-[18px] pt-[22px]">
         <MobHead title={t("me.settings.title")} />
-        <div className="border-border-secondary mt-2.5 overflow-hidden rounded-[14px] border bg-background">
+        <div className="mt-2.5 overflow-hidden rounded-[14px] border border-border-secondary bg-background">
           {settings.slice(0, 5).map((item, i) => (
             <SettingsRow
               key={item.id}
@@ -202,7 +202,7 @@ export function ProfileScreen() {
 
 function StatCard({ stat }: { stat: MeStat }) {
   return (
-    <div className="border-border-secondary bg-secondary-system-background rounded-xl border px-1.5 py-3 text-center">
+    <div className="rounded-xl border border-border-secondary bg-fill-secondary px-1.5 py-3 text-center">
       <div
         className={cn(
           "text-[22px] font-bold tabular-nums",
@@ -237,7 +237,7 @@ function AchievementChip({ ach }: { ach: MeAchievement }) {
   return (
     <div
       className={cn(
-        "border-border-secondary bg-secondary-system-background w-[100px] shrink-0 rounded-[14px] border px-3 py-3.5 text-center",
+        "w-[100px] shrink-0 rounded-[14px] border border-border-secondary bg-fill-secondary px-3 py-3.5 text-center",
         locked && "opacity-60",
       )}
     >
@@ -263,7 +263,7 @@ function SubscriptionRow({ feedId, first }: { feedId: string; first: boolean }) 
     <div
       className={cn(
         "flex items-center gap-3 px-4 py-3",
-        !first && "border-border-secondary border-t",
+        !first && "border-t border-border-secondary",
       )}
     >
       <FeedIcon target={feed} size={34} className="shrink-0 rounded-lg" noMargin />
@@ -293,7 +293,7 @@ function SettingsRow({
       onClick={onClick}
       className={cn(
         "flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors active:bg-fill-secondary",
-        !first && "border-border-secondary border-t",
+        !first && "border-t border-border-secondary",
       )}
     >
       <i className={cn(item.icon, "text-lg text-text-tertiary")} />

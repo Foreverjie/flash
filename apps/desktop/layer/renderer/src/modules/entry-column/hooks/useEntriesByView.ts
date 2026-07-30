@@ -20,7 +20,7 @@ import { debounce } from "es-toolkit/compat"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { useGeneralSettingKey } from "~/atoms/settings/general"
-import { ROUTE_FEED_PENDING } from "~/constants/app"
+import { FEED_TODAY_LIST, ROUTE_FEED_PENDING, startOfToday } from "~/constants/app"
 import { useRouteParams } from "~/hooks/biz/useRouteParams"
 import { useAuthQuery } from "~/hooks/common"
 import { entries } from "~/queries/entries"
@@ -155,8 +155,12 @@ const useLocalEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
   const entryIdsByListId = useEntryIdsByListId(listId)
   const entryIdsByInboxId = useEntryIdsByInboxId(inboxId)
 
+  // Today reuses the view-wide entry ids and narrows them by date below.
+  const isToday = feedId === FEED_TODAY_LIST
+  const todayCutoff = isToday ? startOfToday() : 0
+
   const showEntriesByView =
-    (!feedId || feedId === ROUTE_FEED_PENDING) &&
+    (!feedId || feedId === ROUTE_FEED_PENDING || isToday) &&
     folderIds.length === 0 &&
     !isCollection &&
     !inboxId &&
@@ -183,6 +187,10 @@ const useLocalEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
             if (unreadOnly && entry.read) {
               return null
             }
+            if (isToday) {
+              const publishedAt = entry.publishedAt ? new Date(entry.publishedAt).getTime() : 0
+              if (publishedAt < todayCutoff) return null
+            }
             return entry.id
           })
           .filter((id) => typeof id === "string")
@@ -195,7 +203,9 @@ const useLocalEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
         entryIdsByListId,
         entryIdsByView,
         isCollection,
+        isToday,
         showEntriesByView,
+        todayCutoff,
         unreadOnly,
       ],
     ),

@@ -23,7 +23,6 @@ import { FeedIcon } from "~/modules/feed/feed-icon"
 import { FeedTitle } from "~/modules/feed/feed-title"
 import { getPreferredTitle } from "~/store/feed/hooks"
 
-import { StarIcon } from "../star-icon"
 import type { UniversalItemProps } from "../types"
 
 const entrySelector = (state: EntryModel) => {
@@ -224,7 +223,6 @@ export function ListItem({
               target={translation?.description}
             />
           )}
-          {!!isInCollection && <StarIcon className="absolute right-0 top-0" />}
         </div>
         {!simple && (
           <div

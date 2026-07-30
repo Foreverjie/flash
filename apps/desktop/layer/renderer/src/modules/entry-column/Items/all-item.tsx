@@ -30,7 +30,6 @@ import { FeedIcon } from "~/modules/feed/feed-icon"
 import { FeedTitle } from "~/modules/feed/feed-title"
 import { getPreferredTitle } from "~/store/feed/hooks"
 
-import { StarIcon } from "../star-icon"
 import { readableContentMaxWidth } from "../styles"
 import type { EntryItemStatelessProps, UniversalItemProps } from "../types"
 
@@ -181,7 +180,6 @@ export function AllItem({ entryId, translation, currentFeedTitle }: UniversalIte
               />
             )}
           </EllipsisHorizontalTextWithTooltip>
-          {!!isInCollection && <StarIcon className="absolute right-0 top-0" />}
         </div>
         <div
           className={cn(

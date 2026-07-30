@@ -77,7 +77,9 @@ function ViewFilterBar({ hidden }: { hidden: boolean }) {
   const viewsWithSub = useViewWithSubscription()
   const [activeView, setActiveView] = useAtom(mobileActiveViewAtom)
 
-  if (viewsWithSub.length <= 1) return null
+  // Always render: with no app header above, this bar carries the status-bar
+  // inset, so hiding it would push content under the notch.
+  if (viewsWithSub.length === 0) return null
 
   return (
     <div
@@ -86,7 +88,7 @@ function ViewFilterBar({ hidden }: { hidden: boolean }) {
         hidden && "-translate-y-full",
       )}
     >
-      <div className="flex w-full items-stretch gap-1.5 px-3.5 py-2">
+      <div className="flex w-full items-stretch gap-1.5 px-3.5 pb-2 pt-[calc(var(--sat,0px)+0.5rem)]">
         {viewsWithSub.map((viewType) => {
           const viewDef = ALL_VIEW_DEFS.find((v) => v.view === viewType)
           if (!viewDef) return null
@@ -125,15 +127,13 @@ const ViewChip = memo(function ViewChip({
       onClick={onClick}
       className={cn(
         "relative flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors duration-150",
-        isActive
-          ? "bg-brand-accent text-black"
-          : "bg-fill-tertiary text-text-secondary hover:text-text",
+        isActive ? "bg-accent text-accent-fg" : "bg-fill text-text-secondary hover:text-text",
       )}
     >
       <span className="shrink-0 text-base leading-none">{viewDef.icon}</span>
       <span className="truncate capitalize">{label}</span>
       {!isActive && unread > 0 && (
-        <span className="absolute right-1.5 top-1 size-1.5 rounded-full bg-brand-accent" />
+        <span className="absolute right-1.5 top-1 size-1.5 rounded-full bg-accent" />
       )}
     </button>
   )

@@ -10,9 +10,7 @@ import { AnimatePresence } from "motion/react"
 import type { FC, MouseEvent, PropsWithChildren, TouchEvent } from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { NavLink } from "react-router"
-import { useDebounceCallback } from "usehooks-ts"
 
-import { useGeneralSettingKey } from "~/atoms/settings/general"
 import { FocusablePresets } from "~/components/common/Focusable"
 import { CommandActionButton } from "~/components/ui/button/CommandActionButton"
 import { useEntryIsRead } from "~/hooks/biz/useAsRead"
@@ -51,33 +49,18 @@ export const EntryItemWrapper: FC<
   const showEntryDetailsColumn = useShowEntryDetailsColumn()
 
   const asRead = useEntryIsRead(entryId)
-  const hoverMarkUnread = useGeneralSettingKey("hoverMarkUnread")
 
   const [showAction, setShowAction] = useState(false)
-  const handleMouseEnterMarkRead = useDebounceCallback(
-    () => {
-      if (!hoverMarkUnread) return
-      if (!document.hasFocus()) return
-      if (asRead) return
-      if (!entry?.feedId) return
 
-      unreadSyncService.markEntryAsRead(entry.id)
-    },
-    233,
-    {
-      leading: false,
-    },
-  )
-
+  // Hover only reveals the action bar. Marking read happens on click
+  // (see handleClick) — hovering a list on the way past should not consume it.
   const handleMouseEnter = useMemo(() => {
     return () => {
       setShowAction(true)
-      handleMouseEnterMarkRead()
     }
-  }, [handleMouseEnterMarkRead])
+  }, [])
   const handleMouseLeave = useMemo(() => {
     return (e: React.MouseEvent) => {
-      handleMouseEnterMarkRead.cancel()
       // If the mouse is over the action bar, don't hide the action bar
       const { relatedTarget, currentTarget } = e
       if (relatedTarget && relatedTarget instanceof Node && currentTarget.contains(relatedTarget)) {
@@ -85,7 +68,7 @@ export const EntryItemWrapper: FC<
       }
       setShowAction(false)
     }
-  }, [handleMouseEnterMarkRead])
+  }, [])
 
   const isDropdownMenuOpen = useGlobalFocusableScopeSelector(
     FocusablePresets.isNotFloatingLayerScope,

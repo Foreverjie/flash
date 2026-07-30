@@ -1,5 +1,4 @@
 import { TitleMarquee } from "@follow/components/ui/marquee/index.jsx"
-import { useIsEntryStarred } from "@follow/store/collection/hooks"
 import { useEntry, useHasEntry } from "@follow/store/entry/hooks"
 import { useFeedById } from "@follow/store/feed/hooks"
 import { cn } from "@follow/utils/utils"
@@ -14,7 +13,6 @@ import type { FeedIconEntry } from "~/modules/feed/feed-icon"
 import { FeedIcon } from "~/modules/feed/feed-icon"
 import { FeedTitle } from "~/modules/feed/feed-title"
 
-import { StarIcon } from "../star-icon"
 import type { UniversalItemProps } from "../types"
 
 interface GridItemProps extends UniversalItemProps {
@@ -63,8 +61,6 @@ export const GridItemFooter = ({
     }
   })
 
-  const isInCollection = useIsEntryStarred(entryId)
-
   const feeds = useFeedById(entry?.feedId)
 
   const asRead = useEntryIsRead(entryId)
@@ -102,11 +98,6 @@ export const GridItemFooter = ({
           <TitleMarquee className="min-w-0 grow">
             <EntryTranslation source={entry?.title} target={translation?.title} />
           </TitleMarquee>
-          {isInCollection && (
-            <div className="h-0 shrink-0 -translate-y-2">
-              <StarIcon />
-            </div>
-          )}
         </div>
       </div>
       <div className="flex items-center gap-1 truncate text-[13px]">

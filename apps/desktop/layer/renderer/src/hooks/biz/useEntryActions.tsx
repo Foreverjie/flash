@@ -1,7 +1,6 @@
 import { isMobile } from "@follow/components/hooks/useMobile.js"
 import { FeedViewType, getView, UserRole } from "@follow/constants"
 import { IN_ELECTRON } from "@follow/shared/constants"
-import { useIsEntryStarred } from "@follow/store/collection/hooks"
 import { useEntry } from "@follow/store/entry/hooks"
 import { entrySyncServices } from "@follow/store/entry/store"
 import type { EntryModel } from "@follow/store/entry/types"
@@ -221,7 +220,6 @@ export const HIDE_ACTIONS_IN_ENTRY_TOOLBAR_ACTIONS: FollowCommandId[] = [
 export const useEntryActions = ({ entryId, view }: { entryId: string; view: FeedViewType }) => {
   const entry = useEntry(entryId, entrySelector)
   const { isCollection, entryId: routeEntryId } = useRouteParams()
-  const isInCollection = useIsEntryStarred(entryId)
   const isEntryInReadability = useEntryIsInReadability(entryId)
 
   const feed = useFeedById(entry?.feedId, (feed) => {
@@ -298,13 +296,6 @@ export const useEntryActions = ({ entryId, view }: { entryId: string; view: Feed
         id: COMMAND_ID.integration.saveToQBittorrent,
         onClick: runCmdFn(COMMAND_ID.integration.saveToQBittorrent, [{ entryId }]),
         hide: !IN_ELECTRON || !entry.hasBitTorrent,
-        entryId,
-      }),
-      new EntryActionMenuItem({
-        id: COMMAND_ID.entry.star,
-        onClick: runCmdFn(COMMAND_ID.entry.star, [{ entryId, view }]),
-        active: isInCollection,
-        shortcut: shortcuts[COMMAND_ID.entry.star],
         entryId,
       }),
       new EntryActionMenuItem({
@@ -476,7 +467,6 @@ export const useEntryActions = ({ entryId, view }: { entryId: string; view: Feed
     isInbox,
     shortcuts,
     view,
-    isInCollection,
     isCurrentVisitEntry,
     isShowSourceContent,
     isShowAISummaryAuto,

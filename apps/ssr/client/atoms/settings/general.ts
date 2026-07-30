@@ -13,7 +13,6 @@ const createDefaultSettings = (): Partial<GeneralSettings> => ({
   unreadOnly: false,
   // mark unread
   scrollMarkUnread: true,
-  hoverMarkUnread: true,
   renderMarkUnread: false,
   // UX
   // autoHideFeedColumn: true,

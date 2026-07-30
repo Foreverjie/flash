@@ -59,6 +59,9 @@ export const users = pgTable("users", {
   // Set the first time a user finishes the onboarding flow. Null = not yet
   // onboarded; drives whether the client replays topics/feeds after login.
   onboardedAt: timestamp("onboarded_at", { mode: "date" }),
+  // Per-user override for how many feeds this account may subscribe to.
+  // Null = fall back to DEFAULT_SUBSCRIPTION_LIMIT.
+  subscriptionLimit: integer("subscription_limit"),
 })
 
 /**
@@ -205,6 +208,7 @@ export const feeds = pgTable(
  */
 export interface PropertyListing {
   community: string
+  listing_id: string
   title: string
   city: string
   hood: string
@@ -220,9 +224,31 @@ export interface PropertyListing {
   orientation: string
   reno: string
   tags: string[]
-  badge: "new" | "reduced" | ""
+  badge: "new" | "reduced" | "increased" | "updated" | ""
   reduced_by: string
   orig: string
+  event: "new" | "price_down" | "price_up" | "details_changed" | ""
+  changes: Array<{
+    field:
+      | "price"
+      | "unit_price"
+      | "title"
+      | "area"
+      | "layout"
+      | "floor"
+      | "orientation"
+      | "renovation"
+      | "tags"
+    old: string
+    new: string
+  }>
+  price_change_num: number
+  price_change_percent: number
+  price_history: Array<{
+    total: string
+    total_num: number
+    changed_at: string
+  }>
   sold: boolean
   image: string
 }

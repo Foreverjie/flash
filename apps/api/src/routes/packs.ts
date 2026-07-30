@@ -12,6 +12,7 @@ import type { User } from "../auth/index.js"
 import { db, feeds, starterPackFeeds, starterPacks, subscriptions } from "../db/index.js"
 import { resolveFeedView } from "../lib/feed-view.js"
 import { requireAuth } from "../middleware/auth.js"
+import { getRemainingSubscriptionCapacity } from "../services/subscription-service.js"
 import { generateSnowflakeId } from "../utils/id.js"
 import { logger } from "../utils/logger.js"
 import { structuredSuccess } from "../utils/response.js"
@@ -121,8 +122,11 @@ packsRouter.post(
       .where(and(eq(subscriptions.userId, user.id), inArray(subscriptions.feedId, feedIds)))
     const alreadySet = new Set(alreadySubbed.map((s) => s.feedId))
 
+    // Clamp to the remaining quota rather than rejecting the whole pack.
+    const remaining = await getRemainingSubscriptionCapacity(user.id)
     const toInsert = feedIds
       .filter((id) => !alreadySet.has(id))
+      .slice(0, remaining)
       .map((feedId) => ({
         id: generateSnowflakeId(),
         userId: user.id,

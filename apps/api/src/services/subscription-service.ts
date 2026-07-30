@@ -1,8 +1,56 @@
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, count, eq, inArray, sql } from "drizzle-orm"
 
-import { db, feeds, subscriptions } from "../db/index.js"
+import { db, feeds, subscriptions, users } from "../db/index.js"
 import type { FeedView } from "../lib/feed-view.js"
 import { resolveFeedView } from "../lib/feed-view.js"
+
+/** Feeds a user may subscribe to when they have no per-user override. */
+export const DEFAULT_SUBSCRIPTION_LIMIT = 100
+
+/** Thrown when a subscribe would exceed the user's quota. Routes map this to 403. */
+export class SubscriptionQuotaError extends Error {
+  constructor(
+    readonly used: number,
+    readonly limit: number,
+  ) {
+    super(`Subscription limit reached (${used}/${limit})`)
+    this.name = "SubscriptionQuotaError"
+  }
+}
+
+export const isSubscriptionQuotaError = (error: unknown): error is SubscriptionQuotaError =>
+  error instanceof SubscriptionQuotaError
+
+/** Current subscription count and the cap it is measured against. */
+export const getSubscriptionUsage = async (userId: string) => {
+  const [usedRow, userRow] = await Promise.all([
+    db.select({ value: count() }).from(subscriptions).where(eq(subscriptions.userId, userId)),
+    db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { subscriptionLimit: true },
+    }),
+  ])
+
+  return {
+    used: usedRow[0]?.value ?? 0,
+    limit: userRow?.subscriptionLimit ?? DEFAULT_SUBSCRIPTION_LIMIT,
+  }
+}
+
+/**
+ * How many more feeds this user may subscribe to. Bulk callers (topics, packs)
+ * clamp their batch to this rather than failing the whole request.
+ */
+export const getRemainingSubscriptionCapacity = async (userId: string) => {
+  const { used, limit } = await getSubscriptionUsage(userId)
+  return Math.max(limit - used, 0)
+}
+
+/** Throws SubscriptionQuotaError when adding `count` feeds would exceed the cap. */
+export const assertSubscriptionCapacity = async (userId: string, adding = 1) => {
+  const { used, limit } = await getSubscriptionUsage(userId)
+  if (used + adding > limit) throw new SubscriptionQuotaError(used, limit)
+}
 
 type SubscriptionUpdate = Partial<
   Pick<

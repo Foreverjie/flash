@@ -16,6 +16,8 @@
   --color-background: 255 255 255;
 
   --border: 20 5.9% 90%;
+  /* Subtler hairline for separators inside a pane, where --border is too heavy. */
+  --border-secondary: 20 5.9% 94%;
   --radius: 0.5rem;
 
   --fo-selection-active: theme(colors.accent/90);
@@ -40,6 +42,7 @@
     --background: 0 0% 7.1%;
     --color-background: 18 18 18;
     --border: 0 0% 22.1%;
+    --border-secondary: 0 0% 16.5%;
   }
 }
 

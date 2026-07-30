@@ -52,3 +52,13 @@
     top: calc(env(safe-area-inset-top, 0px) + 20px);
   }
 }
+
+/* Indeterminate sweep for the timeline refresh bar. */
+@keyframes entry-refresh-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}

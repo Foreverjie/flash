@@ -11,7 +11,6 @@ import { useEffect } from "react"
 import { RelativeTime } from "~/components/ui/datetime"
 import { usePreviewMedia } from "~/components/ui/media/hooks"
 import { Media } from "~/components/ui/media/Media"
-import { StarIcon } from "~/modules/entry-column/star-icon"
 import type { FeedIconEntry } from "~/modules/feed/feed-icon"
 import { FeedIcon } from "~/modules/feed/feed-icon"
 
@@ -141,7 +140,6 @@ export const EntryToastPreview = ({ entryId }: { entryId: string }) => {
                 </div>
               )}
             </div>
-            {isInCollection && <StarIcon />}
           </div>
 
           {/* End right column */}

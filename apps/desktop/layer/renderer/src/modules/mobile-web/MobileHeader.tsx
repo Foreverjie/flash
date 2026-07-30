@@ -1,29 +1,13 @@
-import { FeedViewType } from "@follow/constants"
-import { useWhoami } from "@follow/store/user/hooks"
-import { useAtomValue, useSetAtom } from "jotai"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate } from "react-router"
 
-import { mobileActiveViewAtom, mobileDrawerOpenAtom } from "./atoms"
 import { TAB_ROUTES } from "./routes"
-
-const VIEW_HEADINGS: Record<number, { eyebrow: string; title: string }> = {
-  [FeedViewType.Articles]: { eyebrow: "Today", title: "Articles" },
-  [FeedViewType.SocialMedia]: { eyebrow: "Live", title: "Social" },
-  [FeedViewType.Pictures]: { eyebrow: "Visual", title: "Pictures" },
-  [FeedViewType.Videos]: { eyebrow: "Watch", title: "Videos" },
-  [FeedViewType.Audios]: { eyebrow: "Listen", title: "Audio" },
-  [FeedViewType.Notifications]: { eyebrow: "Alerts", title: "Notifications" },
-}
 
 export function MobileHeader() {
   const { t } = useTranslation()
   const { t: tCommon } = useTranslation("common")
   const location = useLocation()
   const navigate = useNavigate()
-  const setDrawerOpen = useSetAtom(mobileDrawerOpenAtom)
-  const user = useWhoami()
-  const activeView = useAtomValue(mobileActiveViewAtom)
 
   const { pathname } = location
 
@@ -43,42 +27,10 @@ export function MobileHeader() {
     )
   }
 
+  // The home feed has no app header by design: the view filter pills are the
+  // top chrome, and search/account live in the bottom nav (Discover / Me).
   if (pathname === "/timeline") {
-    const heading = VIEW_HEADINGS[activeView] ?? { eyebrow: "Today", title: "Articles" }
-    return (
-      <header className="flex shrink-0 items-end gap-2.5 px-4 pb-1.5 pt-safe-area-top">
-        <div className="min-w-0 flex-1 pt-2">
-          <div className="text-[10px] font-semibold uppercase text-[var(--fo-accent-ink)]">
-            {heading.eyebrow}
-          </div>
-          <div className="mt-0.5 text-[28px] font-semibold leading-tight text-text">
-            {heading.title}
-          </div>
-        </div>
-        <button
-          type="button"
-          aria-label={t("words.search")}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-fill-tertiary text-text"
-          onClick={() => navigate("/discover")}
-        >
-          <i className="i-mgc-search-cute-re text-lg" />
-        </button>
-        <button
-          type="button"
-          aria-label={t("mobile.header.open_account")}
-          className="flex size-7 shrink-0 items-center justify-center rounded-full"
-          onClick={() => setDrawerOpen(true)}
-        >
-          {user?.image ? (
-            <img src={user.image} alt="" className="size-7 rounded-full object-cover" />
-          ) : (
-            <div className="flex size-7 items-center justify-center rounded-full bg-brand-accent text-xs font-semibold text-[var(--fo-accent-fg)]">
-              {user?.name?.charAt(0)?.toUpperCase() || "?"}
-            </div>
-          )}
-        </button>
-      </header>
-    )
+    return null
   }
 
   if (pathname === "/discover") {

@@ -17,12 +17,14 @@ import {
 } from "@follow/store/subscription/hooks"
 import { nextFrame } from "@follow/utils/dom"
 import { EventBus } from "@follow/utils/event-bus"
-import { cn, combineCleanupFunctions, isKeyForMultiSelectPressed } from "@follow/utils/utils"
+import { cn, combineCleanupFunctions, getOS, isKeyForMultiSelectPressed } from "@follow/utils/utils"
 import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
 import Selecto from "react-selecto"
 import { useEventCallback, useEventListener } from "usehooks-ts"
 
+import { setAppSearchOpen } from "~/atoms/app"
 import { useGeneralSettingKey } from "~/atoms/settings/general"
 import { FocusablePresets } from "~/components/common/Focusable"
 import { useRouteParams } from "~/hooks/biz/useRouteParams"
@@ -44,7 +46,6 @@ import { useShouldFreeUpSpace } from "../hook"
 import { SortableFeedList, SortByAlphabeticalInbox, SortByAlphabeticalList } from "../sort-by"
 import { EmptyFeedList } from "./EmptyFeedList"
 import { ListHeader } from "./ListHeader"
-import { StarredItem } from "./StarredItem"
 import type { SubscriptionProps } from "./SubscriptionListGuard"
 
 const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: SubscriptionProps) => {
@@ -173,7 +174,7 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
     <div className={cn(className, "font-medium")}>
       <ListHeader view={view} />
       <label
-        className="mx-3 mb-2 flex h-8 items-center gap-2 rounded-md bg-fill px-2.5 text-text-tertiary ring-1 ring-inset ring-transparent transition-colors focus-within:bg-background focus-within:ring-border"
+        className="mx-3 mb-1.5 mt-2.5 flex h-[30px] items-center gap-2 rounded-lg bg-fill px-2.5 text-text-tertiary ring-1 ring-inset ring-transparent transition-colors focus-within:bg-background focus-within:ring-border"
         onClick={(event) => event.stopPropagation()}
       >
         <i className="i-mgc-search-2-cute-re size-3.5 shrink-0" />
@@ -184,7 +185,7 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
           className="min-w-0 flex-1 bg-transparent text-xs text-text outline-none placeholder:text-text-tertiary"
           onChange={(event) => setSearchQuery(event.target.value)}
         />
-        {searchQuery && (
+        {searchQuery ? (
           <button
             type="button"
             aria-label={t("sidebar.search.clear")}
@@ -192,6 +193,16 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
             onClick={() => setSearchQuery("")}
           >
             <i className="i-mgc-close-cute-re size-3.5" />
+          </button>
+        ) : (
+          // The input filters this list; the chip escalates to global search.
+          <button
+            type="button"
+            aria-label={t("search.options.all")}
+            className="shrink-0 rounded border border-border-secondary bg-background px-[5px] py-px font-mono text-[10px] text-text-tertiary transition-colors hover:text-text"
+            onClick={() => setAppSearchOpen(true)}
+          >
+            {getOS() === "macOS" ? "⌘K" : "Ctrl K"}
           </button>
         )}
       </label>
@@ -292,7 +303,6 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
         viewportClassName={cn("!px-1", shouldFreeUpSpace && "!overflow-visible")}
         rootClassName={cn("h-full", shouldFreeUpSpace && "overflow-visible")}
       >
-        {!isSearching && <StarredItem view={view} />}
         {!isSearching && (hasListData || (isListPreview && listId)) && (
           <>
             <div className="mt-1 flex h-6 w-full shrink-0 items-center rounded-md px-2.5 text-xs font-semibold text-text-secondary transition-colors">
@@ -351,8 +361,25 @@ const SubscriptionImpl = ({ ref, className, view, isSubscriptionLoading }: Subsc
             )}
           </div>
         </DraggableContext>
+        {!isSearching && <AddFeedButton />}
       </ScrollArea.ScrollArea>
     </div>
+  )
+}
+
+/** Dashed call-to-action closing the subscription tree. */
+const AddFeedButton = () => {
+  const { t } = useTranslation()
+  return (
+    <Link
+      to="/discover"
+      tabIndex={-1}
+      className="mx-1.5 mt-3 flex h-[30px] items-center justify-center gap-2 rounded-lg border border-dashed border-border text-xs font-medium text-text-tertiary transition-colors hover:border-accent/60 hover:bg-accent/[0.08] hover:text-accent-ink"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <i className="i-mgc-add-cute-re size-3.5" />
+      {t("sidebar.add_feed")}
+    </Link>
   )
 }
 
