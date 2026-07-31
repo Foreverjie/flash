@@ -66,7 +66,7 @@ export function DiscoverImport() {
   return (
     <div className="flex flex-col">
       <div className="mb-2 font-medium">1. {t("discover.import.opml_step1")}</div>
-      <div className="mb-6 w-[500px]">
+      <div className="mb-6 w-full max-w-[500px]">
         <CollapseCssGroup defaultOpenId="inoreader">
           <CollapseCss
             collapseId="inoreader"

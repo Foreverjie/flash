@@ -17,10 +17,11 @@ import { nextFrame } from "@follow/utils"
 import { isBizId } from "@follow/utils/utils"
 import { useMutation } from "@tanstack/react-query"
 import { debounce } from "es-toolkit/compat"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { useGeneralSettingKey } from "~/atoms/settings/general"
-import { FEED_TODAY_LIST, ROUTE_FEED_PENDING, startOfToday } from "~/constants/app"
+import { useTimelineTodayOnly } from "~/atoms/timeline"
+import { ROUTE_FEED_PENDING, startOfToday } from "~/constants/app"
 import { useRouteParams } from "~/hooks/biz/useRouteParams"
 import { useAuthQuery } from "~/hooks/common"
 import { entries } from "~/queries/entries"
@@ -155,12 +156,8 @@ const useLocalEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
   const entryIdsByListId = useEntryIdsByListId(listId)
   const entryIdsByInboxId = useEntryIdsByInboxId(inboxId)
 
-  // Today reuses the view-wide entry ids and narrows them by date below.
-  const isToday = feedId === FEED_TODAY_LIST
-  const todayCutoff = isToday ? startOfToday() : 0
-
   const showEntriesByView =
-    (!feedId || feedId === ROUTE_FEED_PENDING || isToday) &&
+    (!feedId || feedId === ROUTE_FEED_PENDING) &&
     folderIds.length === 0 &&
     !isCollection &&
     !inboxId &&
@@ -187,10 +184,6 @@ const useLocalEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
             if (unreadOnly && entry.read) {
               return null
             }
-            if (isToday) {
-              const publishedAt = entry.publishedAt ? new Date(entry.publishedAt).getTime() : 0
-              if (publishedAt < todayCutoff) return null
-            }
             return entry.id
           })
           .filter((id) => typeof id === "string")
@@ -203,9 +196,7 @@ const useLocalEntries = (viewOverride?: FeedViewType): UseEntriesReturn => {
         entryIdsByListId,
         entryIdsByView,
         isCollection,
-        isToday,
         showEntriesByView,
-        todayCutoff,
         unreadOnly,
       ],
     ),
@@ -281,7 +272,42 @@ export const useEntriesByView = ({
   // We need to add an interface to incrementally update the data based on the version hash.
 
   const query = remoteQuery.isReady ? remoteQuery : localQuery
-  const entryIds: string[] = query.entriesIds
+
+  // "Today" narrows whichever source won (remote or local) after the fact —
+  // the entries API has no published-since filter, so the cut happens here.
+  const todayOnly = useTimelineTodayOnly()
+  const { entryIds, reachedBeforeToday } = useMemo(() => {
+    if (!todayOnly) {
+      return { entryIds: query.entriesIds, reachedBeforeToday: false }
+    }
+
+    const todayCutoff = startOfToday()
+    const entriesMap = entryActions.getFlattenMapEntries()
+    const filteredIds: string[] = []
+    let reachedCutoff = false
+
+    for (const id of query.entriesIds) {
+      const entry = entriesMap[id]
+      if (!entry) continue
+      const publishedAt = entry.publishedAt ? new Date(entry.publishedAt).getTime() : 0
+      if (publishedAt >= todayCutoff) {
+        filteredIds.push(id)
+      } else if (publishedAt < todayCutoff) {
+        reachedCutoff = true
+      }
+    }
+
+    return { entryIds: filteredIds, reachedBeforeToday: reachedCutoff }
+  }, [query.entriesIds, todayOnly])
+
+  // Once a loaded page dips before the cutoff, older pages can't contain
+  // today's entries anymore — stop the infinite scroll from paging further.
+  const previousTodayOnly = useRef(todayOnly)
+  useEffect(() => {
+    if (previousTodayOnly.current === todayOnly) return
+    previousTodayOnly.current = todayOnly
+    nextFrame(() => onReset?.())
+  }, [onReset, todayOnly])
 
   const isFetchingFirstPage = remoteQuery.isFetching && !remoteQuery.isFetchingNextPage
 
@@ -291,7 +317,7 @@ export const useEntriesByView = ({
         onReset?.()
       })
     }
-  }, [isFetchingFirstPage, query.queryKey])
+  }, [isFetchingFirstPage, onReset, query.queryKey])
 
   const groupByDate = useGeneralSettingKey("groupByDate")
   const groupedCounts: number[] | undefined = useMemo(() => {
@@ -326,6 +352,8 @@ export const useEntriesByView = ({
   return {
     ...query,
 
+    hasNext: query.hasNext && !reachedBeforeToday,
+    hasNextPage: query.hasNextPage && !reachedBeforeToday,
     hasUpdate: query.hasUpdate,
     refetch: useCallback(() => {
       const promise = query.refetch()

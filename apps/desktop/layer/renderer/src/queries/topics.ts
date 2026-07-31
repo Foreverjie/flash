@@ -13,6 +13,7 @@ export interface Topic {
 }
 
 const API_BASE = env.VITE_API_URL
+const TOPICS_STALE_TIME = 10 * 60 * 1000
 
 async function fetchTopics(): Promise<Topic[]> {
   const res = await fetch(`${API_BASE}/api/v1/topics`)
@@ -23,13 +24,22 @@ async function fetchTopics(): Promise<Topic[]> {
 
 async function fetchTopicFeeds(slug: string): Promise<FeedItem[]> {
   const res = await fetch(`${API_BASE}/api/v1/topics/${encodeURIComponent(slug)}/feeds`)
-  if (!res.ok) return []
+  if (!res.ok) throw new Error(`Failed to fetch topic feeds: ${res.status}`)
   const json = await res.json()
   return json.data ?? []
 }
 
 export function useTopicsQuery() {
-  return useQuery({ queryKey: ["topics"], queryFn: fetchTopics })
+  return useQuery({ queryKey: ["topics"], queryFn: fetchTopics, staleTime: TOPICS_STALE_TIME })
+}
+
+export function useTopicFeedsQuery(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["topics", "feeds", slug],
+    enabled: Boolean(slug),
+    queryFn: () => (slug ? fetchTopicFeeds(slug) : Promise.resolve([])),
+    staleTime: TOPICS_STALE_TIME,
+  })
 }
 
 export function useFeedsForTopicsQuery(slugs: string[]) {
@@ -38,6 +48,7 @@ export function useFeedsForTopicsQuery(slugs: string[]) {
   return useQuery({
     queryKey: key,
     enabled: slugs.length > 0,
+    staleTime: TOPICS_STALE_TIME,
     queryFn: async () => {
       const lists = await Promise.all(slugs.map((s) => fetchTopicFeeds(s)))
       const seen = new Map<string, FeedItem>()

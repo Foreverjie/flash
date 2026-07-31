@@ -1,6 +1,5 @@
 import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@follow/components/ui/tabs/index.jsx"
-import { CategoryMap, RSSHubCategories } from "@follow/constants"
 import { useIsSubscribed } from "@follow/store/subscription/hooks"
 import { cn, formatNumber } from "@follow/utils/utils"
 import type { TrendingFeedItem } from "@follow-app/client-sdk"
@@ -23,6 +22,7 @@ import { DiscoverUser } from "~/modules/discover/DiscoverUser"
 import { FeedIcon } from "~/modules/feed/feed-icon"
 import type { StarterPack } from "~/queries/packs"
 import { usePacksQuery, usePackSubscribeMutation } from "~/queries/packs"
+import { useTopicsQuery } from "~/queries/topics"
 
 const tabs: { name: I18nKeys; value: string }[] = [
   { name: "words.search", value: "search" },
@@ -33,6 +33,9 @@ const tabs: { name: I18nKeys; value: string }[] = [
   { name: "words.transform", value: "transform" },
   { name: "words.import", value: "import" },
 ]
+
+const TOPIC_SKELETON_KEYS = Array.from({ length: 6 }, (_, index) => `topic-${index}`)
+const TRENDING_SKELETON_KEYS = Array.from({ length: 5 }, (_, index) => `trending-${index}`)
 
 const TabComponent: Record<string, React.FC<{ type?: string; isInit?: boolean }>> = {
   import: DiscoverImport,
@@ -115,56 +118,59 @@ export function MobileDiscoverScreen() {
       </Tabs>
 
       <section>
-        <SectionHead eyebrow={t("words.categories")} title={t("mobile.discover.topics_subtitle")} />
-        <TopicTiles />
-      </section>
-
-      <section>
         <SectionHead eyebrow={t("words.trending")} title={t("mobile.discover.trending_subtitle")} />
         <AppErrorBoundary errorType={ErrorComponentType.RSSHubDiscoverError}>
           <TrendingLeaderboard />
         </AppErrorBoundary>
       </section>
 
-      <section>
-        <SectionHead
-          eyebrow={t("mobile.discover.packs_eyebrow")}
-          title={t("mobile.discover.packs_subtitle")}
-        />
-        <StarterPacks />
-      </section>
+      <TopicTiles />
+
+      <StarterPacks />
     </div>
   )
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Topics — full-color category tiles (real RSSHub categories)
+// Topics — full-color tiles backed by curated topics (GET /topics)
 // ──────────────────────────────────────────────────────────────────────────
 function TopicTiles() {
-  const { t } = useTranslation("common")
-  const categories = RSSHubCategories.filter((cat) => cat !== "all")
+  const { t } = useTranslation()
+  const { data, isLoading } = useTopicsQuery()
+
+  if (!isLoading && (!data || data.length === 0)) {
+    return null
+  }
 
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2.5">
-      {categories.map((cat) => {
-        const meta = CategoryMap[cat]
-        return (
-          <Link
-            key={cat}
-            to={`/discover/category/${cat}`}
-            className="relative flex h-[84px] flex-col justify-end overflow-hidden rounded-2xl p-3 text-white shadow-[var(--shadow-card)] transition-transform active:scale-[0.98]"
-            style={{
-              backgroundImage: `linear-gradient(-135deg, ${meta?.color}D9, ${meta?.color})`,
-            }}
-          >
-            <div className="absolute -right-3 -top-3 text-[44px] opacity-25">{meta?.emoji}</div>
-            <div className="relative text-[15px] font-bold leading-tight drop-shadow-sm">
-              {t(`discover.category.${cat}`)}
-            </div>
-          </Link>
-        )
-      })}
-    </div>
+    <section>
+      <SectionHead eyebrow={t("words.categories")} title={t("mobile.discover.topics_subtitle")} />
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        {isLoading
+          ? TOPIC_SKELETON_KEYS.map((key) => (
+              <Skeleton key={key} className="h-[84px] w-full rounded-2xl" />
+            ))
+          : data!.map((topic) => (
+              <Link
+                key={topic.id}
+                to={`/discover/topic/${topic.slug}`}
+                className="relative flex h-[84px] flex-col justify-end overflow-hidden rounded-2xl p-3 text-white shadow-[var(--shadow-card)] transition-transform active:scale-[0.98]"
+                style={{
+                  backgroundImage: `linear-gradient(-135deg, ${topic.color ?? "#8A8A8E"}D9, ${topic.color ?? "#8A8A8E"})`,
+                }}
+              >
+                <div className="relative text-[15px] font-bold leading-tight drop-shadow-sm">
+                  {topic.label}
+                </div>
+                {topic.description && (
+                  <div className="relative mt-0.5 line-clamp-1 text-[11px] font-medium leading-tight text-white/80">
+                    {topic.description}
+                  </div>
+                )}
+              </Link>
+            ))}
+      </div>
+    </section>
   )
 }
 
@@ -186,8 +192,8 @@ function TrendingLeaderboard() {
   if (isLoading) {
     return (
       <div className="mt-2 flex flex-col">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="my-1.5 h-[52px] w-full rounded-xl" />
+        {TRENDING_SKELETON_KEYS.map((key) => (
+          <Skeleton key={key} className="my-1.5 h-[52px] w-full rounded-xl" />
         ))}
       </div>
     )
@@ -211,7 +217,7 @@ function TrendingRow({ item, rank }: { item: TrendingFeedItem; rank: number }) {
   const followers = item.analytics?.subscriptionCount
 
   return (
-    <div className="border-border-secondary flex items-center gap-3 border-b py-2.5 last:border-b-0">
+    <div className="flex items-center gap-3 border-b border-border-secondary py-2.5 last:border-b-0">
       <div
         className={cn(
           "w-5 shrink-0 text-center text-base font-bold tabular-nums",
@@ -273,74 +279,38 @@ function TrendingRow({ item, rank }: { item: TrendingFeedItem; rank: number }) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// Starter packs — curated horizontal carousel (GET /packs, design fallback)
+// Starter packs — curated horizontal carousel (GET /packs)
 // ──────────────────────────────────────────────────────────────────────────
-const FALLBACK_PACKS: StarterPack[] = [
-  {
-    id: "design-greats",
-    slug: "design-greats",
-    name: "Design greats",
-    description: "The blogs every product designer keeps in their reader.",
-    color: "#EC407A",
-    feedCount: 14,
-    previews: ["R", "S", "N", "D"].map((m) => ({
-      feedId: m,
-      title: m,
-      image: null,
-      siteUrl: null,
-    })),
-  },
-  {
-    id: "ai-frontier",
-    slug: "ai-frontier",
-    name: "AI frontier",
-    description: "Labs, researchers and analysts worth following weekly.",
-    color: "#7E57C2",
-    feedCount: 18,
-    previews: ["A", "O", "G", "D"].map((m) => ({
-      feedId: m,
-      title: m,
-      image: null,
-      siteUrl: null,
-    })),
-  },
-  {
-    id: "indie-web",
-    slug: "indie-web",
-    name: "The indie web",
-    description: "Personal sites and small blogs with big ideas.",
-    color: "#66BB6A",
-    feedCount: 22,
-    previews: ["R", "M", "T", "K"].map((m) => ({
-      feedId: m,
-      title: m,
-      image: null,
-      siteUrl: null,
-    })),
-  },
-]
-
 function StarterPacks() {
+  const { t } = useTranslation()
   const { data } = usePacksQuery()
-  const packs = data && data.length > 0 ? data : FALLBACK_PACKS
-  const isLive = Boolean(data && data.length > 0)
+
+  if (!data || data.length === 0) {
+    return null
+  }
 
   return (
-    <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1.5">
-      {packs.map((pack) => (
-        <StarterPackCard key={pack.id} pack={pack} isLive={isLive} />
-      ))}
-    </div>
+    <section>
+      <SectionHead
+        eyebrow={t("mobile.discover.packs_eyebrow")}
+        title={t("mobile.discover.packs_subtitle")}
+      />
+      <div className="-mx-4 mt-3 flex gap-3 overflow-x-auto px-4 pb-1.5">
+        {data.map((pack) => (
+          <StarterPackCard key={pack.id} pack={pack} />
+        ))}
+      </div>
+    </section>
   )
 }
 
-function StarterPackCard({ pack, isLive }: { pack: StarterPack; isLive: boolean }) {
+function StarterPackCard({ pack }: { pack: StarterPack }) {
   const { t } = useTranslation()
   const subscribe = usePackSubscribeMutation()
   const followed = subscribe.isSuccess
 
   return (
-    <div className="border-border-secondary flex w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl border bg-background shadow-[var(--shadow-card)]">
+    <div className="flex w-[220px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border-secondary bg-background shadow-[var(--shadow-card)]">
       <div className="flex h-[72px] items-end p-3" style={{ backgroundColor: pack.color ?? "" }}>
         <div className="flex">
           {pack.previews.map((m, i) => (
@@ -373,7 +343,7 @@ function StarterPackCard({ pack, isLive }: { pack: StarterPack; isLive: boolean 
           </span>
           <button
             type="button"
-            disabled={!isLive || subscribe.isPending || followed}
+            disabled={subscribe.isPending || followed}
             onClick={() => subscribe.mutate(pack.slug)}
             className={cn(
               "h-7 rounded-full px-3.5 text-xs font-bold transition-colors",

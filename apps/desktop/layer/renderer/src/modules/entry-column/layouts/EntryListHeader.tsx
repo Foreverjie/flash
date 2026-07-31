@@ -18,7 +18,8 @@ import { useNavigate } from "react-router"
 import { previewBackPath } from "~/atoms/preview"
 import { useGeneralSettingKey } from "~/atoms/settings/general"
 import { useSubscriptionColumnShow } from "~/atoms/sidebar"
-import { FEED_TODAY_LIST, isScraperBackedFeedUrl, ROUTE_ENTRY_PENDING } from "~/constants"
+import { setTimelineTodayOnly, useTimelineTodayOnly } from "~/atoms/timeline"
+import { isScraperBackedFeedUrl, ROUTE_ENTRY_PENDING } from "~/constants"
 import { useFollow } from "~/hooks/biz/useFollow"
 import { useNavigateEntry } from "~/hooks/biz/useNavigateEntry"
 import { getRouteParams, useRouteParams } from "~/hooks/biz/useRouteParams"
@@ -56,7 +57,6 @@ export const EntryListHeader: FC<{
   const unreadOnly = useGeneralSettingKey("unreadOnly")
 
   const { feedId, entryId, view, isCollection } = routerParams
-  const isToday = feedId === FEED_TODAY_LIST
   const isPreview = useIsPreviewFeed()
 
   const headerTitle = useFeedHeaderTitle()
@@ -130,7 +130,7 @@ export const EntryListHeader: FC<{
         !feedColumnShow && "macos:mt-4 macos:pt-margin-macos-traffic-light-y",
         isPreview
           ? "h-top-header-in-preview-with-border-b px-2.5 @[700px]:px-3 @[1024px]:px-4"
-          : "h-[76px] border-b border-border",
+          : "h-20 border-b border-border",
       )}
       data-scrolled-beyond-threshold={isScrolledBeyondThresholdValue}
     >
@@ -204,36 +204,36 @@ export const EntryListHeader: FC<{
         <span className="absolute inset-y-0 left-0 w-2/5 animate-[entry-refresh-slide_1s_cubic-bezier(0.4,0,0.2,1)_infinite] rounded-full bg-gradient-to-r from-transparent via-accent to-transparent" />
       </div>
       {!isPreview && (
-        <div className="flex h-8 items-end gap-4" onClick={stopPropagation}>
-          <TimelineFilterButton
-            active={!isCollection && unreadOnly}
-            label={t("words.unread")}
-            title={`${t("entry_list_header.show_unread_only")} (${toggleUnreadOnlyShortcut})`}
-            onClick={() => selectTimelineFilter(true)}
-          />
-          <TimelineFilterButton
-            active={!isCollection && !unreadOnly}
-            label={t("words.all")}
-            title={t("entry_list_header.show_all")}
-            onClick={() => selectTimelineFilter(false)}
-          />
-          {/* Today is a date filter, so it belongs with the other filters here
-              rather than pinned above the subscription tree. */}
-          <TimelineFilterButton
-            active={isToday}
-            label={t("words.today")}
-            title={t("entry_list_header.show_today")}
-            onClick={() =>
-              navigateEntry({ entryId: null, feedId: isToday ? null : FEED_TODAY_LIST, view })
-            }
-          />
+        <div className="mt-1.5 flex h-8 items-center gap-2" onClick={stopPropagation}>
+          {/* Read state is one exclusive axis (segmented control); Today is an
+              independent scope toggle (chip) — they combine. */}
+          <div
+            role="radiogroup"
+            aria-label={t("words.unread")}
+            className="flex items-center gap-0.5 rounded-[7px] bg-fill p-0.5"
+          >
+            <ReadStateSegmentButton
+              active={!isCollection && unreadOnly}
+              label={t("words.unread")}
+              title={`${t("entry_list_header.show_unread_only")} (${toggleUnreadOnlyShortcut})`}
+              onClick={() => selectTimelineFilter(true)}
+            />
+            <ReadStateSegmentButton
+              active={!isCollection && !unreadOnly}
+              label={t("words.all")}
+              title={t("entry_list_header.show_all")}
+              onClick={() => selectTimelineFilter(false)}
+            />
+          </div>
+          <div className="h-3.5 w-px bg-border" />
+          <TodayToggle isCollection={isCollection} />
         </div>
       )}
     </div>
   )
 }
 
-const TimelineFilterButton = ({
+const ReadStateSegmentButton = ({
   active,
   label,
   title,
@@ -246,17 +246,47 @@ const TimelineFilterButton = ({
 }) => (
   <button
     type="button"
+    role="radio"
+    aria-checked={active}
     title={title}
     className={cn(
-      "relative flex h-8 items-center px-0.5 text-xs font-medium text-text-tertiary transition-colors hover:text-text",
-      active &&
-        "text-text after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-accent",
+      "flex h-5 items-center rounded-[5px] px-2 text-[11px] font-semibold transition-colors",
+      active ? "bg-background text-text shadow-sm" : "text-text-tertiary hover:text-text",
     )}
     onClick={onClick}
   >
     {label}
   </button>
 )
+
+const TodayToggle = ({ isCollection }: { isCollection: boolean }) => {
+  const { t } = useTranslation()
+  const { view } = useRouteParams()
+  const navigateEntry = useNavigateEntry()
+  const todayOnly = useTimelineTodayOnly()
+  return (
+    <button
+      type="button"
+      aria-pressed={todayOnly}
+      title={t("entry_list_header.show_today")}
+      className={cn(
+        "flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-semibold transition-colors",
+        todayOnly
+          ? "border-accent/50 bg-accent/10 text-accent"
+          : "border-border text-text-tertiary hover:text-text",
+      )}
+      onClick={() => {
+        // Clear any selected entry because it may fall outside the new scope.
+        navigateEntry({ entryId: null, ...(isCollection && { feedId: null, view }) })
+        setTimelineTodayOnly(!todayOnly)
+      }}
+    >
+      <i className="i-mingcute-sun-line size-3" />
+      {t("words.today")}
+      {todayOnly && <i className="i-mgc-check-filled size-2.5" />}
+    </button>
+  )
+}
 
 const PreviewHeaderInfoWrapper: Component = ({ children }) => {
   const { t: tCommon } = useTranslation("common")

@@ -1,22 +1,21 @@
 import { useMobile } from "@follow/components/hooks/useMobile.js"
 import { useScrollElementUpdate } from "@follow/components/ui/scroll-area/hooks.js"
 import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
+import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@follow/components/ui/tabs/index.jsx"
 import { createElement } from "react"
 import { useTranslation } from "react-i18next"
-import { useSearchParams } from "react-router"
+import { Link, useSearchParams } from "react-router"
 
-import { AppErrorBoundary } from "~/components/common/AppErrorBoundary"
-import { ErrorComponentType } from "~/components/errors/enum"
 import { useSubViewTitle } from "~/modules/app-layout/subview/hooks"
 import { DiscoverForm } from "~/modules/discover/DiscoverForm"
 import { DiscoverImport } from "~/modules/discover/DiscoverImport"
 import { DiscoverInboxList } from "~/modules/discover/DiscoverInboxList"
 import { DiscoverTransform } from "~/modules/discover/DiscoverTransform"
 import { DiscoverUser } from "~/modules/discover/DiscoverUser"
-import { Recommendations } from "~/modules/discover/recommendations"
 import { MobileDiscoverScreen } from "~/modules/mobile-web/screens/MobileDiscoverScreen"
 import { Trending } from "~/modules/trending"
+import { useTopicsQuery } from "~/queries/topics"
 
 const tabs: {
   name: I18nKeys
@@ -30,6 +29,8 @@ const tabs: {
   { name: "words.transform", value: "transform" },
   { name: "words.import", value: "import" },
 ]
+
+const TOPIC_SKELETON_KEYS = Array.from({ length: 8 }, (_, index) => `topic-${index}`)
 
 function SectionHeader({
   eyebrow,
@@ -135,16 +136,7 @@ export function Component() {
             <Trending center />
           </section>
 
-          <section>
-            <SectionHeader
-              eyebrow="Step · For you"
-              title="Recommendations"
-              body="Hand-picked sources matched to topics you care about."
-            />
-            <AppErrorBoundary errorType={ErrorComponentType.RSSHubDiscoverError}>
-              <Recommendations />
-            </AppErrorBoundary>
-          </section>
+          <TopicsSection />
         </div>
       </div>
     </div>
@@ -157,4 +149,48 @@ const TabComponent: Record<string, React.FC<{ type?: string; isInit?: boolean }>
   user: DiscoverUser,
   default: DiscoverForm,
   transform: DiscoverTransform,
+}
+
+// Curated topics (GET /topics) — same data source as mobile web and the RN app.
+function TopicsSection() {
+  const { data, isLoading } = useTopicsQuery()
+
+  if (!isLoading && (!data || data.length === 0)) {
+    return null
+  }
+
+  return (
+    <section>
+      <SectionHeader
+        eyebrow="Step · For you"
+        title="Explore by topic"
+        body="Hand-picked sources matched to topics you care about."
+      />
+      <div className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {isLoading
+          ? TOPIC_SKELETON_KEYS.map((key) => (
+              <Skeleton key={key} className="h-[96px] w-full rounded-2xl" />
+            ))
+          : data!.map((topic) => (
+              <Link
+                key={topic.id}
+                to={`/discover/topic/${topic.slug}`}
+                className="relative flex h-[96px] flex-col justify-end overflow-hidden rounded-2xl p-3.5 text-white shadow-[var(--shadow-card)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  backgroundImage: `linear-gradient(-135deg, ${topic.color ?? "#8A8A8E"}D9, ${topic.color ?? "#8A8A8E"})`,
+                }}
+              >
+                <div className="text-[15px] font-bold leading-tight drop-shadow-sm">
+                  {topic.label}
+                </div>
+                {topic.description && (
+                  <div className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-tight text-white/80">
+                    {topic.description}
+                  </div>
+                )}
+              </Link>
+            ))}
+      </div>
+    </section>
+  )
 }

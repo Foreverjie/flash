@@ -1,5 +1,4 @@
-import type { RSSHubCategory } from "@follow/constants"
-import { CategoryMap, RSSHubCategories } from "@follow/constants"
+import { useQuery } from "@tanstack/react-query"
 import { LinearGradient } from "expo-linear-gradient"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
@@ -7,65 +6,75 @@ import { Pressable, StyleSheet, View } from "react-native"
 import { useColor } from "react-native-uikit-colors"
 
 import { Grid } from "@/src/components/ui/grid"
-import { ItemPressableStyle } from "@/src/components/ui/pressable/enum"
-import { ItemPressable } from "@/src/components/ui/pressable/ItemPressable"
+import { PlatformActivityIndicator } from "@/src/components/ui/loading/PlatformActivityIndicator"
 import { Text } from "@/src/components/ui/typography/Text"
-import { FilterCuteReIcon } from "@/src/icons/filter_cute_re"
 import { Grid2CuteReIcon } from "@/src/icons/grid_2_cute_re"
 import { useNavigation } from "@/src/lib/navigation/hooks"
-import { Recommendations } from "@/src/modules/discover/Recommendations"
-import { DiscoverSettingsScreen } from "@/src/screens/(modal)/DiscoverSettingsScreen"
-import { RecommendationCategoryScreen } from "@/src/screens/(stack)/recommendation/RecommendationCategoryScreen"
+import { TopicFeedsScreen } from "@/src/screens/(stack)/topic/TopicFeedsScreen"
+
+import type { DiscoverTopic } from "./api"
+import { DISCOVER_QUERY_STALE_TIME, fetchTopics } from "./api"
+
+const FALLBACK_TILE_COLOR = "#8A8A8E"
 
 export const Category = () => {
-  const navigation = useNavigation()
+  const { t } = useTranslation()
   const label = useColor("label")
+  const { data, isLoading } = useQuery({
+    queryKey: ["topics"],
+    queryFn: fetchTopics,
+    staleTime: DISCOVER_QUERY_STALE_TIME,
+    meta: {
+      persist: true,
+    },
+  })
+
+  if (!isLoading && (!data || data.length === 0)) {
+    return null
+  }
+
   return (
     <>
       <View className="mt-4 flex-row items-center justify-between px-6 pb-1 pt-4">
         <View className="flex-row items-center gap-2">
           <Grid2CuteReIcon width={24} height={24} color={label} />
-          <Text className="text-2xl font-bold leading-[1.1] text-label">Categories</Text>
+          <Text className="text-2xl font-bold leading-[1.1] text-label">
+            {t("discover.topics_subtitle")}
+          </Text>
         </View>
-        <ItemPressable
-          className="rounded-lg p-1"
-          itemStyle={ItemPressableStyle.UnStyled}
-          onPress={() => {
-            navigation.presentControllerView(DiscoverSettingsScreen)
-          }}
-        >
-          <FilterCuteReIcon width={20} height={20} color={label} />
-        </ItemPressable>
       </View>
 
-      <Grid columns={2} gap={12} className="p-4">
-        {RSSHubCategories.map((category) => (
-          <CategoryItem key={category} category={category} />
-        ))}
-      </Grid>
+      {isLoading ? (
+        <View className="mt-5 flex h-12 items-center justify-center">
+          <PlatformActivityIndicator />
+        </View>
+      ) : (
+        <Grid columns={2} gap={12} className="p-4">
+          {data!.map((topic) => (
+            <TopicItem key={topic.id} topic={topic} />
+          ))}
+        </Grid>
+      )}
     </>
   )
 }
-const CategoryItem = memo(({ category }: { category: RSSHubCategory }) => {
-  const { t } = useTranslation("common")
-  const name = t(`discover.category.${category}`)
+
+const TopicItem = memo(({ topic }: { topic: DiscoverTopic }) => {
   const navigation = useNavigation()
+  const color = topic.color || FALLBACK_TILE_COLOR
   return (
     <Pressable
       className="overflow-hidden rounded-2xl"
-      key={category}
       onPress={() => {
-        if (category === "all") {
-          navigation.pushControllerView(Recommendations)
-        } else {
-          navigation.pushControllerView(RecommendationCategoryScreen, {
-            category,
-          })
-        }
+        navigation.pushControllerView(TopicFeedsScreen, {
+          slug: topic.slug,
+          label: topic.label,
+          description: topic.description,
+        })
       }}
     >
       <LinearGradient
-        colors={[`${CategoryMap[category].color}80`, CategoryMap[category].color]}
+        colors={[`${color}80`, color]}
         start={{
           x: 0,
           y: 0,
@@ -77,9 +86,15 @@ const CategoryItem = memo(({ category }: { category: RSSHubCategory }) => {
         className="rounded-2xl p-4"
         style={styles.cardItem}
       >
-        <View className="flex-1">
-          <Text className="absolute right-2 top-2 text-4xl">{CategoryMap[category].emoji}</Text>
-          <Text className="absolute bottom-0 left-2 text-xl font-bold text-white">{name}</Text>
+        <View className="flex-1 justify-end">
+          <Text className="text-xl font-bold text-white" numberOfLines={1}>
+            {topic.label}
+          </Text>
+          {!!topic.description && (
+            <Text className="mt-0.5 text-xs font-medium text-white/80" numberOfLines={1}>
+              {topic.description}
+            </Text>
+          )}
         </View>
       </LinearGradient>
     </Pressable>
