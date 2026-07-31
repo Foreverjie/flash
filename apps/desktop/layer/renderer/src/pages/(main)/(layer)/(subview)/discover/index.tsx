@@ -1,196 +1,179 @@
 import { useMobile } from "@follow/components/hooks/useMobile.js"
-import { useScrollElementUpdate } from "@follow/components/ui/scroll-area/hooks.js"
-import { ScrollArea } from "@follow/components/ui/scroll-area/index.js"
-import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@follow/components/ui/tabs/index.jsx"
 import { createElement } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useSearchParams } from "react-router"
+import { useSearchParams } from "react-router"
 
 import { useSubViewTitle } from "~/modules/app-layout/subview/hooks"
+import { DISCOVER_QUICK_CHIPS } from "~/modules/discover/chips"
 import { DiscoverForm } from "~/modules/discover/DiscoverForm"
 import { DiscoverImport } from "~/modules/discover/DiscoverImport"
 import { DiscoverInboxList } from "~/modules/discover/DiscoverInboxList"
+import type { DiscoverSearchTarget } from "~/modules/discover/DiscoverSearch"
+import {
+  DiscoverResultTabs,
+  DiscoverSearchField,
+  DiscoverSearchResults,
+} from "~/modules/discover/DiscoverSearch"
+import {
+  BoldSection,
+  BoltMotif,
+  QuickChip,
+  StarterPackGrid,
+  TopicTiles,
+  TrendingLeaderboard,
+} from "~/modules/discover/DiscoverSurface"
 import { DiscoverTransform } from "~/modules/discover/DiscoverTransform"
 import { DiscoverUser } from "~/modules/discover/DiscoverUser"
 import { MobileDiscoverScreen } from "~/modules/mobile-web/screens/MobileDiscoverScreen"
-import { Trending } from "~/modules/trending"
+import { usePacksQuery } from "~/queries/packs"
 import { useTopicsQuery } from "~/queries/topics"
 
-const tabs: {
-  name: I18nKeys
-  value: string
-}[] = [
-  { name: "words.search", value: "search" },
-  { name: "words.rss", value: "rss" },
-  { name: "words.rsshub", value: "rsshub" },
-  { name: "words.inbox", value: "inbox" },
-  { name: "words.user", value: "user" },
-  { name: "words.transform", value: "transform" },
-  { name: "words.import", value: "import" },
-]
-
-const TOPIC_SKELETON_KEYS = Array.from({ length: 8 }, (_, index) => `topic-${index}`)
-
-function SectionHeader({
-  eyebrow,
-  title,
-  body,
-}: {
-  eyebrow: string
-  title: string
-  body?: string
-}) {
-  return (
-    <div className="mx-auto mb-6 max-w-3xl text-center">
-      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
-        {eyebrow}
-      </div>
-      <h2 className="m-0 text-[28px] font-semibold tracking-[-0.02em] text-text">{title}</h2>
-      {body && <p className="m-0 mt-2 text-sm leading-normal text-text-secondary">{body}</p>}
-    </div>
-  )
+const PanelComponent: Record<string, React.FC<{ type?: string; isInit?: boolean }>> = {
+  import: DiscoverImport,
+  inbox: DiscoverInboxList,
+  user: DiscoverUser,
+  transform: DiscoverTransform,
+  default: DiscoverForm,
 }
 
 export function Component() {
-  const [search, setSearch] = useSearchParams()
   const { t } = useTranslation()
+  const [search, setSearch] = useSearchParams()
   useSubViewTitle("words.discover")
   const isMobile = useMobile()
 
-  const { onUpdateMaxScroll } = useScrollElementUpdate()
+  const type = search.get("type") || "search"
+  const keyword = search.get("keyword") || ""
+  const target = (search.get("target") || "feeds") as DiscoverSearchTarget
+
+  const patchSearch = (patch: Record<string, string | null>) => {
+    setSearch(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        for (const [key, value] of Object.entries(patch)) {
+          if (value === null) next.delete(key)
+          else next.set(key, value)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   if (isMobile) {
     return <MobileDiscoverScreen />
   }
 
-  return (
-    <div className="flex size-full flex-col px-6 py-12">
-      {/* Stage-style header */}
-      <div className="mx-auto mb-10 w-full max-w-3xl text-center">
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.28em] text-accent">
-          Flash · Discover
-        </div>
-        <h1 className="m-0 text-balance text-[44px] font-semibold leading-[1.05] -tracking-wide text-text">
-          Find your next source
-        </h1>
-        <p className="m-0 mx-auto mt-3 max-w-xl text-[15px] leading-normal text-text-secondary">
-          Search, paste an RSS URL, or browse what's trending. Everything you follow lands in one
-          quiet timeline.
-        </p>
-      </div>
+  const isSearching = type === "search" && !!keyword
+  const panelType = type === "search" ? null : type
 
-      <div className="mx-auto w-full max-w-6xl">
-        <Tabs
-          value={search.get("type") || "search"}
-          onValueChange={(val) => {
-            setSearch(
-              (search) => {
-                search.set("type", val)
-                search.delete("keyword")
-                return new URLSearchParams(search)
-              },
-              { replace: true },
-            )
-          }}
-          className="w-full"
-        >
-          <div className="mb-8 flex justify-center">
-            <ScrollArea.ScrollArea flex orientation="horizontal" rootClassName="w-auto">
-              <TabsList className="relative inline-flex rounded-full border border-border bg-background p-1">
-                {tabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.name}
-                    value={tab.value}
-                    onClick={() => {
-                      onUpdateMaxScroll?.()
-                    }}
-                  >
-                    {t(tab.name)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </ScrollArea.ScrollArea>
+  return (
+    <div className="flex size-full flex-col">
+      {/* Hero — pulled up under the floating subview header */}
+      <div className="relative -mt-24 w-full overflow-hidden border-b border-border bg-material-opaque pb-10 pt-32">
+        <BoltMotif className="pointer-events-none absolute -right-16 -top-32 size-[420px] text-accent/50" />
+
+        <div className="relative mx-auto w-full max-w-[1040px] px-12">
+          <h1 className="m-0 max-w-[720px] text-balance text-[52px] font-semibold leading-[1.02] tracking-[-0.03em] text-text">
+            {t("discover.hero_title")}
+          </h1>
+          <p className="m-0 mt-3.5 max-w-[540px] text-[17px] leading-normal text-text-secondary">
+            {t("discover.hero_body")}
+          </p>
+
+          <div className="mt-6 max-w-screen-sm">
+            <DiscoverSearchField
+              big
+              value={keyword}
+              onSubmit={(value) => patchSearch({ type: "search", keyword: value })}
+            />
           </div>
 
-          <div className="space-y-8">
-            {tabs.map((tab) => (
-              <TabsContent key={tab.name} value={tab.value} className="mt-0">
-                <div className={tab.value === "inbox" ? "" : "flex flex-col items-center"}>
-                  {createElement(TabComponent[tab.value]! || TabComponent.default, {
-                    type: tab.value,
-                  })}
-                </div>
-              </TabsContent>
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            {DISCOVER_QUICK_CHIPS.map((chip) => (
+              <QuickChip
+                key={chip.type}
+                icon={chip.icon}
+                label={t(chip.label)}
+                active={panelType === chip.type}
+                onClick={() =>
+                  patchSearch(
+                    panelType === chip.type
+                      ? { type: "search", keyword: null }
+                      : { type: chip.type, keyword: null },
+                  )
+                }
+              />
             ))}
           </div>
-        </Tabs>
-
-        <div className="mt-16 space-y-14">
-          <section>
-            <SectionHeader
-              eyebrow="Step · Trending"
-              title="What people are reading right now"
-              body="A live signal of the feeds Flash users have followed this week."
-            />
-            <Trending center />
-          </section>
-
-          <TopicsSection />
         </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-[1040px] px-12 pb-20">
+        {panelType ? (
+          <div className={panelType === "inbox" ? "mt-8" : "mt-8 flex flex-col items-center"}>
+            {createElement(PanelComponent[panelType] || PanelComponent.default!, {
+              type: panelType,
+            })}
+          </div>
+        ) : isSearching ? (
+          <div className="mt-8">
+            <DiscoverResultTabs
+              target={target}
+              onChange={(value) => patchSearch({ target: value })}
+            />
+            <DiscoverSearchResults keyword={keyword} target={target} />
+          </div>
+        ) : (
+          <>
+            <section className="mt-11">
+              <BoldSection
+                kicker={t("discover.kicker.hot")}
+                title={t("discover.section.trending")}
+              />
+              <TrendingLeaderboard limit={8} columns={2} />
+            </section>
+
+            <TopicsSection />
+
+            <PacksSection />
+          </>
+        )}
       </div>
     </div>
   )
 }
 
-const TabComponent: Record<string, React.FC<{ type?: string; isInit?: boolean }>> = {
-  import: DiscoverImport,
-  inbox: DiscoverInboxList,
-  user: DiscoverUser,
-  default: DiscoverForm,
-  transform: DiscoverTransform,
-}
-
-// Curated topics (GET /topics) — same data source as mobile web and the RN app.
 function TopicsSection() {
+  const { t } = useTranslation()
   const { data, isLoading } = useTopicsQuery()
 
-  if (!isLoading && (!data || data.length === 0)) {
-    return null
-  }
+  if (!isLoading && (!data || data.length === 0)) return null
 
   return (
-    <section>
-      <SectionHeader
-        eyebrow="Step · For you"
-        title="Explore by topic"
-        body="Hand-picked sources matched to topics you care about."
+    <section className="mt-[52px]">
+      <BoldSection
+        kicker={t("discover.kicker.browse")}
+        title={t("mobile.discover.topics_subtitle")}
       />
-      <div className="mx-auto grid max-w-4xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {isLoading
-          ? TOPIC_SKELETON_KEYS.map((key) => (
-              <Skeleton key={key} className="h-[96px] w-full rounded-2xl" />
-            ))
-          : data!.map((topic) => (
-              <Link
-                key={topic.id}
-                to={`/discover/topic/${topic.slug}`}
-                className="relative flex h-[96px] flex-col justify-end overflow-hidden rounded-2xl p-3.5 text-white shadow-[var(--shadow-card)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                style={{
-                  backgroundImage: `linear-gradient(-135deg, ${topic.color ?? "#8A8A8E"}D9, ${topic.color ?? "#8A8A8E"})`,
-                }}
-              >
-                <div className="text-[15px] font-bold leading-tight drop-shadow-sm">
-                  {topic.label}
-                </div>
-                {topic.description && (
-                  <div className="mt-0.5 line-clamp-1 text-[11px] font-medium leading-tight text-white/80">
-                    {topic.description}
-                  </div>
-                )}
-              </Link>
-            ))}
-      </div>
+      <TopicTiles columns={4} tall />
+    </section>
+  )
+}
+
+function PacksSection() {
+  const { t } = useTranslation()
+  const { data } = usePacksQuery()
+
+  if (!data || data.length === 0) return null
+
+  return (
+    <section className="mt-[52px]">
+      <BoldSection
+        kicker={t("discover.kicker.curated")}
+        title={t("mobile.discover.packs_subtitle")}
+      />
+      <StarterPackGrid columns={3} />
     </section>
   )
 }

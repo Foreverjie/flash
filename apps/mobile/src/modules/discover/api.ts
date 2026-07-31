@@ -1,4 +1,5 @@
 import { followClient } from "@/src/lib/api-client"
+import { getCookie } from "@/src/lib/auth"
 import { proxyEnv } from "@/src/lib/proxy-env"
 
 export const DISCOVER_QUERY_STALE_TIME = 10 * 60 * 1000
@@ -45,6 +46,49 @@ export const fetchTopics = async (): Promise<DiscoverTopic[]> => {
   }
   const json = await res.json()
   return json.data ?? []
+}
+
+export type StarterPackPreview = {
+  feedId: string
+  title: string | null
+  image: string | null
+  siteUrl: string | null
+}
+
+export type StarterPack = {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  color: string | null
+  feedCount: number
+  previews: StarterPackPreview[]
+}
+
+export const fetchPacks = async (): Promise<StarterPack[]> => {
+  const res = await fetch(`${proxyEnv.API_URL}/api/v1/packs`)
+  if (!res.ok) {
+    throw new Error(`Failed to fetch packs: ${res.status}`)
+  }
+  const json = await res.json()
+  return json.data ?? []
+}
+
+export const subscribePack = async (slug: string) => {
+  const res = await fetch(
+    `${proxyEnv.API_URL}/api/v1/packs/${encodeURIComponent(slug)}/subscribe`,
+    {
+      method: "POST",
+      headers: { cookie: getCookie() },
+    },
+  )
+  if (!res.ok) {
+    throw new Error(`Failed to follow pack: ${res.status}`)
+  }
+  return res.json() as Promise<{
+    code: number
+    data: { subscribed: number; alreadySubscribed: number }
+  }>
 }
 
 export const fetchTopicFeeds = async (slug: string): Promise<TopicFeed[]> => {

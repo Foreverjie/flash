@@ -33,20 +33,10 @@ export function MobileHeader() {
     return null
   }
 
+  // Discover owns its own chrome: the screen leads with a live search field
+  // and the chip shortcuts, so an app header here would just duplicate it.
   if (pathname === "/discover") {
-    return (
-      <header className="flex h-11 shrink-0 items-center px-4 pt-safe-area-top">
-        <button
-          type="button"
-          className="flex h-9 flex-1 items-center rounded-full bg-fill-tertiary px-3 text-left text-sm text-text-tertiary"
-          aria-label={t("words.search")}
-          onClick={() => navigate("/discover?type=search")}
-        >
-          <i className="i-mgc-search-cute-re mr-2" />
-          <span className="truncate">{t("mobile.header.search_placeholder")}</span>
-        </button>
-      </header>
-    )
+    return null
   }
 
   if (pathname === "/notifications") {
