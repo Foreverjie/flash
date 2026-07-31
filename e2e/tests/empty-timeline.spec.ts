@@ -16,9 +16,9 @@ const PASSWORD = "e2e-Password-1234"
 test("zero-feed onboarding finish lands on the Discover empty state", async ({ page, browser }) => {
   const email = `e2e-empty-${Date.now()}@flash.test`
 
-  // — Create + verify an account, finish onboarding following nothing
+  // — Create + verify an account, finish onboarding following nothing.
+  // Unauthenticated "/" opens straight on the auth panel.
   await page.goto("/")
-  await page.getByRole("button", { name: "Get started" }).click()
   await page.getByRole("button", { name: "Continue with Email" }).click()
   await page.getByLabel("Email").fill(email)
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD)

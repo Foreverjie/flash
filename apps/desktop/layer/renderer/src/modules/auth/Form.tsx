@@ -210,8 +210,10 @@ export function RegisterForm({
       password: values.password,
       name: values.email.split("@")[0]!,
       // Absolute URL so the verification email links back to this web app,
-      // not the API origin Better Auth would resolve "/" against.
-      callbackURL: window.location.origin,
+      // not the API origin Better Auth would resolve "/" against. Land on
+      // /onboarding: the flow advances fresh accounts to the topics step and
+      // closes itself for already-onboarded users, so both cases resolve.
+      callbackURL: `${window.location.origin}/onboarding`,
       fetchOptions: {
         onSuccess() {
           setRegisteredEmail(values.email)
@@ -239,7 +241,7 @@ export function RegisterForm({
             try {
               await sendVerificationEmail({
                 email: registeredEmail,
-                callbackURL: window.location.origin,
+                callbackURL: `${window.location.origin}/onboarding`,
               })
               toast.success(t("register.verify_email.resend_success"))
             } finally {

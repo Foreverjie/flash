@@ -75,8 +75,11 @@ export const RootProviders: FC<PropsWithChildren> = ({ children }) => (
   </Provider>
 )
 
+// VITE_DISABLE_REACT_SCAN also hides this: the floating devtools button sits
+// bottom-left over real controls and intercepts pointer events in e2e runs.
 const Devtools = () =>
-  !IN_ELECTRON && (
+  !IN_ELECTRON &&
+  !import.meta.env.VITE_DISABLE_REACT_SCAN && (
     <div className="hidden lg:block print:hidden">
       <ReactQueryDevtools buttonPosition="bottom-left" client={queryClient} />
     </div>

@@ -8,6 +8,7 @@
 import { Logo } from "@follow/components/icons/logo.jsx"
 import { Button } from "@follow/components/ui/button/index.js"
 import { useWhoami } from "@follow/store/user/hooks"
+import { userActions } from "@follow/store/user/store"
 import { tracker } from "@follow/tracker"
 import { cn } from "@follow/utils"
 import type { Transition, Variants } from "motion/react"
@@ -15,6 +16,7 @@ import { AnimatePresence, m, useReducedMotion } from "motion/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { ONBOARDING_COACH_FLAG_KEY } from "~/constants/coach"
+import { getSession } from "~/lib/auth"
 import { LoginModalContent } from "~/modules/auth/LoginModalContent"
 import { settingSyncQueue } from "~/modules/settings/helper/sync-queue"
 import { useSession } from "~/queries/auth"
@@ -772,6 +774,18 @@ export function OnboardingFlow({ onClose }: { onClose: () => void }) {
       console.error("[Onboarding] subscribe failed", err)
       setFinishing(false)
       return
+    }
+    // The server stamped onboarded_at in the subscribe call above; mirror it
+    // locally right away so the NewUserGuide redirect can't bounce the user
+    // back into onboarding before the next session refetch.
+    userActions.updateWhoami({ onboardedAt: new Date().toISOString() })
+    // Better Auth caches the session user in a cookie for 5 minutes, so plain
+    // get-session calls would keep returning the pre-onboarding user and
+    // overwrite the stamp above. Force a fresh read to re-prime that cache.
+    try {
+      await getSession({ query: { disableCookieCache: true } })
+    } catch {
+      // Non-fatal: the local stamp above already unblocks this session.
     }
     try {
       tracker.onBoarding({ stepV2: "finish" as never, done: true })

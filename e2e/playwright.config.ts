@@ -12,7 +12,7 @@ import { defineConfig, devices } from "@playwright/test"
  *     -e POSTGRES_DB=flash_e2e -p 54329:5432 postgres:16-alpine
  *   cd apps/api && DATABASE_URL=postgres://postgres:test@localhost:54329/flash_e2e \
  *     pnpm exec drizzle-kit migrate && DATABASE_URL=... pnpm run db:seed:e2e
- *   E2E_DATABASE_URL=postgres://postgres:test@localhost:54329/flash_e2e pnpm test
+ *   E2E_DATABASE_URL=postgres://postgres:test@localhost:54329/flash_e2e pnpm run test:e2e
  */
 
 const DATABASE_URL =

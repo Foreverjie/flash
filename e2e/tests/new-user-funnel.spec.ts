@@ -19,9 +19,8 @@ test.describe.configure({ mode: "serial" })
 test("signup → email verification → onboarding → subscribed timeline", async ({ page }) => {
   const email = `e2e-user-${Date.now()}@flash.test`
 
-  // — Landing: unauthenticated visitors get the onboarding welcome stage
+  // — Landing: unauthenticated visitors get the auth panel directly
   await page.goto("/")
-  await page.getByRole("button", { name: "Get started" }).click()
 
   // — Register via email
   await page.getByRole("button", { name: "Continue with Email" }).click()

@@ -7,9 +7,11 @@ import { expect, test } from "@playwright/test"
  * Catches OAuth config drift without fighting provider bot detection.
  */
 
+// Unauthenticated "/" now opens straight on the auth panel (the "Get started"
+// welcome stage was removed); wait for it to render before asserting providers.
 async function openLoginModal(page: import("@playwright/test").Page) {
   await page.goto("/")
-  await page.getByRole("button", { name: "Get started" }).click()
+  await expect(page.getByRole("button", { name: /email/i })).toBeVisible({ timeout: 20_000 })
 }
 
 test("GitHub login redirects to the correct authorize URL", async ({ page }) => {
