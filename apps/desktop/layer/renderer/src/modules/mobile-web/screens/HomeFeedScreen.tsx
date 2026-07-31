@@ -1,10 +1,7 @@
 import { EmptyStage } from "@follow/components/ui/empty/index.js"
-import type { FeedViewType } from "@follow/constants"
-import { getViewList } from "@follow/constants"
 import { useEntry } from "@follow/store/entry/hooks"
 import { useFeedById } from "@follow/store/feed/hooks"
 import { useViewWithSubscription } from "@follow/store/subscription/hooks"
-import { useUnreadByView } from "@follow/store/unread/hooks"
 import { useWhoami } from "@follow/store/user/hooks"
 import { cn } from "@follow/utils/utils"
 import { useAtom, useSetAtom } from "jotai"
@@ -26,8 +23,8 @@ import { ImageCardContent } from "../cards/ImageCard"
 import { PodcastCardContent } from "../cards/PodcastCard"
 import { PropertyCard } from "../cards/PropertyCard"
 import { VideoCardContent } from "../cards/VideoCard"
-
-const ALL_VIEW_DEFS = getViewList({ includeAll: true })
+import { useViewSwipe } from "../useViewSwipe"
+import { ViewPillTrack } from "../ViewPillTrack"
 
 export function HomeFeedScreen() {
   const user = useWhoami()
@@ -73,78 +70,23 @@ function PublicHomeFeed() {
   )
 }
 
-function ViewFilterBar({ hidden }: { hidden: boolean }) {
-  const viewsWithSub = useViewWithSubscription()
-  const [activeView, setActiveView] = useAtom(mobileActiveViewAtom)
-
-  // Always render: with no app header above, this bar carries the status-bar
-  // inset, so hiding it would push content under the notch.
-  if (viewsWithSub.length === 0) return null
-
-  return (
-    <div
-      className={cn(
-        "sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur-lg transition-transform duration-200",
-        hidden && "-translate-y-full",
-      )}
-    >
-      <div className="flex w-full items-stretch gap-1.5 px-3.5 pb-2 pt-[calc(var(--sat,0px)+0.5rem)]">
-        {viewsWithSub.map((viewType) => {
-          const viewDef = ALL_VIEW_DEFS.find((v) => v.view === viewType)
-          if (!viewDef) return null
-          return (
-            <ViewChip
-              key={viewType}
-              view={viewType}
-              viewDef={viewDef}
-              isActive={activeView === viewType}
-              onClick={() => setActiveView(viewType)}
-            />
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-const ViewChip = memo(function ViewChip({
-  view,
-  viewDef,
-  isActive,
-  onClick,
-}: {
-  view: FeedViewType
-  viewDef: { name: string; icon: React.JSX.Element; className: string }
-  isActive: boolean
-  onClick: () => void
-}) {
-  const unread = useUnreadByView(view)
-  const label = viewDef.name.split(".").pop()?.replaceAll("_", " ") ?? ""
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "relative flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors duration-150",
-        isActive ? "bg-accent text-accent-fg" : "bg-fill text-text-secondary hover:text-text",
-      )}
-    >
-      <span className="shrink-0 text-base leading-none">{viewDef.icon}</span>
-      <span className="truncate capitalize">{label}</span>
-      {!isActive && unread > 0 && (
-        <span className="absolute right-1.5 top-1 size-1.5 rounded-full bg-accent" />
-      )}
-    </button>
-  )
-})
-
 function AuthenticatedHomeFeed() {
   const { t } = useTranslation()
   const state = useEntriesState()
   const actions = useEntriesActions()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const swipeRef = useRef<HTMLDivElement>(null)
   const [filterBarHidden, setFilterBarHidden] = useState(false)
+
+  const viewsWithSub = useViewWithSubscription()
+  const [activeView, setActiveView] = useAtom(mobileActiveViewAtom)
+
+  useViewSwipe({
+    containerRef: swipeRef,
+    views: viewsWithSub,
+    activeView,
+    onSelect: setActiveView,
+  })
 
   const { entriesIds, isLoading, isFetchingNextPage, hasNextPage } = state
 
@@ -178,36 +120,40 @@ function AuthenticatedHomeFeed() {
 
   return (
     <div ref={scrollRef} className="flex flex-col">
-      <ViewFilterBar hidden={filterBarHidden} />
-      {isLoading && entriesIds.length === 0 ? (
-        Array.from({ length: 6 }).map((_, i) => <EntryCardSkeleton key={i} />)
-      ) : !isLoading && entriesIds.length === 0 ? (
-        <div className="px-6 py-12">
-          <EmptyStage
-            eyebrow={t("mobile.home.empty.title")}
-            glyph={<i className="i-mgc-inbox-cute-re" />}
-            title={t("mobile.home.empty.title")}
-            body={t("mobile.home.empty.body")}
-            size="md"
-          />
-        </div>
-      ) : (
-        <>
-          {entriesIds.map((id) => (
-            <EntryCard key={id} entryId={id} />
-          ))}
-          {isFetchingNextPage && (
-            <div className="flex items-center justify-center py-4">
-              <i className="i-mgc-loading-3-cute-re animate-spin text-xl text-text-tertiary" />
-            </div>
-          )}
-          {!hasNextPage && entriesIds.length > 0 && (
-            <div className="py-6 text-center text-sm text-text-tertiary">
-              {t("mobile.home.end")}
-            </div>
-          )}
-        </>
-      )}
+      <ViewPillTrack hidden={filterBarHidden} />
+      {/* `pan-y` leaves vertical scrolling to the page and hands horizontal
+          drags to the view swipe. */}
+      <div ref={swipeRef} className="touch-pan-y will-change-transform">
+        {isLoading && entriesIds.length === 0 ? (
+          Array.from({ length: 6 }).map((_, i) => <EntryCardSkeleton key={i} />)
+        ) : !isLoading && entriesIds.length === 0 ? (
+          <div className="px-6 py-12">
+            <EmptyStage
+              eyebrow={t("mobile.home.empty.title")}
+              glyph={<i className="i-mgc-inbox-cute-re" />}
+              title={t("mobile.home.empty.title")}
+              body={t("mobile.home.empty.body")}
+              size="md"
+            />
+          </div>
+        ) : (
+          <>
+            {entriesIds.map((id) => (
+              <EntryCard key={id} entryId={id} />
+            ))}
+            {isFetchingNextPage && (
+              <div className="flex items-center justify-center py-4">
+                <i className="i-mgc-loading-3-cute-re animate-spin text-xl text-text-tertiary" />
+              </div>
+            )}
+            {!hasNextPage && entriesIds.length > 0 && (
+              <div className="py-6 text-center text-sm text-text-tertiary">
+                {t("mobile.home.end")}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

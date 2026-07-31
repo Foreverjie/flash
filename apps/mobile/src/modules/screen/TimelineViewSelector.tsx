@@ -1,11 +1,9 @@
 import { useViewWithSubscription } from "@follow/store/subscription/hooks"
 import { useUnreadByView } from "@follow/store/unread/hooks"
-import { cn } from "@follow/utils"
 import * as React from "react"
-import { useEffect } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import type { StyleProp, ViewStyle } from "react-native"
-import { ScrollView, Text, useWindowDimensions, View } from "react-native"
+import { ScrollView, useWindowDimensions, View } from "react-native"
 import Animated, { interpolate, interpolateColor, useAnimatedStyle } from "react-native-reanimated"
 
 import { ReAnimatedPressable } from "@/src/components/common/AnimatedComponents"
@@ -17,220 +15,233 @@ import {
   useSelectedFeed,
   useTimelineSelectorDragProgress,
 } from "@/src/modules/screen/atoms"
-import { useColor } from "@/src/theme/colors"
+import { accentColor, useColor } from "@/src/theme/colors"
 
-import { UnreadCount } from "../subscription/items/UnreadCount"
 import { TimelineViewSelectorContextMenu } from "./TimelineViewSelectorContextMenu"
 
-const ACTIVE_WIDTH = 180
-const INACTIVE_WIDTH = 48
-const ACTIVE_TEXT_WIDTH = 100
+// Brand accent foreground (`--fo-accent-fg` on desktop): dark ink that stays
+// readable on the yellow accent in both light and dark themes.
+const ACCENT_FG = "#1a1207"
+
+// Pill-track geometry (mirrors the design system's mobile tab bar).
+const TRACK_MARGIN = 14
+const TRACK_PADDING = 3
+const TAB_HEIGHT = 32
+const TAB_GAP = 4
+// Icon-only resting width for tabs that aren't selected.
+const COLLAPSED_WIDTH = 44
+// Floor for the expanded tab; below this the label crowds the icon, so the
+// track starts scrolling instead of squeezing further.
+const MIN_EXPANDED_WIDTH = 116
+const ICON_SIZE = 15
+const ICON_LABEL_GAP = 6
+const LABEL_PADDING = 12
+
+// Short one-word labels so every tab fits without truncating.
+const shortViewLabelKey = (name: string) =>
+  name.replace("feed_view_type.", "feed_view_type_short.") as "feed_view_type_short.all"
+
+/**
+ * Category bar over the timeline: a scrollable pill track holding one tab per
+ * view (Articles / Social / Pictures / Videos …). The selected tab expands to
+ * reveal its label on the brand accent; the others rest as icon-only pills.
+ * The pager's drag progress drives both the width and the color crossfade so
+ * swipes stay continuous.
+ */
 export function TimelineViewSelector() {
   const activeViews = useViewWithSubscription()
-  const scrollViewRef = React.useRef<ScrollView | null>(null)
   const selectedFeed = useSelectedFeed()
+  const trackBg = useColor("gray5")
+  const { width: windowWidth } = useWindowDimensions()
+  const scrollRef = useRef<ScrollView>(null)
+
+  const tabs = useMemo(
+    () =>
+      activeViews
+        .map((v) => views.find((view) => view.view === v))
+        .filter((view): view is ViewDefinition => !!view),
+    [activeViews],
+  )
+
+  // Expanded width is whatever is left once every other tab sits collapsed, so
+  // the track fills the row exactly when it fits and overflows into a scroll
+  // when it doesn't.
+  const innerWidth = windowWidth - TRACK_MARGIN * 2 - TRACK_PADDING * 2
+  const expandedWidth = Math.max(
+    MIN_EXPANDED_WIDTH,
+    innerWidth - (tabs.length - 1) * (COLLAPSED_WIDTH + TAB_GAP),
+  )
+
+  const selectedIndex =
+    selectedFeed?.type === "view" ? tabs.findIndex((view) => view.view === selectedFeed.viewId) : -1
+
+  // Keep the expanded tab in frame when the selection moves off-screen.
+  useEffect(() => {
+    if (selectedIndex < 0) return
+    const offset = selectedIndex * (COLLAPSED_WIDTH + TAB_GAP)
+    scrollRef.current?.scrollTo({
+      x: Math.max(0, offset - COLLAPSED_WIDTH),
+      animated: true,
+    })
+  }, [selectedIndex])
+
   return (
     <View
-      className="flex items-center justify-between py-2"
-      style={{
-        height: TIMELINE_VIEW_SELECTOR_HEIGHT,
-      }}
+      className="justify-center"
+      style={{ height: TIMELINE_VIEW_SELECTOR_HEIGHT, paddingTop: 8, paddingBottom: 10 }}
     >
       <ScrollView
-        ref={scrollViewRef}
+        ref={scrollRef}
         horizontal
-        scrollsToTop={false}
-        contentContainerClassName="flex-row gap-3 items-center px-3"
         showsHorizontalScrollIndicator={false}
+        style={{
+          marginHorizontal: TRACK_MARGIN,
+          borderRadius: 999,
+          backgroundColor: trackBg,
+          flexGrow: 0,
+        }}
+        contentContainerStyle={{
+          padding: TRACK_PADDING,
+          gap: TAB_GAP,
+          minWidth: innerWidth + TRACK_PADDING * 2,
+        }}
       >
-        {activeViews.map((v, index) => {
-          const view = views.find((view) => view.view === v)
-          if (!view) return null
-          return (
-            <ViewItem
-              key={view.name}
-              index={index}
-              view={view}
-              scrollViewRef={scrollViewRef}
-              isActive={selectedFeed?.type === "view" && selectedFeed.viewId === view.view}
-            />
-          )
-        })}
+        {tabs.map((view, index) => (
+          <ViewTab
+            key={view.name}
+            index={index}
+            view={view}
+            expandedWidth={expandedWidth}
+            isActive={selectedFeed?.type === "view" && selectedFeed.viewId === view.view}
+          />
+        ))}
       </ScrollView>
     </View>
   )
 }
-function ItemWrapper({
-  index,
-  activeColor,
-  children,
-  onPress,
-  style,
-  className,
-}: {
-  children: React.ReactNode
-  index: number
-  isActive: boolean
-  activeColor: string
-  onPress: () => void
-  className?: string
-  style?: Exclude<StyleProp<ViewStyle>, number>
-}) {
-  const { width: windowWidth } = useWindowDimensions()
-  const activeViews = useViewWithSubscription()
-  const dragProgress = useTimelineSelectorDragProgress()
-  const activeWidth = Math.max(
-    windowWidth - (INACTIVE_WIDTH + 12) * (activeViews.length - 1) - 8 * 2,
-    ACTIVE_WIDTH,
-  )
-  const bgColor = useColor("gray5")
-  return (
-    <ReAnimatedPressable
-      className={cn(
-        "relative flex h-12 flex-row items-center justify-center gap-2 overflow-hidden rounded-[1.2rem] pl-2",
-        className,
-      )}
-      onPress={onPress}
-      style={useAnimatedStyle(() => ({
-        backgroundColor: interpolateColor(
-          dragProgress.get(),
-          [index - 1, index, index + 1],
-          [bgColor, activeColor, bgColor],
-        ),
-        width: interpolate(
-          dragProgress.get(),
-          [index - 1, index, index + 1],
-          [INACTIVE_WIDTH, Math.max(activeWidth, INACTIVE_WIDTH), INACTIVE_WIDTH],
-          "clamp",
-        ),
-        ...style,
-      }))}
-    >
-      {children}
-    </ReAnimatedPressable>
-  )
-}
-function ViewItem({
+
+function ViewTab({
   view,
   index,
-  scrollViewRef,
+  expandedWidth,
   isActive,
 }: {
   view: ViewDefinition
   // The notification or audio view will be hidden in some cases, so we need to pass the index
   index: number
-  scrollViewRef: React.RefObject<ScrollView | null>
+  expandedWidth: number
   isActive: boolean
 }) {
-  const textColor = useColor("gray")
-  const unreadCount = useUnreadByView(view.view)
-  const borderColor = useColor("gray5")
   const { t } = useTranslation("common")
-  const itemRef = React.useRef<View>(null)
-  const { width: windowWidth } = useWindowDimensions()
+  const label = t(shortViewLabelKey(view.name))
+  const unreadCount = useUnreadByView(view.view)
   const dragProgress = useTimelineSelectorDragProgress()
+  const inactiveFg = useColor("secondaryLabel")
+  // Resting tabs read as "transparent" against the track; interpolating to the
+  // track's own color avoids blending through black the way alpha-0 would.
+  const trackBg = useColor("gray5")
 
-  // Scroll to center the active item when it becomes active
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null
-    if (isActive && scrollViewRef.current && itemRef.current) {
-      // Give time for animation to start
-      timeout = setTimeout(() => {
-        itemRef.current?.measureInWindow((x, y, width) => {
-          const scrollX = x - windowWidth / 2 + width / 2
-          scrollViewRef.current?.scrollTo({
-            x: Math.max(0, scrollX),
-            animated: true,
-          })
-        })
-      }, 50)
-    }
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout)
-      }
-    }
-  }, [isActive, scrollViewRef, windowWidth])
+  // Measured off-screen so the label can animate from 0 to its natural width.
+  const [labelWidth, setLabelWidth] = useState(0)
+
+  const range = [index - 1, index, index + 1]
+  // Clamp the expanded width to what the label actually needs when the track
+  // is scrolling — no point reserving filler space the row can't spare.
+  const targetWidth = Math.max(
+    expandedWidth,
+    ICON_SIZE + ICON_LABEL_GAP + labelWidth + LABEL_PADDING * 2,
+  )
+
+  const containerStyle = useAnimatedStyle(() => ({
+    width: interpolate(dragProgress.get(), range, [COLLAPSED_WIDTH, targetWidth, COLLAPSED_WIDTH], {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    }),
+    backgroundColor: interpolateColor(dragProgress.get(), range, [trackBg, accentColor, trackBg]),
+    // Design lifts the selected pill off the track with `0 1px 4px rgba(0,0,0,.18)`.
+    shadowOpacity: interpolate(dragProgress.get(), range, [0, 0.18, 0], "clamp"),
+    elevation: interpolate(dragProgress.get(), range, [0, 2, 0], "clamp"),
+  }))
+  const labelStyle = useAnimatedStyle(() => ({
+    width: interpolate(dragProgress.get(), range, [0, labelWidth, 0], "clamp"),
+    marginLeft: interpolate(dragProgress.get(), range, [0, ICON_LABEL_GAP, 0], "clamp"),
+    opacity: interpolate(dragProgress.get(), range, [0, 1, 0], "clamp"),
+  }))
+  const activeIconStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(dragProgress.get(), range, [0, 1, 0]),
+  }))
+  const inactiveIconStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(dragProgress.get(), range, [1, 0, 1]),
+  }))
+  // The unread dot only reads on the resting (inactive) fill.
+  const unreadDotStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(dragProgress.get(), range, [1, 0, 1], "clamp"),
+  }))
+
   return (
     <TimelineViewSelectorContextMenu type="view" viewId={view.view}>
-      <View ref={itemRef}>
-        <ItemWrapper
-          isActive={isActive}
-          index={index}
-          activeColor={view.activeColor}
-          onPress={() =>
-            selectTimeline({
-              type: "view",
-              viewId: view.view,
-            })
-          }
-        >
-          <View className="relative">
-            <Animated.View
-              style={useAnimatedStyle(() => ({
-                opacity: interpolate(dragProgress.get(), [index - 1, index, index + 1], [0, 1, 0]),
-              }))}
-            >
-              <view.icon color="#fff" height={21} width={21} />
-            </Animated.View>
-            <Animated.View
-              className="absolute"
-              style={useAnimatedStyle(() => ({
-                opacity: interpolate(dragProgress.get(), [index - 1, index, index + 1], [1, 0, 1]),
-              }))}
-            >
-              <view.icon color={textColor} height={21} width={21} />
-            </Animated.View>
-          </View>
-
-          <Animated.View
-            className="flex flex-row items-center justify-center gap-2 overflow-hidden"
-            style={useAnimatedStyle(() => ({
-              width: interpolate(
-                dragProgress.get(),
-                [index - 1, index, index + 1],
-                [0, ACTIVE_TEXT_WIDTH, 0],
-                "clamp",
-              ),
-            }))}
-          >
-            <Text
-              allowFontScaling={false}
-              key={view.name}
-              className="text-[14px] font-semibold text-white"
-              numberOfLines={1}
-              ellipsizeMode="clip"
-            >
-              {t(view.name)}
-            </Text>
-
-            <UnreadCount
-              max={99}
-              unread={unreadCount}
-              dotClassName="size-1.5 rounded-full bg-white"
-              textClassName="text-white font-bold flex-1"
-            />
+      <ReAnimatedPressable
+        accessibilityRole="tab"
+        accessibilityLabel={label}
+        accessibilityState={{ selected: isActive }}
+        // No `overflow-hidden` here: it would clip the pill's own shadow. The
+        // label wrapper clips itself, and the icon always fits the collapsed
+        // width, so nothing else needs bounding.
+        className="flex-row items-center justify-center rounded-full"
+        onPress={() =>
+          selectTimeline({
+            type: "view",
+            viewId: view.view,
+          })
+        }
+        style={[
+          {
+            height: TAB_HEIGHT,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowRadius: 4,
+          },
+          containerStyle,
+        ]}
+      >
+        <View className="relative shrink-0" style={{ width: ICON_SIZE, height: ICON_SIZE }}>
+          <Animated.View className="absolute" style={activeIconStyle}>
+            <view.icon color={ACCENT_FG} height={ICON_SIZE} width={ICON_SIZE} />
           </Animated.View>
+          <Animated.View className="absolute" style={inactiveIconStyle}>
+            <view.icon color={inactiveFg} height={ICON_SIZE} width={ICON_SIZE} />
+          </Animated.View>
+        </View>
 
-          {/* Unread indicator for inactive items */}
+        <Animated.View className="overflow-hidden" style={labelStyle}>
+          <Animated.Text
+            allowFontScaling={false}
+            className="text-xs font-semibold"
+            numberOfLines={1}
+            style={{ color: ACCENT_FG, width: labelWidth || undefined }}
+          >
+            {label}
+          </Animated.Text>
+        </Animated.View>
+
+        {/* Off-screen measurement pass for the label's natural width. */}
+        <Animated.Text
+          allowFontScaling={false}
+          className="absolute text-xs font-semibold opacity-0"
+          numberOfLines={1}
+          pointerEvents="none"
+          onLayout={(e) => setLabelWidth(Math.ceil(e.nativeEvent.layout.width))}
+        >
+          {label}
+        </Animated.Text>
+
+        {unreadCount > 0 && (
           <Animated.View
-            className="absolute size-2 rounded-full border"
-            style={useAnimatedStyle(() => ({
-              left: 30,
-              top: 10,
-              backgroundColor: textColor,
-              borderColor,
-              display: unreadCount ? "flex" : "none",
-              opacity: interpolate(
-                dragProgress.get(),
-                [index - 1, index, index + 1],
-                [1, 0, 1],
-                "clamp",
-              ),
-            }))}
+            className="absolute right-2.5 top-1 size-1.5 rounded-full"
+            style={[{ backgroundColor: accentColor }, unreadDotStyle]}
           />
-        </ItemWrapper>
-      </View>
+        )}
+      </ReAnimatedPressable>
     </TimelineViewSelectorContextMenu>
   )
 }
