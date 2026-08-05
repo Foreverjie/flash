@@ -1,11 +1,20 @@
 import { useMobile } from "@follow/components/hooks/useMobile.js"
-import { useEffect, useRef } from "react"
+import { lazy, Suspense, useEffect, useRef } from "react"
 import { useLocation, useNavigate } from "react-router"
 
 import { getDefaultTimelinePath } from "~/hooks/biz/getDefaultTimelinePath"
-import { MainDestopLayout } from "~/modules/app-layout/subscription-column/index"
-import { MobileWebShell } from "~/modules/mobile-web/MobileWebShell"
 import { getTimelineViewportTransition } from "~/modules/mobile-web/responsive-timeline-route"
+
+const MainDesktopLayout = lazy(() =>
+  import("~/modules/app-layout/subscription-column/index").then((module) => ({
+    default: module.MainDestopLayout,
+  })),
+)
+const MobileWebShell = lazy(() =>
+  import("~/modules/mobile-web/MobileWebShell").then((module) => ({
+    default: module.MobileWebShell,
+  })),
+)
 
 export function Component() {
   const isMobile = useMobile()
@@ -32,8 +41,9 @@ export function Component() {
     }
   }, [isMobile, location.pathname, navigate])
 
-  if (isMobile) {
-    return <MobileWebShell />
-  }
-  return <MainDestopLayout />
+  return (
+    <Suspense fallback={<div className="size-full bg-background" />}>
+      {isMobile ? <MobileWebShell /> : <MainDesktopLayout />}
+    </Suspense>
+  )
 }

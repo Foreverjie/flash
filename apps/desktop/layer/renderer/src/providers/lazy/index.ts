@@ -28,6 +28,12 @@ const LazyReloadPrompt = lazy(() =>
   })),
 )
 
+const LazyFollowCommandManager = lazy(() =>
+  import("~/modules/command/command-manager").then((module) => ({
+    default: module.FollowCommandManager,
+  })),
+)
+
 const LazyPWAPromptImport = lazy(() => import("react-ios-pwa-prompt"))
 
 const LazyPWAPrompt = () => {
@@ -51,6 +57,7 @@ const LazyPWAPrompt = () => {
 export {
   LazyContextMenuProvider,
   LazyExtensionExposeProvider,
+  LazyFollowCommandManager,
   LazyLottieRenderContainer,
   LazyPopoverProvider,
   LazyPWAPrompt,

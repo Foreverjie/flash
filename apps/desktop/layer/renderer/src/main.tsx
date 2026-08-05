@@ -14,7 +14,7 @@ import { authClient } from "~/lib/auth"
 
 import { setAppIsReady } from "./atoms/app"
 import { ElECTRON_CUSTOM_TITLEBAR_HEIGHT } from "./constants"
-import { initializeApp } from "./initialize"
+import { initializeApp, initializeDeferredApp } from "./initialize"
 import { registerAppGlobalShortcuts } from "./initialize/global-shortcuts"
 import { followApi } from "./lib/api-client"
 import { queryClient } from "./lib/query-client"
@@ -25,15 +25,31 @@ queryClientContext.provide(queryClient)
 apiContext.provide(followApi)
 
 initializeApp().finally(() => {
-  import("./push-notification").then(({ registerWebPushNotifications }) => {
-    if (navigator.serviceWorker && WEB_BUILD) {
-      registerWebPushNotifications()
-    }
-  })
-
   // eslint-disable-next-line @eslint-react/dom/no-flush-sync
   flushSync(() => setAppIsReady(true))
+
+  scheduleDeferredInitialization()
 })
+
+const scheduleDeferredInitialization = () => {
+  const run = () => {
+    void initializeDeferredApp()
+
+    if (navigator.serviceWorker && WEB_BUILD) {
+      void import("./push-notification").then(({ registerWebPushNotifications }) => {
+        registerWebPushNotifications()
+      })
+    }
+  }
+
+  requestAnimationFrame(() => {
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(run, { timeout: 1500 })
+    } else {
+      setTimeout(run, 0)
+    }
+  })
+}
 
 const $container = document.querySelector("#root") as HTMLElement
 

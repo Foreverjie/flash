@@ -14,7 +14,6 @@ import { LCPEndDetector } from "~/components/common/LCPEndDetector"
 import { ModalStackProvider } from "~/components/ui/modal"
 import { jotaiStore } from "~/lib/jotai"
 import { persistConfig, queryClient } from "~/lib/query-client"
-import { FollowCommandManager } from "~/modules/command/command-manager"
 
 import { HotkeyProvider } from "./hotkey-provider"
 import { I18nProvider } from "./i18n-provider"
@@ -23,6 +22,7 @@ import {
   LazyContextMenuProvider,
   LazyExtensionExposeProvider,
   LazyExternalJumpInProvider,
+  LazyFollowCommandManager,
   LazyLottieRenderContainer,
   LazyPopoverProvider,
   LazyPWAPrompt,
@@ -48,7 +48,6 @@ export const RootProviders: FC<PropsWithChildren> = ({ children }) => (
 
                 <StableRouterProvider />
                 <SettingSync />
-                <FollowCommandManager />
 
                 {import.meta.env.DEV && <Devtools />}
 
@@ -61,6 +60,7 @@ export const RootProviders: FC<PropsWithChildren> = ({ children }) => (
                   <LazyLottieRenderContainer />
                   <LazyExternalJumpInProvider />
                   <LazyReloadPrompt />
+                  <LazyFollowCommandManager />
                   {!IN_ELECTRON && <LazyPWAPrompt />}
                 </Suspense>
                 {/* <FocusableGuardProvider /> */}

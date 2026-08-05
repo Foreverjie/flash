@@ -3,18 +3,14 @@ import { registerGlobalContext } from "@follow/shared/bridge"
 import { DEV, ELECTRON_BUILD, IN_ELECTRON } from "@follow/shared/constants"
 import { hydrateDatabaseToStore } from "@follow/store/hydrate"
 import { useUserStore } from "@follow/store/user/store"
-import { tracker } from "@follow/tracker"
 import { repository } from "@pkg"
 import { enableMapSet } from "immer"
 
 import { initI18n } from "~/i18n"
-import { hydrateSessionsFromLocalDb } from "~/modules/ai-chat-session"
-import { settingSyncQueue } from "~/modules/settings/helper/sync-queue"
 import { ElectronCloseEvent, ElectronShowEvent } from "~/providers/invalidate-query-provider"
 
 import { subscribeNetworkStatus } from "../atoms/network"
 import { appLog } from "../lib/log"
-import { initAnalytics } from "./analytics"
 import { registerHistoryStack } from "./history"
 import { doMigration } from "./migrates"
 import { initSentry } from "./sentry"
@@ -26,14 +22,15 @@ declare global {
   }
 }
 
+interface AppInitializationMetrics {
+  dataHydratedTime: number
+  loadingTime: number
+}
+
+let appInitializationMetrics: AppInitializationMetrics | undefined
+
 export const initializeApp = async () => {
   appLog(`${APP_NAME}: Follow everything in one place`, repository.url)
-
-  const dataHydratedTime = await apm("hydrateDatabaseToStore", () => {
-    return hydrateDatabaseToStore({
-      migrateDatabase: true,
-    })
-  })
 
   if (DEV) {
     const url = "/favicon-dev.ico"
@@ -56,8 +53,6 @@ export const initializeApp = async () => {
   const now = Date.now()
   initializeDayjs()
   registerHistoryStack()
-
-  await apm("hydrate chat sessions", hydrateSessionsFromLocalDb)
   // Set Environment
   document.documentElement.dataset.buildType = ELECTRON_BUILD ? "electron" : "web"
 
@@ -81,35 +76,73 @@ export const initializeApp = async () => {
 
   subscribeNetworkStatus()
 
-  apm("initializeSettings", initializeSettings)
+  await apm("initializeSettings", initializeSettings)
 
   initSentry()
-  await apm("i18n", initI18n)
 
-  // Settings sync hits authenticated endpoints; logged-out visitors skip it
-  // (it is kicked off again by handleSessionChanges after login)
-  if (useUserStore.getState().whoami) {
-    apm("setting sync", () => {
-      settingSyncQueue.init()
-      settingSyncQueue.syncLocal()
-    })
-  }
-
-  await apm("initAnalytics", initAnalytics)
+  // Database hydration and locale setup are independent. Both are required by
+  // the first screen, so start them together instead of serializing them.
+  const hydrationStartedAt = Date.now()
+  const [dataHydratedTime] = await Promise.all([
+    apm("hydrateDatabaseToStore", () => {
+      return hydrateDatabaseToStore({
+        migrateDatabase: true,
+      })
+    }).then(() => Date.now() - hydrationStartedAt),
+    apm("i18n", initI18n),
+  ])
 
   const loadingTime = Date.now() - now
+  appInitializationMetrics = { dataHydratedTime, loadingTime }
   appLog(`Initialize ${APP_NAME} done,`, `${loadingTime}ms`)
+}
+
+export const initializeDeferredApp = async () => {
+  const tasks: Promise<unknown>[] = [
+    apm("hydrate chat sessions", async () => {
+      const { hydrateSessionsFromLocalDb } = await import("~/modules/ai-chat-session/store")
+      await hydrateSessionsFromLocalDb()
+    }),
+    apm("initAnalytics", async () => {
+      const { initAnalytics } = await import("./analytics")
+      await initAnalytics()
+    }),
+  ]
+
+  // Settings sync hits authenticated endpoints; logged-out visitors skip it
+  // (it is kicked off again by handleSessionChanges after login).
+  if (useUserStore.getState().whoami) {
+    tasks.push(
+      apm("setting sync", async () => {
+        const { settingSyncQueue } = await import("~/modules/settings/helper/sync-queue")
+        await settingSyncQueue.init()
+        await settingSyncQueue.syncLocal()
+      }),
+    )
+  }
+
+  const results = await Promise.allSettled(tasks)
+  for (const result of results) {
+    if (result.status === "rejected") {
+      appLog("Deferred initialization failed", result.reason)
+    }
+  }
+
+  const metrics = appInitializationMetrics
+  if (!metrics) return
+
+  const { tracker } = await import("@follow/tracker")
 
   tracker.appInit({
     electron: IN_ELECTRON,
-    loading_time: loadingTime,
-    data_hydrated_time: dataHydratedTime,
+    loading_time: metrics.loadingTime,
+    data_hydrated_time: metrics.dataHydratedTime,
     version: APP_VERSION,
     rn: false,
   })
 }
 
-const apm = async (label: string, fn: () => Promise<any> | any) => {
+const apm = async <T>(label: string, fn: () => Promise<T> | T): Promise<T> => {
   const start = Date.now()
   const result = await fn()
   const end = Date.now()
