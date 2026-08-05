@@ -4,6 +4,7 @@
  */
 import { zValidator } from "@hono/zod-validator"
 import { and, count, eq, sql } from "drizzle-orm"
+import type { Context } from "hono"
 import { Hono } from "hono"
 import { z } from "zod"
 
@@ -11,7 +12,11 @@ import type { User } from "../auth/index.js"
 import { db, feeds, posts, subscriptions } from "../db/index.js"
 import { resolveFeedView, resolveSubscriptionView } from "../lib/feed-view.js"
 import { rssManager } from "../lib/rss/index.js"
-import { isScraplingAdapterType, scrapingClient } from "../lib/scraping-client.js"
+import {
+  isScraplingAdapterType,
+  scrapingClient,
+  ScrapingServiceUnavailableError,
+} from "../lib/scraping-client.js"
 import { requireAuth } from "../middleware/auth.js"
 import {
   assertSubscriptionCapacity,
@@ -178,6 +183,30 @@ feedsRouter.get("/", zValidator("query", getFeedSchema), async (c) => {
     }),
   )
 })
+
+/**
+ * GET /feeds/refresh?id=…
+ * The client SDK's refresh route. Registered before `GET /:id` so the literal
+ * path is not matched as a feed id.
+ */
+feedsRouter.get(
+  "/refresh",
+  requireAuth,
+  zValidator("query", z.object({ id: z.string().min(1) })),
+  (c) => handleFeedRefresh(c, c.req.valid("query").id),
+)
+
+/**
+ * GET /feeds/reset?id=…
+ * The client SDK's reset route. Registered before `GET /:id` for the same
+ * reason as `/refresh` — otherwise "reset" is matched as a feed id.
+ */
+feedsRouter.get(
+  "/reset",
+  requireAuth,
+  zValidator("query", z.object({ id: z.string().min(1) })),
+  (c) => handleFeedReset(c, c.req.valid("query").id),
+)
 
 /**
  * GET /feeds/:id
@@ -431,6 +460,139 @@ feedsRouter.delete(
 )
 
 /**
+ * Fetch a feed's source and persist any new posts.
+ *
+ * Shared by both refresh entry points: the client SDK calls
+ * `GET /feeds/refresh?id=…`, while `POST /feeds/:id/refresh` is the RESTful
+ * form kept for existing callers and scripts.
+ */
+async function handleFeedRefresh(c: Context<{ Variables: FeedsVariables }>, id: string) {
+  try {
+    const feed = await db.query.feeds.findFirst({
+      where: eq(feeds.id, id),
+    })
+
+    if (!feed) {
+      return sendNotFound(c, "Feed")
+    }
+
+    // Delegate to Python scraping service for scraper-backed feeds
+    if (feed.adapterType && isScraplingAdapterType(feed.adapterType)) {
+      const source = getScrapingSource(feed)
+      if (!source) {
+        return sendError(c, `Malformed ${feed.adapterType} URL`, 400, 400)
+      }
+      try {
+        const result = await scrapingClient.scrape({
+          feedId: feed.id,
+          adapterType: feed.adapterType,
+          source,
+        })
+        await db
+          .update(feeds)
+          .set({ lastFetchedAt: new Date(), errorAt: null, errorMessage: null })
+          .where(eq(feeds.id, feed.id))
+        return c.json(structuredSuccess({ message: "Feed refreshed", newPosts: result.inserted }))
+      } catch (err) {
+        logger.error(`[Feeds] Scraping service error for feed ${id}:`, err)
+
+        // The scraper being down says nothing about the feed. Recording it as a
+        // feed error would show every subscriber a broken feed because of a
+        // server-side outage — so report 503 and leave the feed's state alone.
+        if (err instanceof ScrapingServiceUnavailableError) {
+          return sendError(c, err.message, 503, 503)
+        }
+
+        await db
+          .update(feeds)
+          .set({
+            errorAt: new Date(),
+            errorMessage: err instanceof Error ? err.message : "Scraping failed",
+          })
+          .where(eq(feeds.id, id))
+        return sendError(c, "Failed to scrape this feed", 502, 502)
+      }
+    }
+
+    // Fetch latest content
+    const result = await rssManager.fetch(feed.url)
+
+    if (!result.success || !result.data) {
+      // Update error status
+      await db
+        .update(feeds)
+        .set({
+          errorAt: new Date(),
+          errorMessage: result.error || "Failed to fetch feed",
+        })
+        .where(eq(feeds.id, id))
+
+      return sendError(c, result.error || "Failed to refresh feed", 400, 400)
+    }
+
+    const feedData = result.data
+
+    // Update feed metadata
+    await db
+      .update(feeds)
+      .set({
+        title: feedData.title || feed.title,
+        description: feedData.description || feed.description,
+        image: feedData.image || feed.image,
+        lastFetchedAt: new Date(),
+        lastBuildDate: feedData.lastBuildDate,
+        errorAt: null,
+        errorMessage: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(feeds.id, id))
+
+    // Insert new posts (upsert)
+    let newPostsCount = 0
+    for (const item of feedData.items) {
+      const existingPost = await db.query.posts.findFirst({
+        where: and(eq(posts.feedId, id), eq(posts.guid, item.guid)),
+      })
+
+      if (!existingPost) {
+        await db.insert(posts).values({
+          id: generateSnowflakeId(),
+          feedId: id,
+          guid: item.guid,
+          title: item.title,
+          url: item.url,
+          description: item.description,
+          content: item.content,
+          author: item.author,
+          authorUrl: item.authorUrl,
+          authorAvatar: item.authorAvatar,
+          publishedAt: item.publishedAt,
+          media: item.media,
+          attachments: item.attachments,
+          categories: item.categories,
+          formattedContent: item.formattedContent,
+          language: feedData.language,
+          extra: item.extra,
+        })
+        newPostsCount++
+      }
+    }
+
+    logger.info(`[Feeds] Feed refreshed: ${id}, ${newPostsCount} new posts`)
+
+    return c.json(
+      structuredSuccess({
+        message: "Feed refreshed successfully",
+        newPosts: newPostsCount,
+      }),
+    )
+  } catch (error) {
+    logger.error("[Feeds] Refresh error:", error)
+    return sendError(c, "Failed to refresh feed", 500, 500)
+  }
+}
+
+/**
  * POST /feeds/:id/refresh
  * Manually refresh a feed
  */
@@ -438,122 +600,67 @@ feedsRouter.post(
   "/:id/refresh",
   requireAuth,
   zValidator("param", z.object({ id: z.string().min(1) })),
-  async (c) => {
-    try {
-      const { id } = c.req.valid("param")
+  (c) => handleFeedRefresh(c, c.req.valid("param").id),
+)
 
-      const feed = await db.query.feeds.findFirst({
-        where: eq(feeds.id, id),
-      })
+/**
+ * Clear a feed's cached fetch state and immediately re-pull the source.
+ *
+ * Deliberately non-destructive: stored posts (and every subscriber's read
+ * history) are left alone. What resets is the polling state — the error flags
+ * and the `lastFetchedAt` / `lastBuildDate` watermarks the scheduler uses to
+ * decide a feed is fresh — so a feed wedged by a transient upstream failure
+ * starts clean instead of staying parked until its next natural poll.
+ *
+ * Owner-only, matching the desktop context menu that exposes it.
+ */
+async function handleFeedReset(c: Context<{ Variables: FeedsVariables }>, id: string) {
+  try {
+    const user = c.get("user")
 
-      if (!feed) {
-        return sendNotFound(c, "Feed")
-      }
+    const feed = await db.query.feeds.findFirst({
+      where: eq(feeds.id, id),
+    })
 
-      // Delegate to Python scraping service for scraper-backed feeds
-      if (feed.adapterType && isScraplingAdapterType(feed.adapterType)) {
-        const source = getScrapingSource(feed)
-        if (!source) {
-          return sendError(c, `Malformed ${feed.adapterType} URL`, 400, 400)
-        }
-        try {
-          const result = await scrapingClient.scrape({
-            feedId: feed.id,
-            adapterType: feed.adapterType,
-            source,
-          })
-          await db
-            .update(feeds)
-            .set({ lastFetchedAt: new Date(), errorAt: null, errorMessage: null })
-            .where(eq(feeds.id, feed.id))
-          return c.json(structuredSuccess({ message: "Feed refreshed", newPosts: result.inserted }))
-        } catch (err) {
-          logger.error(`[Feeds] Scraping service error for feed ${id}:`, err)
-          await db
-            .update(feeds)
-            .set({ errorAt: new Date(), errorMessage: "Scraping service unavailable" })
-            .where(eq(feeds.id, id))
-          return sendError(c, "Scraper service unavailable", 500, 500)
-        }
-      }
-
-      // Fetch latest content
-      const result = await rssManager.fetch(feed.url)
-
-      if (!result.success || !result.data) {
-        // Update error status
-        await db
-          .update(feeds)
-          .set({
-            errorAt: new Date(),
-            errorMessage: result.error || "Failed to fetch feed",
-          })
-          .where(eq(feeds.id, id))
-
-        return sendError(c, result.error || "Failed to refresh feed", 400, 400)
-      }
-
-      const feedData = result.data
-
-      // Update feed metadata
-      await db
-        .update(feeds)
-        .set({
-          title: feedData.title || feed.title,
-          description: feedData.description || feed.description,
-          image: feedData.image || feed.image,
-          lastFetchedAt: new Date(),
-          lastBuildDate: feedData.lastBuildDate,
-          errorAt: null,
-          errorMessage: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(feeds.id, id))
-
-      // Insert new posts (upsert)
-      let newPostsCount = 0
-      for (const item of feedData.items) {
-        const existingPost = await db.query.posts.findFirst({
-          where: and(eq(posts.feedId, id), eq(posts.guid, item.guid)),
-        })
-
-        if (!existingPost) {
-          await db.insert(posts).values({
-            id: generateSnowflakeId(),
-            feedId: id,
-            guid: item.guid,
-            title: item.title,
-            url: item.url,
-            description: item.description,
-            content: item.content,
-            author: item.author,
-            authorUrl: item.authorUrl,
-            authorAvatar: item.authorAvatar,
-            publishedAt: item.publishedAt,
-            media: item.media,
-            attachments: item.attachments,
-            categories: item.categories,
-            formattedContent: item.formattedContent,
-            language: feedData.language,
-            extra: item.extra,
-          })
-          newPostsCount++
-        }
-      }
-
-      logger.info(`[Feeds] Feed refreshed: ${id}, ${newPostsCount} new posts`)
-
-      return c.json(
-        structuredSuccess({
-          message: "Feed refreshed successfully",
-          newPosts: newPostsCount,
-        }),
-      )
-    } catch (error) {
-      logger.error("[Feeds] Refresh error:", error)
-      return sendError(c, "Failed to refresh feed", 500, 500)
+    if (!feed) {
+      return sendNotFound(c, "Feed")
     }
-  },
+
+    if (feed.ownerUserId !== user?.id && user?.role !== "admin") {
+      return sendError(c, "Not authorized to reset this feed", 403, 403)
+    }
+
+    await db
+      .update(feeds)
+      .set({
+        errorAt: null,
+        errorMessage: null,
+        lastFetchedAt: null,
+        lastBuildDate: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(feeds.id, id))
+
+    logger.info(`[Feeds] Feed reset: ${id} by user ${user?.id}`)
+
+    // Re-pull straight away so the caller sees the effect without waiting for
+    // the scheduler. Its response already carries the new-post count.
+    return await handleFeedRefresh(c, id)
+  } catch (error) {
+    logger.error("[Feeds] Reset error:", error)
+    return sendError(c, "Failed to reset feed", 500, 500)
+  }
+}
+
+/**
+ * POST /feeds/:id/reset
+ * RESTful form of the reset action, kept alongside the SDK's GET route.
+ */
+feedsRouter.post(
+  "/:id/reset",
+  requireAuth,
+  zValidator("param", z.object({ id: z.string().min(1) })),
+  (c) => handleFeedReset(c, c.req.valid("param").id),
 )
 
 /**

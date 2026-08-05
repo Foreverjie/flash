@@ -66,7 +66,7 @@ export function sendError(
   c: Context,
   message: string,
   code = 1,
-  statusCode: 400 | 401 | 403 | 404 | 500 = 400,
+  statusCode: 400 | 401 | 403 | 404 | 500 | 502 | 503 = 400,
 ) {
   return c.json(errorResponse(message, code), statusCode)
 }

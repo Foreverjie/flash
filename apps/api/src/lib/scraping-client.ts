@@ -22,6 +22,19 @@ export interface ScrapeResult {
   inserted: number
 }
 
+/**
+ * The scraping service could not be reached, timed out, or failed on its own
+ * side. This says nothing about the feed, so callers must not record it as a
+ * feed error — that would flag a healthy feed as broken for every subscriber
+ * whenever the scraper is down or not running locally.
+ */
+export class ScrapingServiceUnavailableError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options)
+    this.name = "ScrapingServiceUnavailableError"
+  }
+}
+
 export class ScrapingClient {
   constructor(
     private readonly baseUrl: string,
@@ -50,13 +63,30 @@ export class ScrapingClient {
 
       if (!resp.ok) {
         const body = await resp.text().catch(() => "")
-        throw new Error(`Scraping service error: ${resp.status}${body ? ` — ${body}` : ""}`)
+        const detail = `${resp.status}${body ? ` — ${body}` : ""}`
+        // 5xx is the scraper failing, not the feed. 4xx means it processed the
+        // request and rejected it, which does say something about the feed.
+        if (resp.status >= 500) {
+          throw new ScrapingServiceUnavailableError(`Scraping service error: ${detail}`)
+        }
+        throw new Error(`Scraping service error: ${detail}`)
       }
 
       return (await resp.json()) as ScrapeResult
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        throw new Error(`Scraping service timed out after ${this.timeoutMs}ms`)
+        throw new ScrapingServiceUnavailableError(
+          `Scraping service timed out after ${this.timeoutMs}ms`,
+        )
+      }
+      if (err instanceof ScrapingServiceUnavailableError) throw err
+      // A transport failure (service not running, DNS, refused connection)
+      // surfaces as a bare TypeError from fetch.
+      if (err instanceof TypeError) {
+        throw new ScrapingServiceUnavailableError(
+          `Cannot reach the scraping service at ${this.baseUrl}`,
+          { cause: err },
+        )
       }
       throw err
     } finally {

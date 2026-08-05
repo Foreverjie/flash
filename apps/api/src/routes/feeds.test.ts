@@ -115,8 +115,10 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
     expect(body.data.newPosts).toBe(3)
   })
 
-  it("returns 500 and records error when scraping service fails", async () => {
+  it("returns 503 without flagging the feed when the scraper itself is down", async () => {
     const { db } = await import("../db/index.js")
+    const setSpy = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: setSpy })
     ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "feed-123",
       url: "x_timeline://elonmusk",
@@ -134,9 +136,58 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
     app.route("/feeds", feedsRouter)
 
     const res = await app.request("/feeds/feed-123/refresh", { method: "POST" })
-    expect(res.status).toBe(500)
-    // db.update should have been called to record the error
-    expect(db.update).toHaveBeenCalled()
+
+    expect(res.status).toBe(503)
+    // A scraper outage must not leave the feed marked broken for subscribers.
+    expect(setSpy).not.toHaveBeenCalledWith(expect.objectContaining({ errorAt: expect.anything() }))
+  })
+
+  it("returns 503 when the scraping service cannot be reached at all", async () => {
+    const { db } = await import("../db/index.js")
+    const setSpy = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: setSpy })
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "leyoujia_community://9575",
+      adapterType: "leyoujia_community",
+    })
+
+    server.use(http.post("http://scraper.test/scrape", () => HttpResponse.error()))
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/feed-123/refresh", { method: "POST" })
+
+    expect(res.status).toBe(503)
+    expect(setSpy).not.toHaveBeenCalledWith(expect.objectContaining({ errorAt: expect.anything() }))
+  })
+
+  it("records a feed error when the scraper rejects the feed itself", async () => {
+    const { db } = await import("../db/index.js")
+    const setSpy = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: setSpy })
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "x_timeline://gone",
+      adapterType: "x_timeline",
+    })
+
+    server.use(
+      http.post("http://scraper.test/scrape", () =>
+        HttpResponse.json({ error: "account not found" }, { status: 404 }),
+      ),
+    )
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/feed-123/refresh", { method: "POST" })
+
+    expect(res.status).toBe(502)
+    expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({ errorAt: expect.any(Date) }))
   })
 })
 
@@ -306,5 +357,160 @@ describe("POST /feeds — x_timeline creation", () => {
     })
 
     expect(res.status).toBe(400)
+  })
+})
+
+describe("GET /feeds/refresh — client SDK route", () => {
+  beforeEach(async () => {
+    vi.resetModules()
+    process.env.SCRAPER_SERVICE_URL = "http://scraper.test"
+    process.env.INTERNAL_API_KEY = "test-key"
+  })
+
+  it("refreshes the feed the SDK names in the id query param", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "x_timeline://elonmusk",
+      adapterType: "x_timeline",
+    })
+
+    server.use(http.post("http://scraper.test/scrape", () => HttpResponse.json({ inserted: 5 })))
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/refresh?id=feed-123")
+    const body = (await res.json()) as { data: { newPosts: number } }
+
+    expect(res.status).toBe(200)
+    expect(body.data.newPosts).toBe(5)
+  })
+
+  it("is not swallowed by GET /feeds/:id — 'refresh' is never read as a feed id", async () => {
+    const { db } = await import("../db/index.js")
+    const findFirst = db.query.feeds.findFirst as ReturnType<typeof vi.fn>
+    findFirst.mockResolvedValue({
+      id: "feed-123",
+      url: "x_timeline://elonmusk",
+      adapterType: "x_timeline",
+    })
+
+    server.use(http.post("http://scraper.test/scrape", () => HttpResponse.json({ inserted: 1 })))
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/refresh?id=feed-123")
+    const body = (await res.json()) as { data?: { newPosts?: number } }
+
+    // The detail route would have answered with { feed }, not a refresh result.
+    expect(res.status).toBe(200)
+    expect(body.data?.newPosts).toBe(1)
+  })
+
+  it("rejects a refresh with no id instead of treating it as a feed lookup", async () => {
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/refresh")
+
+    expect(res.status).toBe(400)
+  })
+})
+
+describe("GET /feeds/reset — client SDK route", () => {
+  beforeEach(async () => {
+    vi.resetModules()
+    process.env.SCRAPER_SERVICE_URL = "http://scraper.test"
+    process.env.INTERNAL_API_KEY = "test-key"
+  })
+
+  // requireAuth is stubbed out for these unit tests, so the owner check needs a
+  // user planted on the context.
+  type TestUser = { id: string; role?: string }
+  const appWithUser = (router: Hono<any>, user: TestUser | null) => {
+    const app = new Hono<{ Variables: { user: TestUser | null } }>()
+    app.use("*", async (c, next) => {
+      c.set("user", user)
+      await next()
+    })
+    app.route("/feeds", router)
+    return app
+  }
+
+  it("clears the polling state and re-pulls the source for the owner", async () => {
+    const { db } = await import("../db/index.js")
+    const setSpy = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: setSpy })
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "x_timeline://elonmusk",
+      adapterType: "x_timeline",
+      ownerUserId: "user-1",
+    })
+
+    server.use(http.post("http://scraper.test/scrape", () => HttpResponse.json({ inserted: 4 })))
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = appWithUser(feedsRouter, { id: "user-1" })
+
+    const res = await app.request("/feeds/reset?id=feed-123")
+    const body = (await res.json()) as { data: { newPosts: number } }
+
+    expect(res.status).toBe(200)
+    // The refresh it chains into reports what the re-pull found.
+    expect(body.data.newPosts).toBe(4)
+    expect(setSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorAt: null,
+        errorMessage: null,
+        lastFetchedAt: null,
+        lastBuildDate: null,
+      }),
+    )
+  })
+
+  it("refuses to reset a feed the caller does not own", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "https://example.com/rss.xml",
+      ownerUserId: "someone-else",
+    })
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = appWithUser(feedsRouter, { id: "user-1" })
+
+    const res = await app.request("/feeds/reset?id=feed-123")
+
+    expect(res.status).toBe(403)
+  })
+
+  it("is not swallowed by GET /feeds/:id", async () => {
+    const { db } = await import("../db/index.js")
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({
+      set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) }),
+    })
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-123",
+      url: "x_timeline://elonmusk",
+      adapterType: "x_timeline",
+      ownerUserId: "user-1",
+    })
+
+    server.use(http.post("http://scraper.test/scrape", () => HttpResponse.json({ inserted: 1 })))
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = appWithUser(feedsRouter, { id: "user-1" })
+
+    const res = await app.request("/feeds/reset?id=feed-123")
+    const body = (await res.json()) as { data?: { newPosts?: number } }
+
+    // The detail route would have answered with { feed }, not a refresh result.
+    expect(body.data?.newPosts).toBe(1)
   })
 })
