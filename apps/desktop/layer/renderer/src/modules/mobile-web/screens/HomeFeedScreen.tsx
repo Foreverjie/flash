@@ -1,28 +1,18 @@
 import { EmptyStage } from "@follow/components/ui/empty/index.js"
-import { useEntry } from "@follow/store/entry/hooks"
-import { useFeedById } from "@follow/store/feed/hooks"
 import { useViewWithSubscription } from "@follow/store/subscription/hooks"
 import { useWhoami } from "@follow/store/user/hooks"
-import { cn } from "@follow/utils/utils"
 import { useAtom, useSetAtom } from "jotai"
-import { memo, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router"
 
-import { RelativeTime } from "~/components/ui/datetime"
 import { PlainModal } from "~/components/ui/modal/stacked/custom-modal"
 import { useModalStack } from "~/components/ui/modal/stacked/hooks"
 import { LoginModalContent } from "~/modules/auth/LoginModalContent"
 import { useEntriesActions, useEntriesState } from "~/modules/entry-column/context/EntriesContext"
-import { FeedIcon } from "~/modules/feed/feed-icon"
-import { resolvePropertyListing } from "~/modules/property/property-utils"
 
 import { mobileActiveViewAtom, mobileReaderEntryIdAtom } from "../atoms"
-import { ArticleCardContent } from "../cards/ArticleCard"
-import { getCardType } from "../cards/getCardType"
-import { ImageCardContent } from "../cards/ImageCard"
-import { PodcastCardContent } from "../cards/PodcastCard"
-import { PropertyCard } from "../cards/PropertyCard"
-import { VideoCardContent } from "../cards/VideoCard"
+import { EntryCard } from "../cards/EntryCard"
 import { useViewSwipe } from "../useViewSwipe"
 import { ViewPillTrack } from "../ViewPillTrack"
 
@@ -80,6 +70,9 @@ function AuthenticatedHomeFeed() {
 
   const viewsWithSub = useViewWithSubscription()
   const [activeView, setActiveView] = useAtom(mobileActiveViewAtom)
+  const setReaderEntryId = useSetAtom(mobileReaderEntryIdAtom)
+  const navigate = useNavigate()
+  const openFeed = useCallback((feedId: string) => navigate(`/feeds/${feedId}`), [navigate])
 
   useViewSwipe({
     containerRef: swipeRef,
@@ -139,7 +132,13 @@ function AuthenticatedHomeFeed() {
         ) : (
           <>
             {entriesIds.map((id) => (
-              <EntryCard key={id} entryId={id} />
+              <EntryCard
+                key={id}
+                entryId={id}
+                view={activeView}
+                onOpen={setReaderEntryId}
+                onOpenFeed={openFeed}
+              />
             ))}
             {isFetchingNextPage && (
               <div className="flex items-center justify-center py-4">
@@ -157,153 +156,6 @@ function AuthenticatedHomeFeed() {
     </div>
   )
 }
-
-const EntryCard = memo(function EntryCard({ entryId }: { entryId: string }) {
-  const { t } = useTranslation()
-  const [activeView] = useAtom(mobileActiveViewAtom)
-  const setReaderEntryId = useSetAtom(mobileReaderEntryIdAtom)
-  const entry = useEntry(entryId, (e) => ({
-    title: e.title,
-    description: e.description,
-    publishedAt: e.publishedAt,
-    feedId: e.feedId,
-    media: e.media,
-    attachments: e.attachments,
-    property: e.extra?.property,
-    url: e.url,
-    read: e.read,
-  }))
-
-  const feed = useFeedById(entry?.feedId)
-
-  const derived = useMemo(() => {
-    if (!entry) return null
-    const cardType = getCardType(activeView, {
-      media: entry.media ?? undefined,
-      attachments: entry.attachments ?? undefined,
-    })
-    const thumbnailUrl = entry.media?.find((m) => m.type === "photo")?.url
-    const video = entry.media?.find((m) => m.type === "video")
-    const videoThumbnail = video?.preview_image_url || video?.url || thumbnailUrl
-    const images =
-      entry.media
-        ?.filter((m) => m.type === "photo")
-        .map((m) => ({ url: m.url, blurhash: m.blurhash })) ?? []
-    const durationRaw = entry.attachments?.find((a) => a.duration_in_seconds)?.duration_in_seconds
-    const duration =
-      typeof durationRaw === "string"
-        ? Number.parseFloat(durationRaw)
-        : typeof durationRaw === "number"
-          ? durationRaw
-          : undefined
-    return { cardType, thumbnailUrl, videoThumbnail, images, duration }
-  }, [entry, activeView])
-
-  if (!entry || !derived) return null
-
-  const handleOpen = () => {
-    setReaderEntryId(entryId)
-  }
-
-  const property = resolvePropertyListing({
-    property: entry.property,
-    feedUrl: feed?.url,
-    feedTitle: feed?.title,
-    entryTitle: entry.title,
-  })
-
-  if (property) {
-    const imageUrl =
-      entry.media?.find((media) => media.type === "photo")?.url || property.image || undefined
-    return (
-      <PropertyCard
-        property={property}
-        fallbackTitle={entry.title ?? undefined}
-        imageUrl={imageUrl}
-        isRead={!!entry.read}
-        publishedAt={entry.publishedAt}
-        onOpen={handleOpen}
-      />
-    )
-  }
-
-  const { cardType, thumbnailUrl, videoThumbnail, images, duration } = derived
-  const isRead = !!entry.read
-
-  return (
-    <article
-      role="link"
-      tabIndex={0}
-      onClick={handleOpen}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          handleOpen()
-        }
-      }}
-      className={cn(
-        "relative cursor-pointer border-b border-border/50 bg-background px-4 py-3 transition-colors active:bg-fill-secondary",
-      )}
-    >
-      {!isRead && (
-        <span aria-hidden className="absolute left-1 top-4 size-1.5 rounded-full bg-brand-accent" />
-      )}
-      {/* Source row */}
-      <div className="mb-1.5 flex items-center gap-2">
-        {feed && (
-          <FeedIcon
-            target={{
-              title: feed.title,
-              image: feed.image,
-              siteUrl: feed.siteUrl,
-              type: "feed",
-            }}
-            size={18}
-            noMargin
-          />
-        )}
-        <span
-          className={cn(
-            "min-w-0 truncate text-[13px] font-medium",
-            isRead ? "text-text-tertiary" : "text-text-secondary",
-          )}
-        >
-          {feed?.title ?? t("mobile.home.unknown_source")}
-        </span>
-        {entry.publishedAt && (
-          <span className="ml-auto shrink-0 text-[13px] text-text-tertiary">
-            <RelativeTime date={entry.publishedAt} />
-          </span>
-        )}
-      </div>
-
-      {/* Title */}
-      {entry.title && (
-        <h3
-          className={cn(
-            "mb-1.5 line-clamp-2 text-[15px] font-bold leading-snug",
-            isRead ? "text-text-secondary" : "text-text",
-          )}
-        >
-          {entry.title}
-        </h3>
-      )}
-
-      {/* Type-specific content */}
-      {cardType === "article" && (
-        <ArticleCardContent
-          description={entry.description ?? undefined}
-          thumbnailUrl={thumbnailUrl}
-        />
-      )}
-      {cardType === "image" && images.length > 0 && <ImageCardContent images={images} />}
-      {cardType === "video" && (
-        <VideoCardContent thumbnailUrl={videoThumbnail} duration={duration} />
-      )}
-      {cardType === "podcast" && <PodcastCardContent duration={duration} entryId={entryId} />}
-    </article>
-  )
-})
 
 function EntryCardSkeleton() {
   return (

@@ -9,7 +9,7 @@ import { PortalProvider } from "@gorhom/portal"
 import * as WebBrowser from "expo-web-browser"
 import { atom, useAtomValue, useSetAtom } from "jotai"
 import { useCallback, useEffect, useMemo } from "react"
-import { View } from "react-native"
+import { Pressable, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useColor } from "react-native-uikit-colors"
 
@@ -26,6 +26,7 @@ import { ItemPressable } from "@/src/components/ui/pressable/ItemPressable"
 import { Text } from "@/src/components/ui/typography/Text"
 import { CalendarTimeAddCuteReIcon } from "@/src/icons/calendar_time_add_cute_re"
 import { Eye2CuteReIcon } from "@/src/icons/eye_2_cute_re"
+import { RightCuteReIcon } from "@/src/icons/right_cute_re"
 import { openLink } from "@/src/lib/native"
 import { useNavigation } from "@/src/lib/navigation/hooks"
 import type { NavigationControllerView } from "@/src/lib/navigation/types"
@@ -33,6 +34,7 @@ import { EntryContentContext, useEntryContentContext } from "@/src/modules/entry
 import { EntryAISummary } from "@/src/modules/entry-content/EntryAISummary"
 import { EntryNavigationHeader } from "@/src/modules/entry-content/EntryNavigationHeader"
 import { usePullUpToNext } from "@/src/modules/entry-content/pull-up-navigation/use-pull-up-navigation"
+import { useNavigateToFeed } from "@/src/modules/feed/useNavigateToFeed"
 
 import { EntrySocialTitle, EntryTitle } from "../../../../modules/entry-content/EntryTitle"
 
@@ -207,17 +209,25 @@ const EntryInfo = ({ entryId }: { entryId: string }) => {
   const secondaryLabelColor = useColor("secondaryLabel")
   const readCount = useEntryReadHistory(entryId)?.entryReadHistories?.readCount
   const hideRecentReader = useUISettingKey("hideRecentReader")
+  const navigateToFeed = useNavigateToFeed(entry?.feedId)
   if (!entry) return null
   const { publishedAt } = entry
   return (
     <View className="mt-4 flex flex-row items-center gap-4 px-5">
       {feed && (
-        <View className="flex shrink flex-row items-center gap-2">
+        // Nested inside the title's pressable: this wins the touch and opens
+        // the feed instead of the article's source URL.
+        <Pressable
+          onPress={navigateToFeed}
+          hitSlop={6}
+          className="flex shrink flex-row items-center gap-2"
+        >
           <FeedIcon feed={feed} />
           <Text className="shrink text-sm font-medium leading-tight text-label" numberOfLines={1}>
             {feed.title?.trim()}
           </Text>
-        </View>
+          <RightCuteReIcon width={12} height={12} color={secondaryLabelColor} />
+        </Pressable>
       )}
       <View className="flex flex-row items-center gap-1">
         <CalendarTimeAddCuteReIcon width={16} height={16} color={secondaryLabelColor} />

@@ -7,6 +7,7 @@ import { useAtom } from "jotai"
 import { AnimatePresence, m } from "motion/react"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router"
 
 import { RelativeTime } from "~/components/ui/datetime"
 import { PropertyDetail } from "~/modules/entry-content/components/PropertyDetail"
@@ -40,6 +41,7 @@ export function MobileEntryReaderHost() {
 function MobileEntryReader({ entryId, onClose }: { entryId: string; onClose: () => void }) {
   const { t } = useTranslation()
   const { t: tCommon } = useTranslation("common")
+  const navigate = useNavigate()
   const entry = useEntry(entryId, (e) => ({
     title: e.title,
     url: e.url,
@@ -88,7 +90,18 @@ function MobileEntryReader({ entryId, onClose }: { entryId: string; onClose: () 
         >
           <i className="i-mgc-arrow-left-cute-re size-5" />
         </button>
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <button
+          type="button"
+          // The source row is the way into the feed detail page. The reader is
+          // an overlay, so it closes before the route underneath changes.
+          disabled={!feed?.id}
+          onClick={() => {
+            if (!feed?.id) return
+            onClose()
+            navigate(`/feeds/${feed.id}`)
+          }}
+          className="-ml-1 flex min-w-0 flex-1 items-center gap-2 rounded-full py-1 pl-1 pr-2 text-left transition-colors active:bg-fill-secondary disabled:active:bg-transparent"
+        >
           {feed && (
             <FeedIcon
               target={{
@@ -104,7 +117,10 @@ function MobileEntryReader({ entryId, onClose }: { entryId: string; onClose: () 
           <span className="min-w-0 truncate text-[13px] font-medium text-text-secondary">
             {feed?.title ?? t("mobile.home.unknown_source")}
           </span>
-        </div>
+          {feed?.id && (
+            <i aria-hidden className="i-mgc-right-cute-re shrink-0 text-xs text-text-quaternary" />
+          )}
+        </button>
         {entry?.url && (
           <a
             href={entry.url}

@@ -2,7 +2,7 @@ import { isFreeRole } from "@follow/constants"
 import { usePrefetchEntryTranslation } from "@follow/store/translation/hooks"
 import { useUserRole } from "@follow/store/user/hooks"
 import type { FlashListRef, ListRenderItemInfo } from "@shopify/flash-list"
-import type { ElementRef } from "react"
+import type { ElementRef, ReactElement } from "react"
 import { useCallback, useImperativeHandle, useMemo, useRef } from "react"
 import { View } from "react-native"
 
@@ -20,7 +20,12 @@ export const EntryListContentSocial = ({
   ref: forwardRef,
   entryIds,
   active,
-}: { entryIds: string[] | null; active?: boolean } & {
+  ListHeaderComponent,
+}: {
+  entryIds: string[] | null
+  active?: boolean
+  ListHeaderComponent?: ReactElement | null
+} & {
   ref?: React.Ref<ElementRef<typeof TimelineSelectorList> | null>
 }) => {
   const { fetchNextPage, isFetching, refetch, isRefetching, hasNextPage, isReady } = useEntries()
@@ -65,6 +70,7 @@ export const EntryListContentSocial = ({
         keyExtractor={(id) => id}
         renderItem={EntryItemSkeleton}
         ItemSeparatorComponent={ItemSeparatorFullWidth}
+        ListHeaderComponent={ListHeaderComponent}
       />
     )
   }
@@ -84,6 +90,7 @@ export const EntryListContentSocial = ({
       onViewableItemsChanged={onViewableItemsChanged}
       onScroll={onScroll}
       ItemSeparatorComponent={ItemSeparatorFullWidth}
+      ListHeaderComponent={ListHeaderComponent}
       ListFooterComponent={ListFooterComponent}
     />
   )

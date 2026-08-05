@@ -1,3 +1,4 @@
+import { isScraperBackedFeedUrl } from "@follow/constants"
 import type { FeedSchema } from "@follow/database/schemas/types"
 import { FEED_EXTRA_DATA_KEYS, FeedService } from "@follow/database/services/feed"
 import { getDateISOString, isBizId } from "@follow/utils"
@@ -188,6 +189,28 @@ class FeedSyncServices {
     })
 
     await tx.run()
+  }
+
+  /**
+   * Ask the server to re-pull a feed's source.
+   *
+   * `POST /entries` is a database read — it never touches the upstream feed —
+   * so anything that means "get me the newest posts" has to go through here
+   * first and re-read entries afterwards.
+   *
+   * Only scraper-backed feeds and feeds the user owns can be refreshed on
+   * demand; for everything else the server's scheduler owns the polling, and
+   * this resolves `false` so callers can fall back to a plain re-read.
+   */
+  async refreshFeed(feedId: string): Promise<boolean> {
+    const feed = get().feeds[feedId]
+    if (!feed) return false
+
+    const isOwner = !!feed.ownerUserId && feed.ownerUserId === whoami()?.id
+    if (!isOwner && !isScraperBackedFeedUrl(feed.url)) return false
+
+    await api().feeds.refresh({ id: feedId })
+    return true
   }
 
   async fetchAnalytics(feedId: string | string[]) {

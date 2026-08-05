@@ -1,7 +1,7 @@
 import { FeedViewType } from "@follow/constants"
 import { useWhoami } from "@follow/store/user/hooks"
 import type { FlashListRef } from "@shopify/flash-list"
-import type { RefObject } from "react"
+import type { ReactElement, RefObject } from "react"
 import { useEffect } from "react"
 
 import { useGeneralSettingKey } from "@/src/atoms/settings/general"
@@ -27,9 +27,16 @@ type EntryListSelectorProps = {
   entryIds: string[] | null
   viewId: FeedViewType
   active?: boolean
+  /** Rendered above the first entry — e.g. the feed detail hero. */
+  ListHeaderComponent?: ReactElement | null
 }
 
-function EntryListSelectorImpl({ entryIds, viewId, active = true }: EntryListSelectorProps) {
+function EntryListSelectorImpl({
+  entryIds,
+  viewId,
+  active = true,
+  ListHeaderComponent,
+}: EntryListSelectorProps) {
   const ref = useRegisterNavigationScrollView<FlashListRef<any>>(active)
 
   let ContentComponent:
@@ -74,14 +81,27 @@ function EntryListSelectorImpl({ entryIds, viewId, active = true }: EntryListSel
 
   useAutoScrollToEntryAfterPullUpToNext(ref, entryIds || [])
 
-  return <ContentComponent ref={ref} entryIds={entryIds} active={active} view={viewId} />
+  return (
+    <ContentComponent
+      ref={ref}
+      entryIds={entryIds}
+      active={active}
+      view={viewId}
+      ListHeaderComponent={ListHeaderComponent}
+    />
+  )
 }
 
 export const EntryListSelector = withErrorBoundary(
-  ({ entryIds, viewId, active }: EntryListSelectorProps) => {
+  ({ entryIds, viewId, active, ListHeaderComponent }: EntryListSelectorProps) => {
     return (
       <NoLoginGuard>
-        <EntryListSelectorImpl entryIds={entryIds} viewId={viewId} active={active} />
+        <EntryListSelectorImpl
+          entryIds={entryIds}
+          viewId={viewId}
+          active={active}
+          ListHeaderComponent={ListHeaderComponent}
+        />
       </NoLoginGuard>
     )
   },

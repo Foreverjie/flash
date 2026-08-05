@@ -17,11 +17,12 @@ import type {
 } from "@follow/store/entry/types"
 import { fallbackReturn } from "@follow/store/entry/utils"
 import { useFeedById } from "@follow/store/feed/hooks"
+import { feedSyncServices } from "@follow/store/feed/store"
 import { useInboxById } from "@follow/store/inbox/hooks"
 import { useListById } from "@follow/store/list/hooks"
 import { getSubscriptionByCategory } from "@follow/store/subscription/getter"
 import { useSubscriptionByFeedId, useViewWithSubscription } from "@follow/store/subscription/hooks"
-import { jotaiStore } from "@follow/utils"
+import { isBizId, jotaiStore } from "@follow/utils"
 import { EventBus } from "@follow/utils/event-bus"
 import { debounce } from "es-toolkit"
 import { atom, useAtomValue } from "jotai"
@@ -176,7 +177,19 @@ function useRemoteEntries(props?: UseEntriesProps): UseEntriesReturn {
     }
   }, [query.isFetching])
 
-  const refetch = useCallback(async () => void query.refetch(), [query])
+  // `POST /entries` only re-reads the database, so a pull-to-refresh scoped to
+  // one feed asks the server to pull the source first. refreshFeed decides
+  // whether that is allowed and resolves false otherwise; either way the
+  // re-read still runs, and a failed pull must not swallow it.
+  const refreshableFeedId =
+    selectedFeed?.type === "feed" && isBizId(selectedFeed.feedId) ? selectedFeed.feedId : undefined
+
+  const refetch = useCallback(async () => {
+    if (refreshableFeedId) {
+      await feedSyncServices.refreshFeed(refreshableFeedId).catch(() => {})
+    }
+    await query.refetch()
+  }, [query, refreshableFeedId])
   const fetchNextPage = useCallback(async () => void query.fetchNextPage(), [query])
 
   if (!query.data || query.isLoading) {

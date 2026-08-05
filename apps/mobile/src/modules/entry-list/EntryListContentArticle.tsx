@@ -3,7 +3,7 @@ import { isFreeRole } from "@follow/constants"
 import { usePrefetchEntryTranslation } from "@follow/store/translation/hooks"
 import { useUserRole } from "@follow/store/user/hooks"
 import type { FlashListRef, ListRenderItemInfo } from "@shopify/flash-list"
-import type { ElementRef } from "react"
+import type { ElementRef, ReactElement } from "react"
 import { useCallback, useImperativeHandle, useMemo, useRef } from "react"
 import { View } from "react-native"
 
@@ -24,7 +24,13 @@ export const EntryListContentArticle = ({
   entryIds,
   active,
   view,
-}: { entryIds: string[] | null; active?: boolean; view: FeedViewType } & {
+  ListHeaderComponent,
+}: {
+  entryIds: string[] | null
+  active?: boolean
+  view: FeedViewType
+  ListHeaderComponent?: ReactElement | null
+} & {
   ref?: React.Ref<ElementRef<typeof TimelineSelectorList> | null>
 }) => {
   const extraData: EntryExtraData = useMemo(() => ({ entryIds }), [entryIds])
@@ -69,6 +75,7 @@ export const EntryListContentArticle = ({
   if (!isReady && (!entryIds || entryIds.length === 0)) {
     return (
       <View className="flex-1" style={{ paddingTop: headerHeight, paddingBottom: tabBarHeight }}>
+        {ListHeaderComponent}
         {Array.from({ length: 7 }).map((_, index) => (
           <EntryItemSkeleton key={index} />
         ))}
@@ -89,6 +96,7 @@ export const EntryListContentArticle = ({
       onScroll={onScroll}
       onViewableItemsChanged={onViewableItemsChanged}
       ItemSeparatorComponent={ItemSeparator}
+      ListHeaderComponent={ListHeaderComponent}
       ListFooterComponent={ListFooterComponent}
     />
   )

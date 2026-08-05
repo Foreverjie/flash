@@ -62,7 +62,9 @@ export const TimelineSelectorList = ({
     [scrollViewContentHeight],
   ) as FlashListProps<any>["onContentSizeChange"]
 
-  if (props.data?.length === 0) {
+  // With a list header (e.g. the feed detail hero) the empty state has to stay
+  // inside the list so the header keeps rendering above it.
+  if (props.data?.length === 0 && !props.ListHeaderComponent) {
     return <EntryListEmpty />
   }
 
@@ -96,6 +98,7 @@ export const TimelineSelectorList = ({
           paddingTop: headerHeight,
           paddingBottom: tabBarHeight,
         }}
+        ListEmptyComponent={EntryListEmpty}
         {...props}
         onScroll={onScroll}
         onEndReached={() => {
@@ -138,7 +141,7 @@ export const TimelineSelectorMasonryList = ({
 
   const systemFill = useColor("secondaryLabel")
 
-  if (props.data?.length === 0) {
+  if (props.data?.length === 0 && !props.ListHeaderComponent) {
     return <EntryListEmpty />
   }
 
@@ -146,6 +149,7 @@ export const TimelineSelectorMasonryList = ({
     <FlashList
       ref={ref}
       masonry
+      ListEmptyComponent={EntryListEmpty}
       refreshControl={
         <RefreshControl
           progressViewOffset={headerHeight}
