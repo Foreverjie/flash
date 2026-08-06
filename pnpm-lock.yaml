@@ -239,6 +239,9 @@ importers:
       '@types/node':
         specifier: 24.5.2
         version: 24.5.2
+      better-call:
+        specifier: 1.0.19
+        version: 1.0.19
       drizzle-kit:
         specifier: 0.31.6
         version: 0.31.6

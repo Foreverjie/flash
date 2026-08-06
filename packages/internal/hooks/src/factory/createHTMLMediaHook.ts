@@ -20,14 +20,18 @@ function parseTimeRanges(ranges: TimeRanges) {
 
   return result
 }
-export interface HTMLMediaProps
-  extends React.AudioHTMLAttributes<any>,
-    React.VideoHTMLAttributes<any> {
+export interface HTMLMediaProps<T extends HTMLMediaElement = HTMLMediaElement>
+  extends React.VideoHTMLAttributes<T> {
   src: string
 }
 
+export interface HTMLMediaTimeRange {
+  start: number
+  end: number
+}
+
 export interface HTMLMediaState {
-  buffered: any[]
+  buffered: HTMLMediaTimeRange[]
   duration: number
   paused: boolean
   muted: boolean
@@ -47,18 +51,24 @@ export interface HTMLMediaControls {
   seek: (time: number) => void
 }
 
-type MediaPropsWithRef<T> = HTMLMediaProps & {
-  ref?: React.MutableRefObject<T | null>
+type MediaPropsWithRef<T extends HTMLMediaElement> = HTMLMediaProps<T> & {
+  ref?: React.Ref<T>
+}
+
+function isMediaReactElement<T extends HTMLMediaElement>(
+  value: HTMLMediaProps<T> | React.ReactElement<HTMLMediaProps<T>>,
+): value is React.ReactElement<HTMLMediaProps<T>> {
+  return React.isValidElement(value)
 }
 
 export default function createHTMLMediaHook<T extends HTMLAudioElement | HTMLVideoElement>(
   tag: "audio" | "video",
 ) {
-  return (elOrProps: HTMLMediaProps | React.ReactElement<HTMLMediaProps>) => {
+  return (elOrProps: HTMLMediaProps<T> | React.ReactElement<HTMLMediaProps<T>>) => {
     let element: React.ReactElement<MediaPropsWithRef<T>> | undefined
     let props: MediaPropsWithRef<T>
 
-    if (React.isValidElement(elOrProps)) {
+    if (isMediaReactElement(elOrProps)) {
       element = elOrProps
       props = element.props
     } else {
@@ -78,13 +88,18 @@ export default function createHTMLMediaHook<T extends HTMLAudioElement | HTMLVid
     const getState = useEventCallback(() => state)
     const ref = useRef<T | null>(null)
 
-    const wrapEvent = (userEvent: any, proxyEvent?: any) => (event: any) => {
-      try {
-        proxyEvent && proxyEvent(event)
-      } finally {
-        userEvent && userEvent(event)
+    const wrapEvent =
+      (
+        userEvent?: React.ReactEventHandler<T>,
+        proxyEvent?: React.ReactEventHandler<T>,
+      ): React.ReactEventHandler<T> =>
+      (event) => {
+        try {
+          proxyEvent?.(event)
+        } finally {
+          userEvent?.(event)
+        }
       }
-    }
 
     const onPlay = () => setState({ paused: false })
     const onPlaying = () => setState({ playing: true })
@@ -125,15 +140,17 @@ export default function createHTMLMediaHook<T extends HTMLAudioElement | HTMLVid
       }
       setState({ buffered: parseTimeRanges(el.buffered) })
     }
-    const onCanPlay = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const onCanPlay: React.ReactEventHandler<T> = (e) => {
       const target = e.currentTarget
 
       const hasAudio =
-        target.srcObject instanceof MediaStream
-          ? target.srcObject.getAudioTracks().length > 0
-          : target.webkitAudioDecodedByteCount === undefined
-            ? true
-            : target.webkitAudioDecodedByteCount > 0
+        target instanceof HTMLVideoElement
+          ? target.srcObject instanceof MediaStream
+            ? target.srcObject.getAudioTracks().length > 0
+            : target.webkitAudioDecodedByteCount === undefined
+              ? true
+              : target.webkitAudioDecodedByteCount > 0
+          : true
 
       setState({ hasAudio })
     }
@@ -154,7 +171,7 @@ export default function createHTMLMediaHook<T extends HTMLAudioElement | HTMLVid
         onCanPlay: wrapEvent(props.onCanPlay, onCanPlay),
       })
     } else {
-      element = React.createElement(tag, {
+      element = React.createElement<MediaPropsWithRef<T>, T>(tag, {
         controls: false,
         ...props,
         ref,
@@ -167,7 +184,7 @@ export default function createHTMLMediaHook<T extends HTMLAudioElement | HTMLVid
         onTimeUpdate: wrapEvent(props.onTimeUpdate, onTimeUpdate),
         onProgress: wrapEvent(props.onProgress, onProgress),
         onCanPlay: wrapEvent(props.onCanPlay, onCanPlay),
-      } as any) // TODO: fix this typing.
+      })
     }
 
     // Some browsers return `Promise` on `.play()` and may throw errors

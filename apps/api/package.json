@@ -53,6 +53,7 @@
   "devDependencies": {
     "@types/bcrypt": "6.0.0",
     "@types/node": "24.5.2",
+    "better-call": "1.0.19",
     "drizzle-kit": "0.31.6",
     "msw": "2.12.7",
     "tsup": "^8.3.5",

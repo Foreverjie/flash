@@ -82,13 +82,13 @@ describe("POST /feeds/subscribe", () => {
     expect(response.status).toBe(201)
 
     const json = (await response.json()) as {
-      success: boolean
+      code: number
       data: {
         subscription: { feedId: string; userId: string; title: string; category: string }
         existed: boolean
       }
     }
-    expect(json.success).toBe(true)
+    expect(json.code).toBe(0)
     expect(json.data.subscription).toBeDefined()
     expect(json.data.subscription.feedId).toBe(testFeedId)
     expect(json.data.subscription.userId).toBe(testUser.id)
@@ -172,8 +172,8 @@ describe("POST /feeds/subscribe", () => {
 
     expect(response.status).toBe(200)
 
-    const json = (await response.json()) as { success: boolean; data: { existed: boolean } }
-    expect(json.success).toBe(true)
+    const json = (await response.json()) as { code: number; data: { existed: boolean } }
+    expect(json.code).toBe(0)
     expect(json.data.existed).toBe(true)
 
     // Verify only one subscription exists
@@ -192,7 +192,7 @@ describe("POST /feeds/subscribe", () => {
     const initialCount = feedBefore?.subscriptionCount ?? 0
 
     // Subscribe
-    await app.request("/feeds/subscribe", {
+    const response = await app.request("/feeds/subscribe", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -202,6 +202,7 @@ describe("POST /feeds/subscribe", () => {
         feedId: testFeedId,
       }),
     })
+    expect(response.status).toBe(201)
 
     // Check subscription count increased
     const feedAfter = await db.query.feeds.findFirst({

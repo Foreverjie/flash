@@ -8,19 +8,20 @@ import { useSubscriptionByFeedId } from "@follow/store/subscription/hooks"
 import { formatNumber } from "@follow/utils"
 import { cn } from "@follow/utils/utils"
 import { useSetAtom } from "jotai"
-import { AnimatePresence, m } from "motion/react"
+import { AnimatePresence } from "motion/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 
 import { RelativeTime } from "~/components/ui/datetime"
-import { useFollow } from "~/hooks/biz/useFollow"
 import { useDeleteSubscription } from "~/hooks/biz/useSubscriptionActions"
 import { FeedIcon } from "~/modules/feed/feed-icon"
 
 import { mobileReaderEntryIdAtom } from "../atoms"
 import { EntryCard } from "../cards/EntryCard"
+import { MobileFollowSheet } from "../MobileFollowSheet"
+import { MobileSheet } from "../MobileSheet"
 import type { PullState } from "../usePullToRefresh"
 import { usePullToRefresh } from "../usePullToRefresh"
 
@@ -42,6 +43,7 @@ export function MobileFeedDetailScreen() {
   const view = subscription?.view ?? FeedViewType.Articles
 
   const [infoOpen, setInfoOpen] = useState(false)
+  const [followOpen, setFollowOpen] = useState(false)
 
   const entriesQuery = useEntriesQuery(useMemo(() => ({ feedId, view }), [feedId, view]))
   const { entriesIds, isLoading, isFetchingNextPage, hasNextPage } = entriesQuery
@@ -119,7 +121,12 @@ export function MobileFeedDetailScreen() {
           transition: pullState === "pulling" || pullState === "armed" ? "none" : "transform .3s",
         }}
       >
-        <FeedHero feed={feed} feedId={feedId} onOpenInfo={() => setInfoOpen(true)} />
+        <FeedHero
+          feed={feed}
+          feedId={feedId}
+          onOpenInfo={() => setInfoOpen(true)}
+          onFollow={() => setFollowOpen(true)}
+        />
 
         <div className="flex items-center gap-2 px-4 pb-1.5 pt-3.5">
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-tertiary">
@@ -164,8 +171,15 @@ export function MobileFeedDetailScreen() {
         )}
       </div>
 
+      {/* Sheets live outside the pull-to-refresh container: its `transform`
+          would otherwise become the containing block for their `fixed` layout. */}
       <AnimatePresence>
         {infoOpen && <FeedInfoSheet feedId={feedId} onClose={() => setInfoOpen(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {followOpen && (
+          <MobileFollowSheet feed={feed} feedId={feedId} onClose={() => setFollowOpen(false)} />
+        )}
       </AnimatePresence>
     </div>
   )
@@ -259,14 +273,15 @@ function FeedHero({
   feed,
   feedId,
   onOpenInfo,
+  onFollow,
 }: {
   feed: FeedModel | undefined
   feedId: string
   onOpenInfo: () => void
+  onFollow: () => void
 }) {
   const { t } = useTranslation()
   const { t: tCommon } = useTranslation("common")
-  const follow = useFollow()
   const subscription = useSubscriptionByFeedId(feedId)
   const isSubscribed = !!subscription
   const { mutate: deleteSubscription, isPending: isUnsubscribing } = useDeleteSubscription()
@@ -328,7 +343,7 @@ function FeedHero({
             if (isSubscribed) {
               deleteSubscription({ subscription })
             } else {
-              follow({ isList: false, id: feedId, url: feed?.url })
+              onFollow()
             }
           }}
           className={cn(
@@ -400,66 +415,48 @@ function FeedInfoSheet({ feedId, onClose }: { feedId: string; onClose: () => voi
   }, [feed, subscription, t, tCommon])
 
   return (
-    <>
-      <m.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-[3px]"
-        onClick={onClose}
-      />
-      <m.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 32, stiffness: 340 }}
-        role="dialog"
-        aria-label={t("mobile.feed.info")}
-        className="shadow-modal fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl border-t border-border bg-background px-4 pb-safe-area-bottom pt-2.5"
-      >
-        <div aria-hidden className="mx-auto mb-3.5 h-1 w-9 rounded-full bg-fill-tertiary" />
-        <div className="flex items-center gap-2.5">
-          <FeedIcon
-            target={{
-              title: feed?.title,
-              image: feed?.image,
-              siteUrl: feed?.siteUrl,
-              type: "feed",
-            }}
-            size={34}
-            noMargin
-          />
-          <div className="min-w-0">
-            <div className="truncate text-[15px] font-semibold text-text">{feed?.title}</div>
-            {!!feed?.subscriptionCount && (
-              <div className="text-xs text-text-tertiary">
-                {formatNumber(feed.subscriptionCount)}{" "}
-                {tCommon("feed.follower", { count: feed.subscriptionCount })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <dl className="mt-3.5 pb-4">
-          {rows.map((row) => (
-            <div
-              key={row.key}
-              className="flex justify-between gap-4 border-t border-border/60 py-2.5 text-[13px]"
-            >
-              <dt className="shrink-0 text-text-tertiary">{row.label}</dt>
-              <dd
-                className={cn(
-                  "min-w-0 truncate text-right text-text",
-                  row.mono && "font-mono text-xs",
-                )}
-              >
-                {row.value}
-              </dd>
+    <MobileSheet label={t("mobile.feed.info")} onClose={onClose}>
+      <div className="flex items-center gap-2.5">
+        <FeedIcon
+          target={{
+            title: feed?.title,
+            image: feed?.image,
+            siteUrl: feed?.siteUrl,
+            type: "feed",
+          }}
+          size={34}
+          noMargin
+        />
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-semibold text-text">{feed?.title}</div>
+          {!!feed?.subscriptionCount && (
+            <div className="text-xs text-text-tertiary">
+              {formatNumber(feed.subscriptionCount)}{" "}
+              {tCommon("feed.follower", { count: feed.subscriptionCount })}
             </div>
-          ))}
-        </dl>
-      </m.div>
-    </>
+          )}
+        </div>
+      </div>
+
+      <dl className="mt-3.5 pb-4">
+        {rows.map((row) => (
+          <div
+            key={row.key}
+            className="flex justify-between gap-4 border-t border-border/60 py-2.5 text-[13px]"
+          >
+            <dt className="shrink-0 text-text-tertiary">{row.label}</dt>
+            <dd
+              className={cn(
+                "min-w-0 truncate text-right text-text",
+                row.mono && "font-mono text-xs",
+              )}
+            >
+              {row.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </MobileSheet>
   )
 }
 

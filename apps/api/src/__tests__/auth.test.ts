@@ -22,6 +22,10 @@ describe("Auth Module", () => {
     testEmail = `test-auth-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
   })
 
+  const verifyTestUserEmail = async () => {
+    await db.update(users).set({ emailVerified: true }).where(eq(users.email, testEmail))
+  }
+
   // Cleanup after each test
   afterEach(async () => {
     // Delete test users with email patterns we use
@@ -103,7 +107,7 @@ describe("Auth Module", () => {
   describe("POST /api/auth/sign-in/email", () => {
     it("should sign in with valid credentials", async () => {
       // First register the user
-      await app.request("/api/auth/sign-up/email", {
+      const signUpResponse = await app.request("/api/auth/sign-up/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,6 +116,8 @@ describe("Auth Module", () => {
           name: testName,
         }),
       })
+      expect(signUpResponse.status).toBe(200)
+      await verifyTestUserEmail()
 
       // Then sign in
       const response = await app.request("/api/auth/sign-in/email", {
@@ -195,7 +201,7 @@ describe("Auth Module", () => {
 
     it("should return session for authenticated request", async () => {
       // Register
-      await app.request("/api/auth/sign-up/email", {
+      const signUpResponse = await app.request("/api/auth/sign-up/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -204,6 +210,8 @@ describe("Auth Module", () => {
           name: testName,
         }),
       })
+      expect(signUpResponse.status).toBe(200)
+      await verifyTestUserEmail()
 
       // Sign in
       const signInResponse = await app.request("/api/auth/sign-in/email", {
@@ -215,18 +223,18 @@ describe("Auth Module", () => {
         }),
       })
 
-      // Get session cookie
-      const setCookie = signInResponse.headers.get("Set-Cookie")
+      expect(signInResponse.status).toBe(200)
 
-      if (!setCookie) {
-        console.warn("No Set-Cookie header, skipping authenticated session test")
-        return
-      }
+      const cookieHeader = signInResponse.headers
+        .getSetCookie()
+        .map((cookie) => cookie.split(";", 1)[0])
+        .join("; ")
+      expect(cookieHeader).not.toBe("")
 
       // Get session with cookie
       const response = await app.request("/api/auth/get-session", {
         method: "GET",
-        headers: { Cookie: setCookie },
+        headers: { Cookie: cookieHeader },
       })
 
       expect(response.status).toBe(200)

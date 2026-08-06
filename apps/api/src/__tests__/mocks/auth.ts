@@ -2,8 +2,10 @@
  * Test Authentication Utilities
  * Helpers for simulating Better-auth login state in tests
  */
+import { serializeSignedCookie } from "better-call"
 import { eq } from "drizzle-orm"
 
+import { auth } from "../../auth/index.js"
 import { db } from "../../db/index.js"
 import { sessions, users } from "../../db/schema.js"
 
@@ -99,8 +101,12 @@ export async function createAuthenticatedUser(userData: Partial<TestUser> = {}):
   const user = await createTestUser(userData)
   const session = await createTestSession(user.id)
 
-  // Better-auth uses session token in cookie
-  const cookieHeader = `follow-auth.session_token=${session.token}`
+  const authContext = await auth.$context
+  const cookieHeader = await serializeSignedCookie(
+    authContext.authCookies.sessionToken.name,
+    session.token,
+    authContext.secret,
+  )
 
   return {
     user,
@@ -118,18 +124,4 @@ export async function createAuthenticatedUser(userData: Partial<TestUser> = {}):
 export async function cleanupTestUser(userId: string): Promise<void> {
   // Sessions will be deleted via cascade
   await db.delete(users).where(eq(users.id, userId))
-}
-
-/**
- * Delete all test data (users starting with "test-")
- */
-export async function cleanupAllTestData(): Promise<void> {
-  // Delete test users - sessions cascade automatically
-  const testUsers = await db.query.users.findMany({
-    where: (users, { like }) => like(users.id, "test-%"),
-  })
-
-  for (const user of testUsers) {
-    await db.delete(users).where(eq(users.id, user.id))
-  }
 }

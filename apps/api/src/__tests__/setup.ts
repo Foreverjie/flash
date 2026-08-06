@@ -10,7 +10,6 @@ import "dotenv/config"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll } from "vitest"
 
-import { cleanupAllTestData } from "./mocks/auth.js"
 import { handlers } from "./mocks/handlers.js"
 
 // Set test environment
@@ -31,9 +30,8 @@ afterEach(() => {
   server.resetHandlers()
 })
 
-// Close server and cleanup after all tests
-afterAll(async () => {
+// Close the server after all tests in this file. Test data is cleaned up by
+// each suite so parallel test files cannot delete one another's fixtures.
+afterAll(() => {
   server.close()
-  // Clean up test data from database
-  await cleanupAllTestData()
 })
