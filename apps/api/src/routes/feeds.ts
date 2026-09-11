@@ -488,11 +488,23 @@ async function handleFeedRefresh(c: Context<{ Variables: FeedsVariables }>, id: 
           adapterType: feed.adapterType,
           source,
         })
+        const refreshedAt = new Date()
         await db
           .update(feeds)
-          .set({ lastFetchedAt: new Date(), errorAt: null, errorMessage: null })
+          .set({
+            lastFetchedAt: refreshedAt,
+            updatedAt: refreshedAt,
+            errorAt: null,
+            errorMessage: null,
+          })
           .where(eq(feeds.id, feed.id))
-        return c.json(structuredSuccess({ message: "Feed refreshed", newPosts: result.inserted }))
+        return c.json(
+          structuredSuccess({
+            message: "Feed refreshed",
+            newPosts: result.inserted,
+            refreshedAt,
+          }),
+        )
       } catch (err) {
         logger.error(`[Feeds] Scraping service error for feed ${id}:`, err)
 
@@ -531,6 +543,7 @@ async function handleFeedRefresh(c: Context<{ Variables: FeedsVariables }>, id: 
     }
 
     const feedData = result.data
+    const refreshedAt = new Date()
 
     // Update feed metadata
     await db
@@ -539,11 +552,11 @@ async function handleFeedRefresh(c: Context<{ Variables: FeedsVariables }>, id: 
         title: feedData.title || feed.title,
         description: feedData.description || feed.description,
         image: feedData.image || feed.image,
-        lastFetchedAt: new Date(),
+        lastFetchedAt: refreshedAt,
         lastBuildDate: feedData.lastBuildDate,
         errorAt: null,
         errorMessage: null,
-        updatedAt: new Date(),
+        updatedAt: refreshedAt,
       })
       .where(eq(feeds.id, id))
 
@@ -584,6 +597,7 @@ async function handleFeedRefresh(c: Context<{ Variables: FeedsVariables }>, id: 
       structuredSuccess({
         message: "Feed refreshed successfully",
         newPosts: newPostsCount,
+        refreshedAt,
       }),
     )
   } catch (error) {

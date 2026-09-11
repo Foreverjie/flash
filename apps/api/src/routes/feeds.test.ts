@@ -96,6 +96,8 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
 
   it("returns newPosts from scraping service for x_timeline feed", async () => {
     const { db } = await import("../db/index.js")
+    const setSpy = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: setSpy })
     ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "feed-123",
       url: "x_timeline://elonmusk",
@@ -109,10 +111,17 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
     app.route("/feeds", feedsRouter)
 
     const res = await app.request("/feeds/feed-123/refresh", { method: "POST" })
-    const body = (await res.json()) as { data: { newPosts: number } }
+    const body = (await res.json()) as { data: { newPosts: number; refreshedAt: string } }
 
     expect(res.status).toBe(200)
     expect(body.data.newPosts).toBe(3)
+    expect(Number.isNaN(new Date(body.data.refreshedAt).getTime())).toBe(false)
+    expect(setSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lastFetchedAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      }),
+    )
   })
 
   it("returns 503 without flagging the feed when the scraper itself is down", async () => {
@@ -188,6 +197,51 @@ describe("POST /feeds/:id/refresh — x_timeline branch", () => {
 
     expect(res.status).toBe(502)
     expect(setSpy).toHaveBeenCalledWith(expect.objectContaining({ errorAt: expect.any(Date) }))
+  })
+})
+
+describe("POST /feeds/:id/refresh — RSS branch", () => {
+  beforeEach(() => {
+    vi.resetModules()
+  })
+
+  it("updates the refresh timestamp when the source has no new posts", async () => {
+    const { db } = await import("../db/index.js")
+    const setSpy = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) })
+    ;(db.update as ReturnType<typeof vi.fn>).mockReturnValue({ set: setSpy })
+    ;(db.query.feeds.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "feed-rss-123",
+      url: "https://example.com/rss.xml",
+      title: "Example",
+      adapterType: "default",
+    })
+
+    server.use(
+      http.get("https://example.com/rss.xml", () =>
+        HttpResponse.text(
+          `<?xml version="1.0" encoding="UTF-8" ?>
+          <rss version="2.0"><channel><title>Example</title><link>https://example.com</link></channel></rss>`,
+          { headers: { "Content-Type": "application/rss+xml" } },
+        ),
+      ),
+    )
+
+    const { default: feedsRouter } = await import("./feeds.js")
+    const app = new Hono()
+    app.route("/feeds", feedsRouter)
+
+    const res = await app.request("/feeds/feed-rss-123/refresh", { method: "POST" })
+    const body = (await res.json()) as { data: { newPosts: number; refreshedAt: string } }
+
+    expect(res.status).toBe(200)
+    expect(body.data.newPosts).toBe(0)
+    expect(Number.isNaN(new Date(body.data.refreshedAt).getTime())).toBe(false)
+    expect(setSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lastFetchedAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      }),
+    )
   })
 })
 
@@ -382,10 +436,11 @@ describe("GET /feeds/refresh — client SDK route", () => {
     app.route("/feeds", feedsRouter)
 
     const res = await app.request("/feeds/refresh?id=feed-123")
-    const body = (await res.json()) as { data: { newPosts: number } }
+    const body = (await res.json()) as { data: { newPosts: number; refreshedAt: string } }
 
     expect(res.status).toBe(200)
     expect(body.data.newPosts).toBe(5)
+    expect(Number.isNaN(new Date(body.data.refreshedAt).getTime())).toBe(false)
   })
 
   it("is not swallowed by GET /feeds/:id — 'refresh' is never read as a feed id", async () => {

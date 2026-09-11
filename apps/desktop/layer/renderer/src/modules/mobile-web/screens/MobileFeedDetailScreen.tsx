@@ -397,11 +397,11 @@ function FeedInfoSheet({ feedId, onClose }: { feedId: string; onClose: () => voi
         value: tCommon("feed.entry_week", { count: feed.updatesPerWeek }),
       })
     }
-    if (feed?.latestEntryPublishedAt) {
+    if (feed?.updatedAt) {
       list.push({
         key: "updated",
         label: t("mobile.feed.info_updated"),
-        value: <RelativeTime date={feed.latestEntryPublishedAt} />,
+        value: <RelativeTime date={feed.updatedAt} />,
       })
     }
     if (subscription?.category) {

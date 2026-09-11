@@ -235,9 +235,15 @@ router.post(
       if (result.length > 0) inserted++
     }
 
+    const refreshedAt = new Date()
     await db
       .update(feeds)
-      .set({ lastFetchedAt: new Date(), errorAt: null, errorMessage: null })
+      .set({
+        lastFetchedAt: refreshedAt,
+        updatedAt: refreshedAt,
+        errorAt: null,
+        errorMessage: null,
+      })
       .where(eq(feeds.id, feedId))
 
     logger.info("[Scrapling] Ingested posts for feed", { inserted, feedId })

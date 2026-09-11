@@ -209,7 +209,18 @@ class FeedSyncServices {
     const isOwner = !!feed.ownerUserId && feed.ownerUserId === whoami()?.id
     if (!isOwner && !isScraperBackedFeedUrl(feed.url)) return false
 
-    await api().feeds.refresh({ id: feedId })
+    const res = await api().feeds.refresh({ id: feedId })
+    // The upstream SDK still types this response as empty.
+    const { data } = res
+    if (data && typeof data === "object" && "refreshedAt" in data) {
+      const { refreshedAt } = data
+      if (typeof refreshedAt === "string") {
+        const updatedAt = new Date(refreshedAt)
+        if (!Number.isNaN(updatedAt.getTime())) {
+          await feedActions.patch(feedId, { updatedAt })
+        }
+      }
+    }
     return true
   }
 
