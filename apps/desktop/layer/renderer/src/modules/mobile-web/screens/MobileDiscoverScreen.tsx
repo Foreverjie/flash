@@ -67,6 +67,16 @@ export function MobileDiscoverScreen() {
   return (
     <div className="flex flex-col pb-10">
       <header className="border-b border-border-secondary px-4 pb-3.5 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+        {!panelType && !isSearching && (
+          <div className="pb-5 pt-2">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-accent-ink">
+              {t("words.discover")}
+            </div>
+            <h1 className="m-0 max-w-sm text-balance text-[36px] font-bold leading-[1.08] tracking-[-0.035em] text-text">
+              {t("discover.hero_title")}
+            </h1>
+          </div>
+        )}
         <DiscoverSearchField
           value={keyword}
           onSubmit={(value) => patchSearch({ type: "search", keyword: value })}

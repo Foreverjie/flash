@@ -68,8 +68,9 @@ export function QuickChip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={!!active}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-semibold transition-colors",
+        "inline-flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-accent",
         active
           ? "bg-accent text-accent-fg"
           : "border border-border bg-background text-text hover:bg-fill-secondary",
@@ -100,7 +101,7 @@ export function FollowPill({
       type="button"
       onClick={() => follow({ isList: false, id: feedId, url })}
       className={cn(
-        "h-7 shrink-0 rounded-full px-3.5 text-xs font-bold transition-colors",
+        "min-h-9 shrink-0 rounded-full px-3.5 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-accent",
         isSubscribed
           ? "border border-border bg-background text-text-secondary"
           : "bg-accent text-accent-fg hover:opacity-90",
@@ -135,7 +136,7 @@ export function TrendingLeaderboard({
 
   if (isLoading) {
     return (
-      <div className={cn("grid gap-2.5", columns === 2 && "grid-cols-2")}>
+      <div className={cn("grid grid-cols-1 gap-2.5", columns === 2 && "grid-cols-2")}>
         {TRENDING_SKELETON_KEYS.map((key) => (
           <Skeleton key={key} className="h-16 w-full rounded-xl" />
         ))}
@@ -144,7 +145,7 @@ export function TrendingLeaderboard({
   }
 
   return (
-    <div className={cn("grid gap-2.5", columns === 2 && "grid-cols-2")}>
+    <div className={cn("grid grid-cols-1 gap-2.5", columns === 2 && "grid-cols-2")}>
       {data?.data?.map((item, index) => (
         <TrendingRow
           key={item.feed?.id || index}
@@ -173,7 +174,7 @@ function TrendingRow({
   return (
     <div
       className={cn(
-        "flex items-center gap-3.5",
+        "flex min-w-0 items-center gap-3.5",
         boxed
           ? "rounded-xl border border-border-secondary bg-material-opaque px-3.5 py-3"
           : "border-b border-border-secondary py-2.5 last:border-b-0",
@@ -183,7 +184,7 @@ function TrendingRow({
         className={cn(
           "shrink-0 text-center font-bold tabular-nums",
           boxed ? "w-6 text-xl" : "w-5 text-base",
-          rank <= 3 ? "text-accent-ink" : "text-text-quaternary",
+          rank <= 3 ? "text-accent-ink" : "text-text-secondary",
         )}
       >
         {rank}

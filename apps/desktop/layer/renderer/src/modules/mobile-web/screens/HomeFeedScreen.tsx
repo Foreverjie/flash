@@ -4,7 +4,7 @@ import { useWhoami } from "@follow/store/user/hooks"
 import { useAtom, useSetAtom } from "jotai"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useNavigate } from "react-router"
+import { Link, useNavigate } from "react-router"
 
 import { PlainModal } from "~/components/ui/modal/stacked/custom-modal"
 import { useModalStack } from "~/components/ui/modal/stacked/hooks"
@@ -120,7 +120,7 @@ function AuthenticatedHomeFeed() {
         {isLoading && entriesIds.length === 0 ? (
           Array.from({ length: 6 }).map((_, i) => <EntryCardSkeleton key={i} />)
         ) : !isLoading && entriesIds.length === 0 ? (
-          <div className="px-6 py-12">
+          <div className="flex flex-col items-center px-6 py-12">
             <EmptyStage
               eyebrow={t("mobile.home.empty.title")}
               glyph={<i className="i-mgc-inbox-cute-re" />}
@@ -128,6 +128,13 @@ function AuthenticatedHomeFeed() {
               body={t("mobile.home.empty.body")}
               size="md"
             />
+            <Link
+              to="/discover"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-bold text-accent-fg transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2"
+            >
+              {t("mobile.discover.title")}
+              <i aria-hidden className="i-mgc-right-cute-re size-4" />
+            </Link>
           </div>
         ) : (
           <>

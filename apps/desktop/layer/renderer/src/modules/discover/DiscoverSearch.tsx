@@ -1,7 +1,7 @@
 import { Skeleton } from "@follow/components/ui/skeleton/index.jsx"
 import { cn } from "@follow/utils/utils"
 import { useQuery } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { useIsInMASReview } from "~/atoms/server-configs"
@@ -30,17 +30,23 @@ export function DiscoverSearchField({
 }) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(value)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Keep in sync when the query changes from outside (back/forward, chips).
   useEffect(() => setDraft(value), [value])
 
   const submit = () => {
     const keyword = draft.trim()
-    if (keyword) onSubmit(keyword)
+    onSubmit(keyword)
   }
 
   return (
-    <div
+    <form
+      role="search"
+      onSubmit={(event) => {
+        event.preventDefault()
+        submit()
+      }}
       className={cn(
         "group flex w-full items-center gap-3 border border-border bg-background transition-colors",
         "focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/25",
@@ -54,29 +60,46 @@ export function DiscoverSearchField({
         )}
       />
       <input
+        ref={inputRef}
+        type="search"
+        enterKeyHint="search"
+        aria-label={t("discover.search_placeholder")}
         autoFocus={autoFocus}
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") submit()
-        }}
         placeholder={t("discover.search_placeholder")}
         data-testid="discover-search-input"
         className={cn(
-          "min-w-0 flex-1 bg-transparent text-text outline-none placeholder:text-text-quaternary",
+          "min-w-0 flex-1 bg-transparent text-text outline-none placeholder:text-text-secondary [&::-webkit-search-cancel-button]:appearance-none",
           big ? "text-base" : "text-sm",
         )}
       />
-      {big && (
+      {(draft || value) && (
         <button
           type="button"
-          onClick={submit}
-          className="h-11 shrink-0 rounded-xl bg-accent px-5 text-sm font-bold text-accent-fg transition-opacity hover:opacity-90"
+          aria-label={t("discover.search_clear")}
+          onClick={() => {
+            setDraft("")
+            onSubmit("")
+            inputRef.current?.focus()
+          }}
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-fill-secondary focus-visible:ring-2 focus-visible:ring-accent"
         >
-          {t("words.search")}
+          <i aria-hidden className="i-mgc-close-cute-re size-4" />
         </button>
       )}
-    </div>
+      <button
+        type="submit"
+        aria-label={t("words.search")}
+        disabled={!draft.trim()}
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-lg bg-accent font-bold text-accent-fg transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-accent-ink focus-visible:ring-offset-2 disabled:opacity-50",
+          big ? "h-11 px-5 text-sm" : "size-9",
+        )}
+      >
+        {big ? t("words.search") : <i aria-hidden className="i-mgc-right-cute-re size-5" />}
+      </button>
+    </form>
   )
 }
 
@@ -102,9 +125,10 @@ export function DiscoverResultTabs({
           <button
             key={item.value}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange(item.value)}
             className={cn(
-              "-mb-px border-b-2 px-4 py-2.5 text-sm transition-colors",
+              "-mb-px border-b-2 px-4 py-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-accent",
               active
                 ? "border-accent font-bold text-text"
                 : "border-transparent font-semibold text-text-tertiary hover:text-text-secondary",
@@ -128,7 +152,7 @@ export function DiscoverSearchResults({
   const { t } = useTranslation()
   const isInMASReview = useIsInMASReview()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["discover", "search", keyword, target],
     enabled: !!keyword,
     queryFn: async () => {
@@ -150,11 +174,30 @@ export function DiscoverSearchResults({
     )
   }
 
+  if (isError) {
+    return (
+      <div role="alert" className="py-8">
+        <p className="text-sm text-text-secondary">{t("discover.search_error")}</p>
+        <button
+          type="button"
+          disabled={isFetching}
+          onClick={() => void refetch()}
+          className="mt-4 rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-accent-fg focus-visible:ring-2 focus-visible:ring-accent-ink disabled:opacity-50"
+        >
+          {t("retry", { ns: "common" })}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div data-testid="discover-search-results">
-      <div className="mb-4 text-sm text-text-tertiary">
+      <div role="status" className="mb-4 text-sm text-text-secondary">
         {t("discover.search.results", { count: data?.length || 0 })}
       </div>
+      {data?.length === 0 && (
+        <p className="mb-6 text-sm text-text-secondary">{t("discover.search_empty_hint")}</p>
+      )}
       <div className="space-y-4 text-sm">
         {data?.map((item) => (
           <DiscoverFeedCard key={item.feed?.id || item.list?.id} item={item} />
