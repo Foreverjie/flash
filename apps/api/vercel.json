@@ -8,16 +8,6 @@
       "schedule": "0 8 * * *"
     }
   ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.ts"
-    }
-  ],
   "env": {
     "NODE_ENV": "production"
   }
